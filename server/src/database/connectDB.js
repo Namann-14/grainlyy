@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const connectDB = async () => {
     try {
-        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}`);
+        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}grainlyy-database`);
         console.log(`Connected to MongoDB`);
 
     } catch (error) {

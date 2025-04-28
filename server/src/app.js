@@ -20,7 +20,9 @@ app.use(cookieParser());
 
 // Import routes
 import deliveryRiderRoutes from "./routes/deliveryRider.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 app.use("/api/delivery", deliveryRiderRoutes);
+app.use("/api/admin", adminRoutes);
 
 export default app;

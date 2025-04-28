@@ -1,11 +1,13 @@
 import DeliveryRider from "../models/delivery.model.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 export const registerDeliveryRider = async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, profileImage, vehicleType, vehicleNumber, status, password } = req.body;
 
     // Check if required fields are provided
-    if (!name || !email || !phone) {
+    if (!name || !email || !phone || !vehicleNumber || !vehicleType || !password) {
       return res.status(400).json({
         success: false,
         message: "All required fields must be provided",
@@ -24,13 +26,30 @@ export const registerDeliveryRider = async (req, res) => {
       });
     }
 
-    // Create new rider
+    // Create new rider with password (will be hashed by pre-save hook)
     const newRider = await DeliveryRider.create(req.body);
+
+    // Generate tokens
+    const accessToken = generateAccessToken(newRider);
+    const refreshToken = generateRefreshToken(newRider);
+
+    // Store refresh token in database
+    newRider.refreshToken = refreshToken;
+    await newRider.save();
+
+    // Remove password from response data
+    const riderObject = newRider.toObject();
+    delete riderObject.password;
+    delete riderObject.refreshToken;
 
     res.status(201).json({
       success: true,
       message: "Delivery rider registered successfully",
-      data: newRider,
+      data: {
+        rider: riderObject,
+        accessToken,
+        refreshToken
+      }
     });
   } catch (error) {
     console.error("Error in registerDeliveryRider:", error);
@@ -42,44 +61,65 @@ export const registerDeliveryRider = async (req, res) => {
   }
 };
 
-export const updateDeliveryRider = async (req, res) => {
+export const loginDeliveryRider = async (req, res) => {
   try {
-    const { riderId } = req.query;
+    const { email, password } = req.body;
     
-    if (!riderId) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Rider ID is required",
+        message: "Email and password are required"
       });
     }
-
-    // Check if rider exists
-    const rider = await DeliveryRider.findById(riderId);
+    
+    // Find rider with password included
+    const rider = await DeliveryRider.findOne({ email }).select("+password");
+      
     if (!rider) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
-        message: "Delivery rider not found",
+        message: "Invalid email or password"
       });
     }
+    
+    // Verify password
+    const isPasswordValid = await rider.comparePassword(password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+    
+    // Generate tokens
+    const accessToken = generateAccessToken(rider);
+    const refreshToken = generateRefreshToken(rider);
 
-    // Update rider information
-    const updatedRider = await DeliveryRider.findByIdAndUpdate(
-      riderId,
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-
+    // Store refresh token in database
+    rider.refreshToken = refreshToken;
+    await rider.save();
+    
+    // Remove password from response
+    const riderObject = rider.toObject();
+    delete riderObject.password;
+    delete riderObject.refreshToken;
+    
     res.status(200).json({
       success: true,
-      message: "Delivery rider updated successfully",
-      data: updatedRider,
+      message: "Login successful",
+      data: {
+        rider: riderObject,
+        accessToken,
+        refreshToken
+      }
     });
   } catch (error) {
-    console.error("Error in updateDeliveryRider:", error);
+    console.error("Error in loginDeliveryRider:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to update delivery rider",
-      error: error.message,
+      message: "Login failed",
+      error: error.message
     });
   }
 };
@@ -194,7 +234,7 @@ export const updateLocation = async (req, res) => {
     const updatedRider = await DeliveryRider.findByIdAndUpdate(
       riderId,
       {
-        currentLocation: {
+        destinationLocation: {
           type: "Point",
           coordinates: coordinates,
         },
@@ -220,6 +260,120 @@ export const updateLocation = async (req, res) => {
       success: false,
       message: "Failed to update rider location",
       error: error.message,
+    });
+  }
+};
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required"
+      });
+    }
+    
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    
+    // Find user with matching refresh token
+    const rider = await DeliveryRider.findOne({
+      _id: decoded.id,
+      refreshToken: refreshToken
+    });
+    
+    if (!rider) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token"
+      });
+    }
+    
+    // Generate new access token
+    const newAccessToken = generateAccessToken(rider);
+    
+    res.status(200).json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: {
+        accessToken: newAccessToken
+      }
+    });
+  } catch (error) {
+    console.error("Error in refreshAccessToken:", error);
+    res.status(401).json({
+      success: false,
+      message: "Invalid or expired refresh token",
+      error: error.message
+    });
+  }
+};
+
+// Helper functions
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    { 
+      id: user._id, 
+      email: user.email,
+      role: 'rider'
+    }, 
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+};
+
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+// Update rider profile
+export const updateDeliveryRider = async (req, res) => {
+  try {
+    const { riderId } = req.query;
+    const updateData = req.body;
+    
+    if (!riderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Rider ID is required"
+      });
+    }
+    
+    // Remove protected fields
+    delete updateData.password;
+    delete updateData.refreshToken;
+    
+    // Update rider
+    const updatedRider = await DeliveryRider.findByIdAndUpdate(
+      riderId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedRider) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery rider not found"
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "Rider profile updated successfully",
+      data: updatedRider
+    });
+  } catch (error) {
+    console.error("Error in updateDeliveryRider:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update rider profile",
+      error: error.message
     });
   }
 };
