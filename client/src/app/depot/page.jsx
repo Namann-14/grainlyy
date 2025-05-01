@@ -1,11 +1,50 @@
 'use client'
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { useMetaMask } from '@/components/MetaMaskProvider';
 import { ethers } from 'ethers';
 import { getContract } from '../../utils/contract';
 import DepotLayout from '../../components/DepotLayout';
+import { motion } from "framer-motion";
+import { 
+  ArrowUpRight, CheckCircle2, Clock, Package, MapPin, 
+  Truck, Users, Warehouse, UserCheck, ShoppingBag, History 
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Animation variants for Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+};
 
 export default function DepotDashboard() {
   const { connected, provider, chainId } = useMetaMask();
@@ -23,6 +62,13 @@ export default function DepotDashboard() {
   const [activeDelivery, setActiveDelivery] = useState(null);
   const [completedDeliveries, setCompletedDeliveries] = useState([]);
   
+  // MetaMask modal simulation
+  const [showMetaMaskModal, setShowMetaMaskModal] = useState(false);
+  const [metaMaskModalType, setMetaMaskModalType] = useState('');
+  const [metaMaskModalMessage, setMetaMaskModalMessage] = useState('');
+  const [fakeTransactionHash, setFakeTransactionHash] = useState('');
+  const [fakeMode, setFakeMode] = useState(true); // Set to true by default for easier testing
+  
   // OTP verification
   const [otpInput, setOtpInput] = useState('');
   const [receivedOtp, setReceivedOtp] = useState('');
@@ -38,9 +84,9 @@ export default function DepotDashboard() {
   // General state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [txHistory, setTxHistory] = useState([]);
-  
-
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Load transaction history from localStorage
   useEffect(() => {
@@ -53,6 +99,22 @@ export default function DepotDashboard() {
       }
     }
   }, []);
+  
+  // Add this useEffect to poll for verification status updates
+  useEffect(() => {
+    let interval;
+    
+    if (currentOTP && !otpSuccess && activeDelivery && activeDelivery.status !== 'authenticated') {
+      // Poll every 10 seconds to check if OTP was verified
+      interval = setInterval(() => {
+        checkDeliveryStatus();
+      }, 10000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentOTP, otpSuccess, activeDelivery]);
   
   // Save transaction to history
   const saveTransaction = (txData) => {
@@ -305,56 +367,232 @@ export default function DepotDashboard() {
         timestamp: Date.now(),
         details: `Started delivery process with Delivery Person ID: ${deliveryPersonId}`
       });
+      
+      // Switch to active delivery tab
+      setActiveTab('active-delivery');
     } catch (error) {
       console.error('Error receiving delivery person:', error);
       setError('Failed to receive delivery person: ' + (error.message || error.toString()));
     }
   };
-  // Replace the current generateOTP function with this corrected version
 
-const generateOTP = async () => {
-  try {
-    setGeneratingOtp(true);
-    setOtpError('');
-    
-    if (!activeDelivery) {
-      setOtpError('No active delivery found');
+  // Generate OTP - Enhanced version with fake mode support
+  const generateOTP = async () => {
+    try {
+      setGeneratingOtp(true);
+      setOtpError('');
+      setOtpSuccess('');
+      
+      if (!activeDelivery) {
+        setOtpError('No active delivery found');
+        setGeneratingOtp(false);
+        return null;
+      }
+      
+      // If in fake mode, generate OTP without blockchain interaction
+      if (fakeMode) {
+        // Show fake MetaMask popup
+        setMetaMaskModalType('otp');
+        setMetaMaskModalMessage('Generating OTP on blockchain...');
+        setShowMetaMaskModal(true);
+        
+        // Simulate transaction delay
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        
+        // Generate fake transaction hash
+        const mockTxHash = '0x' + Math.random().toString(16).substr(2, 64);
+        setFakeTransactionHash(mockTxHash);
+        
+        // Hide MetaMask popup
+        setShowMetaMaskModal(false);
+        
+        // Generate a 6-digit OTP
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        setCurrentOTP(generatedOtp);
+        setOtpSuccess(`OTP generated successfully: ${generatedOtp}`);
+        
+        // Save transaction to history
+        saveTransaction({
+          type: 'Generate OTP (Simulated)',
+          txHash: mockTxHash,
+          timestamp: Date.now(),
+          details: `OTP generated for delivery person: ${activeDelivery.deliveryPersonName}`
+        });
+        
+        return generatedOtp;
+      }
+      
+      // Original blockchain OTP generation code
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      const contract = getContract(signer);
+      
+      console.log(`Generating OTP for active delivery with delivery person: ${activeDelivery.deliveryPersonId}`);
+      
+      // Use deliveryPersonId instead of deliveryId since that's what we have
+      const tx = await contract.generateOTP(activeDelivery.deliveryPersonId);
+      const receipt = await tx.wait();
+      
+      // For testing purposes, generate a random OTP
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      setCurrentOTP(generatedOtp);
+      setOtpSuccess(`OTP generated successfully: ${generatedOtp}`);
+      
+      // Save transaction to history
+      saveTransaction({
+        type: 'Generate OTP',
+        txHash: tx.hash,
+        timestamp: Date.now(),
+        details: `OTP generated for delivery person: ${activeDelivery.deliveryPersonName}`
+      });
+      
+      return generatedOtp;
+    } catch (error) {
+      console.error('Error generating OTP:', error);
+      
+      // Parse the error to provide a better message
+      let errorMessage = error.message || error.toString();
+      
+      if (errorMessage.includes("Delivery not in pending state")) {
+        setOtpError("Cannot generate OTP: Delivery is not in pending state. This may happen if the OTP was already generated or delivery is completed.");
+      } else {
+        setOtpError(`Failed to generate OTP: ${errorMessage}`);
+      }
       return null;
+    } finally {
+      setGeneratingOtp(false);
     }
-    
-    const ethersProvider = new ethers.BrowserProvider(provider);
-    const signer = await ethersProvider.getSigner();
-    const contract = getContract(signer);
-    
-    console.log(`Generating OTP for active delivery with delivery person: ${activeDelivery.deliveryPersonId}`);
-    
-    // Use deliveryPersonId instead of deliveryId since that's what we have
-    const tx = await contract.generateOTP(activeDelivery.deliveryPersonId);
-    const receipt = await tx.wait();
-    
-    // For testing purposes, generate a random OTP
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    setCurrentOTP(generatedOtp);
-    setOtpSuccess(`OTP generated successfully: ${generatedOtp}`);
-    
-    // Save transaction to history
-    saveTransaction({
-      type: 'Generate OTP',
-      txHash: tx.hash,
-      timestamp: Date.now(),
-      details: `OTP generated for delivery person: ${activeDelivery.deliveryPersonName}`
-    });
-    
-    return generatedOtp;
-  } catch (error) {
-    console.error('Error generating OTP:', error);
-    setOtpError(`Failed to generate OTP: ${error.message || error.toString()}`);
-    return null;
-  } finally {
-    setGeneratingOtp(false);
-  }
-};
+  };
+  
+  // Add this function to check OTP verification status
+  const checkDeliveryStatus = async () => {
+    try {
+      if (!activeDelivery) {
+        setError('No active delivery found');
+        return;
+      }
+      
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      const contract = getContract(signer);
+      
+      // Find the delivery ID
+      const deliveryCount = await contract.rationDeliveryCount();
+      let currentDeliveryId = null;
+      let currentStatus = null;
+      
+      for (let i = 1; i <= Number(deliveryCount); i++) {
+        try {
+          const delivery = await contract.getDeliveryDetails(i);
+          
+          if (delivery.deliveryPersonId.toString() === activeDelivery.deliveryPersonId.toString() &&
+              delivery.depotId.toString() === depotId) {
+            
+            currentDeliveryId = i;
+            currentStatus = Number(delivery.status);
+            console.log(`Found delivery ${currentDeliveryId} with status: ${currentStatus}`);
+            break;
+          }
+        } catch (err) {
+          console.error(`Error checking delivery ${i}:`, err);
+        }
+      }
+      
+      if (!currentDeliveryId) {
+        setError('Could not find delivery details');
+        return;
+      }
+      
+      // Check if OTP has been verified (status would be IN_TRANSIT but with verified event)
+      if (currentStatus === 1) { // IN_TRANSIT
+        // Check for OTPVerified events for this delivery
+        const filter = contract.filters.OTPVerified(currentDeliveryId);
+        const events = await contract.queryFilter(filter);
+        
+        if (events.length > 0) {
+          // OTP was verified by delivery person
+          setOtpSuccess('OTP was successfully verified by the delivery person!');
+          
+          // Update active delivery status
+          const updatedDelivery = {...activeDelivery, status: 'authenticated'};
+          setActiveDelivery(updatedDelivery);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking delivery status:', error);
+      setError('Failed to check delivery status: ' + (error.message || error.toString()));
+    }
+  };
+  
+  // Add this function to reset delivery state when needed
+  const resetDeliveryState = async () => {
+    try {
+      setLoading(true);
+      
+      if (!activeDelivery) {
+        setError('No active delivery to reset');
+        setLoading(false);
+        return;
+      }
+      
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      const contract = getContract(signer);
+      
+      // Find the actual delivery ID based on the delivery person ID
+      const deliveryCount = await contract.rationDeliveryCount();
+      let deliveryIdToReset = null;
+      
+      for (let i = 1; i <= Number(deliveryCount); i++) {
+        try {
+          const delivery = await contract.getDeliveryDetails(i);
+          
+          if (delivery.deliveryPersonId.toString() === activeDelivery.deliveryPersonId.toString() &&
+              delivery.depotId.toString() === depotId) {
+            deliveryIdToReset = i;
+            console.log(`Found delivery to reset: ${deliveryIdToReset}`);
+            break;
+          }
+        } catch (err) {
+          console.error(`Error checking delivery ${i}:`, err);
+        }
+      }
+      
+      if (!deliveryIdToReset) {
+        setError('Could not find the delivery to reset.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log(`Resetting delivery ID: ${deliveryIdToReset}`);
+      
+      // Reset the delivery state back to pending using the found ID
+      const tx = await contract.resetDeliveryState(deliveryIdToReset);
+      await tx.wait();
+      
+      // Clear success/error states
+      setError('');
+      setSuccess('Delivery state successfully reset to pending');
+      
+      // Reset the current delivery state
+      setCurrentOTP(null);
+      setActiveDelivery(null);
+      setOtpSuccess('');
+      setOtpError('');
+      
+      // Refresh deliveries data
+      if (typeof fetchDeliveries === 'function') {
+        fetchDeliveries(contract, depotId);
+      }
+    } catch (error) {
+      console.error('Error resetting delivery state:', error);
+      setError('Failed to reset delivery state: ' + (error.message || error.toString()));
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Verify OTP
   const verifyOTP = async () => {
@@ -445,6 +683,10 @@ const generateOTP = async () => {
       setReceivedOtp('');
       setOtpSuccess('');
       setOtpError('');
+      setCurrentOTP('');
+      
+      // Switch back to overview tab
+      setActiveTab('overview');
       
       alert('Delivery completed successfully! Funds have been transferred to the delivery person.');
     } catch (error) {
@@ -586,630 +828,938 @@ const generateOTP = async () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-  
+
+  // Stats for dashboard
+  const getStats = () => [
+    {
+      title: "Assigned Users",
+      value: assignedUsers.length,
+      change: `+${assignedUsers.length > 0 ? assignedUsers.length : 0}%`,
+      icon: Users,
+      color: "bg-green-50 text-green-700",
+    },
+    {
+      title: "Delivery Personnel",
+      value: assignedDeliveryPersons.length,
+      change: `+${assignedDeliveryPersons.length > 0 ? assignedDeliveryPersons.length : 0}%`,
+      icon: Truck,
+      color: "bg-amber-50 text-amber-700",
+    },
+    {
+      title: "Total Distributions",
+      value: rationDistributions.length,
+      change: `+${rationDistributions.length > 0 ? rationDistributions.length : 0}%`,
+      icon: ShoppingBag,
+      color: "bg-blue-50 text-blue-700",
+    },
+    {
+      title: "Completed Deliveries",
+      value: completedDeliveries.length,
+      change: `+${completedDeliveries.length > 0 ? completedDeliveries.length : 0}%`,
+      icon: CheckCircle2,
+      color: "bg-green-50 text-green-700",
+    },
+  ];
+
+  // Get status badge color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return "bg-green-100 text-green-800";
+      case 'authenticated':
+        return "bg-blue-100 text-blue-800";
+      case 'in-progress':
+        return "bg-amber-100 text-amber-800";
+      case 'scheduled':
+        return "bg-purple-100 text-purple-800";
+      case 'location-verified':
+        return "bg-emerald-100 text-emerald-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
   return (
     <DepotLayout>
-      <Head>
-        <title>Depot Dashboard | RationChain</title>
-      </Head>
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Depot Dashboard</h1>
-            {!loading && depotName && (
-              <p className="text-lg text-gray-600">Welcome, {depotName}</p>
-            )}
-            {!loading && depotLocation && (
-              <p className="text-sm text-gray-500">Location: {depotLocation}</p>
-            )}
-          </div>
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col gap-2 mb-6">
+          <h1 className="text-3xl font-bold text-green-900">Depot Dashboard</h1>
+          {!loading && depotName && (
+            <p className="text-muted-foreground">
+              Welcome to {depotName} {depotLocation && `(${depotLocation})`}
+            </p>
+          )}
         </div>
-        
+  
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+  
+        {success && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Success</AlertTitle>
+            <AlertDescription className="text-green-700">{success}</AlertDescription>
+          </Alert>
+        )}
+  
         {loading ? (
-          <div className="text-center p-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p>Loading your dashboard...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+            <p className="ml-3">Loading your dashboard...</p>
           </div>
         ) : (
-          <>
-            {activeDelivery ? (
-              // Active delivery section
-              <div className="grid grid-cols-1 gap-8 mb-8">
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Active Delivery</h2>
-                    <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
-                      {activeDelivery.status === 'authenticated' ? 'OTP Verified' : 
-                       activeDelivery.status === 'location-verified' ? 'Location Verified' : 'In Progress'}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <p className="text-gray-600 mb-2">Delivery Person:</p>
-                      <p className="font-medium">{activeDelivery.deliveryPersonName} (ID: {activeDelivery.deliveryPersonId})</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600 mb-2">Start Time:</p>
-                      <p className="font-medium">{formatDate(activeDelivery.startTime)}</p>
-                    </div>
-                  </div>
-                  
-                 
-
-{/* OTP Generation and Display */}
-{activeDelivery && (
-  <div className="mt-4">
-    {otpError && (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        {otpError}
-      </div>
-    )}
-    
-    {otpSuccess && (
-      <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-        {otpSuccess}
-      </div>
-    )}
-    
-    {currentOTP && (
-      <div className="mt-4 bg-green-50 border border-green-300 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-green-800 mb-2">Verification OTP</h3>
-        <div className="bg-white p-3 border border-green-200 rounded-lg text-center">
-          <p className="text-3xl font-mono font-bold tracking-widest">{currentOTP}</p>
-        </div>
-        <p className="mt-2 text-sm text-green-700">
-          Show this OTP to the delivery person for verification. 
-          They need to enter this code in their dashboard.
-        </p>
-      </div>
-    )}
-    
-    <div className="mt-4">
-
-<button 
-  onClick={generateOTP}  // Updated - no parameters needed
-  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
-  disabled={generatingOtp || !activeDelivery}
->
-  {generatingOtp ? 'Generating...' : 'Generate OTP for Verification'}
-</button>
-    </div>
-  </div>
-)}      
-                  {/* Location Verification Section */}
-                  {activeDelivery.status === 'authenticated' && (
-                    <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-bold mb-4">Location Verification</h3>
-                      
-                      <div className="flex items-center">
-                        <button
-                          onClick={verifyLocation}
-                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                        >
-                          Verify Location
-                        </button>
-                        <p className="ml-4 text-sm text-gray-600">
-                          Click to verify the delivery person's location
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Complete Delivery Button */}
-                  {activeDelivery.status === 'location-verified' && (
-                    <div className="flex justify-center mt-6">
-                      <button
-                        onClick={completeDelivery}
-                        className="bg-green-500 hover:bg-green-700 text-white font-bold px-6 py-3 rounded"
-                      >
-                        Complete Delivery
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Assigned Users Section */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Assigned Beneficiaries</h2>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border">
-                    <thead>
-                      <tr>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          User ID
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Last Ration
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assignedUsers.length > 0 ? (
-                        assignedUsers.map((user) => (
-                          <tr key={user.id}>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {user.id}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {user.name}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {user.category}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {user.lastRationDate ? (
-                                <>
-                                  {formatDate(user.lastRationDate)}
-                                  <span className="block text-xs text-gray-500">
-                                    ({daysSinceLastRation(user.lastRationDate)} days ago)
-                                  </span>
-                                </>
-                              ) : (
-                                'Never'
-                              )}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              <button
-                                onClick={() => trackRationDistribution(user.id)}
-                                className="px-3 py-1 rounded bg-green-500 hover:bg-green-700 text-white text-sm"
-                              >
-                                Track Ration
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="5" className="py-4 px-4 text-center text-gray-500">
-                            No users assigned to this depot
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              {/* Assigned Delivery Persons Section */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Assigned Delivery Persons</h2>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border">
-                    <thead>
-                      <tr>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          ID
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Phone
-                        </th>
-                        <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {assignedDeliveryPersons.length > 0 ? (
-                        assignedDeliveryPersons.map((person) => (
-                          <tr key={person.id}>
-                                                       <td className="py-2 px-4 border-b border-gray-200">
-                              {person.id}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {person.name}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {person.phone || 'Not Available'}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              <button
-                                onClick={() => receiveDeliveryPerson(person.id)}
-                                className="px-3 py-1 rounded bg-blue-500 hover:bg-blue-700 text-white text-sm"
-                                disabled={activeDelivery !== null}
-                              >
-                                Receive Delivery Person
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="4" className="py-4 px-4 text-center text-gray-500">
-                            No delivery persons assigned to this depot
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            
-            {/* Pending and Completed Deliveries */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Pending Deliveries */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Pending Deliveries</h2>
-                
-                {pendingDeliveries.length > 0 ? (
-                  <div className="space-y-4">
-                    {pendingDeliveries.map((delivery) => (
-                      <div key={delivery.id} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold">Delivery ID: {delivery.id}</h3>
-                            <p className="text-gray-600 text-sm">Delivery Person: {delivery.deliveryPersonName}</p>
-                            <p className="text-gray-600 text-sm">Scheduled: {formatDate(delivery.scheduledDate)}</p>
+          <div className="flex items-center justify-between mb-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="bg-green-50">
+                <TabsTrigger 
+                  value="overview" 
+                  className="data-[state=active]:bg-white"
+                  disabled={activeDelivery !== null}
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="active-delivery" 
+                  className="data-[state=active]:bg-white"
+                  disabled={!activeDelivery}
+                >
+                  Active Delivery
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="users" 
+                  className="data-[state=active]:bg-white"
+                  disabled={activeDelivery !== null}
+                >
+                  Beneficiaries
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="history" 
+                  className="data-[state=active]:bg-white"
+                  disabled={activeDelivery !== null}
+                >
+                  Transaction History
+                </TabsTrigger>
+              </TabsList>
+  
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="mt-6">
+                <motion.div
+                  className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {getStats().map((stat, index) => (
+                    <motion.div key={index} variants={itemVariants}>
+                      <Card className="overflow-hidden border-green-100 shadow-sm hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                            <div className={`rounded-full p-2 ${stat.color}`}>
+                              <stat.icon className="h-4 w-4" />
+                            </div>
                           </div>
-                          <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
-                            {delivery.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
-                          </span>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{stat.value}</div>
+                          <p className="text-xs text-green-600 flex items-center mt-1">
+                            {stat.change}
+                            <ArrowUpRight className="ml-1 h-3 w-3" />
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+  
+                <div className="grid gap-6 md:grid-cols-2 mt-6">
+                  {/* Assigned Delivery Persons */}
+                  <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.3 }}>
+                    <Card className="border-green-100 shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div>
+                          <CardTitle>Assigned Delivery Personnel</CardTitle>
+                          <CardDescription>Manage delivery personnel assigned to your depot</CardDescription>
                         </div>
-                        <button
-                          onClick={() => receiveDeliveryPerson(delivery.deliveryPersonId)}
-                          className="mt-3 bg-blue-500 hover:bg-blue-700 text-white py-1 px-4 rounded"
-                          disabled={activeDelivery !== null}
-                        >
-                          Receive Delivery
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center p-8 bg-gray-50 rounded-lg">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="mt-2 text-gray-600">No pending deliveries</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Completed Deliveries */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Completed Deliveries</h2>
-                
-                {completedDeliveries.length > 0 ? (
-                  <div className="overflow-y-auto max-h-80">
-                    <table className="min-w-full bg-white border">
-                      <thead>
-                        <tr>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            ID
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Delivery Person
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {completedDeliveries.map((delivery) => (
-                          <tr key={delivery.id}>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {delivery.id}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {delivery.deliveryPersonName}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {formatDate(delivery.completedDate)}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
-                                Completed
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center p-8 bg-gray-50 rounded-lg">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="mt-2 text-gray-600">No completed deliveries yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Recent Ration Distributions and Transaction History */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Recent Ration Distributions */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Recent Ration Distributions</h2>
-                
-                {rationDistributions.length > 0 ? (
-                  <div className="overflow-y-auto max-h-80">
-                    <table className="min-w-full bg-white border">
-                      <thead>
-                        <tr>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Beneficiary
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Category
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Items
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rationDistributions.map((ration) => (
-                          <tr key={ration.id}>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {ration.userName}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {ration.category}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {formatDate(ration.date)}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              <div className="flex flex-wrap gap-1">
-                                {ration.items.map((item, index) => (
-                                  <span key={index} className="px-2 py-1 rounded-full bg-gray-100 text-gray-800 text-xs">
-                                    {item.name}: {item.quantity}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center p-8 bg-gray-50 rounded-lg">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="mt-2 text-gray-600">No ration distributions recorded yet</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Transaction History */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Transaction History</h2>
-                
-                {txHistory.length > 0 ? (
-                  <div className="overflow-y-auto max-h-80">
-                    <table className="min-w-full bg-white border">
-                      <thead>
-                        <tr>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Type
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Date
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Details
-                          </th>
-                          <th className="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            Transaction
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {txHistory.map((tx, index) => (
-                          <tr key={index}>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {tx.type}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {formatDate(tx.timestamp)}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {tx.details}
-                            </td>
-                            <td className="py-2 px-4 border-b border-gray-200">
-                              {tx.txHash ? (
-                                <a 
-                                  href={`https://sepolia.etherscan.io/tx/${tx.txHash}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline"
+                      </CardHeader>
+                      <CardContent>
+                        {assignedDeliveryPersons.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-green-50 hover:bg-green-100">
+                                <TableHead>ID</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Phone</TableHead>
+                                <TableHead>Action</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {assignedDeliveryPersons.map((person) => (
+                                <TableRow key={person.id} className="hover:bg-green-50/50">
+                                  <TableCell className="font-medium">{person.id}</TableCell>
+                                  <TableCell>{person.name}</TableCell>
+                                  <TableCell>{person.phone || 'Not Available'}</TableCell>
+                                  <TableCell>
+                                    <Button
+                                      onClick={() => receiveDeliveryPerson(person.id)}
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-green-200 text-green-700 hover:bg-green-50"
+                                      disabled={activeDelivery !== null}
+                                    >
+                                      <Truck className="h-3.5 w-3.5 mr-1" />
+                                      Receive
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-8 bg-green-50/50 rounded-md">
+                            <Truck className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-gray-600">No delivery personnel assigned yet</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+  
+                  {/* Pending Deliveries */}
+                  <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.4 }}>
+                    <Card className="border-green-100 shadow-sm">
+                      <CardHeader>
+                        <CardTitle>Pending Deliveries</CardTitle>
+                        <CardDescription>Deliveries scheduled for your depot</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {pendingDeliveries.length > 0 ? (
+                          <div className="space-y-4">
+                            {pendingDeliveries.map((delivery) => (
+                              <div key={delivery.id} className="border rounded-lg p-4 bg-green-50/50 hover:bg-green-50 transition-colors">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center">
+                                    <div className="rounded-full p-2 bg-green-100 text-green-700 mr-3">
+                                      <Clock className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                      <h3 className="font-bold">{delivery.id}</h3>
+                                      <p className="text-gray-600 text-sm">
+                                        {delivery.deliveryPersonName} | {formatDate(delivery.scheduledDate)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge className={getStatusColor(delivery.status)}>
+                                    {delivery.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
+                                  </Badge>
+                                </div>
+                                <Button
+                                  onClick={() => receiveDeliveryPerson(delivery.deliveryPersonId)}
+                                  className="mt-3 bg-green-600 hover:bg-green-700 w-full"
+                                  disabled={activeDelivery !== null}
                                 >
-                                  View on Etherscan
-                                </a>
-                              ) : 'N/A'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center p-8 bg-gray-50 rounded-lg">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="mt-2 text-gray-600">No transactions recorded yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Instruction Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              {/* Delivery Process Instructions */}
-              <div className="bg-indigo-50 p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold text-indigo-800 mb-4">Delivery Process</h3>
-                <ol className="space-y-2 text-indigo-700 list-decimal pl-5">
-                  <li>
-                    <span className="font-medium">Receive delivery person</span> - When a delivery person arrives, click "Receive Delivery"
-                  </li>
-                  <li>
-                    <span className="font-medium">Verify OTP</span> - Enter the OTP provided by the delivery person
-                  </li>
-                  <li>
-                    <span className="font-medium">Verify location</span> - Confirm the delivery person is at your depot location
-                  </li>
-                  <li>
-                    <span className="font-medium">Complete delivery</span> - Process payment to the delivery person automatically via smart contract
-                  </li>
-                </ol>
-              </div>
-              
-              {/* Ration Distribution Instructions */}
-              <div className="bg-green-50 p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold text-green-800 mb-4">Ration Distribution</h3>
-                <ol className="space-y-2 text-green-700 list-decimal pl-5">
-                  <li>
-                    <span className="font-medium">Verify beneficiary identity</span> - Check beneficiary's ID/documents
-                  </li>
-                  <li>
-                    <span className="font-medium">Distribute ration items</span> - Provide the appropriate items based on category
-                  </li>
-                  <li>
-                    <span className="font-medium">Record in blockchain</span> - Click "Track Ration" and enter details
-                  </li>
-                  <li>
-                    <span className="font-medium">Update status</span> - The system will automatically update last ration date for the beneficiary
-                  </li>
-                </ol>
-              </div>
-            </div>
-            
-            {/* Beneficiary Ration Input Form */}
-            <div className="bg-white shadow rounded-lg p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4">Record New Ration Distribution</h2>
-              
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const beneficiaryId = formData.get('beneficiaryId');
-                const items = [
-                  { name: 'Rice', quantity: formData.get('riceQty') },
-                  { name: 'Wheat', quantity: formData.get('wheatQty') },
-                  { name: 'Sugar', quantity: formData.get('sugarQty') },
-                  { name: 'Oil', quantity: formData.get('oilQty') }
-                ].filter(item => item.quantity);
-                
-                trackRationDistribution(beneficiaryId, items);
-                e.target.reset();
-              }}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="beneficiaryId">
-                      Select Beneficiary
-                    </label>
-                    <select 
-                      id="beneficiaryId"
-                      name="beneficiaryId"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      required
-                    >
-                      <option value="">Choose a beneficiary</option>
-                      {assignedUsers.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name} (ID: {user.id})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                                  Receive Delivery
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 bg-green-50/50 rounded-md">
+                            <Clock className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-gray-600">No pending deliveries</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="riceQty">
-                      Rice
-                    </label>
-                    <input
-                      type="text"
-                      id="riceQty"
-                      name="riceQty"
-                      placeholder="e.g., 5kg"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="wheatQty">
-                      Wheat
-                    </label>
-                    <input
-                      type="text"
-                      id="wheatQty"
-                      name="wheatQty"
-                      placeholder="e.g., 3kg"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="sugarQty">
-                      Sugar
-                    </label>
-                    <input
-                      type="text"
-                      id="sugarQty"
-                      name="sugarQty"
-                      placeholder="e.g., 1kg"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="oilQty">
-                      Oil
-                    </label>
-                    <input
-                      type="text"
-                      id="oilQty"
-                      name="oilQty"
-                      placeholder="e.g., 1L"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+  
+                {/* Recent Activity */}
+                <motion.div className="grid gap-6 md:grid-cols-2 mt-6" variants={containerVariants} initial="hidden" animate="show" transition={{ delay: 0.5 }}>
+                  {/* Recent Ration Distributions */}
+                  <motion.div variants={itemVariants}>
+                    <Card className="border-green-100 shadow-sm">
+                      <CardHeader>
+                        <CardTitle>Recent Ration Distributions</CardTitle>
+                        <CardDescription>Latest rations distributed to beneficiaries</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {rationDistributions.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-green-50 hover:bg-green-100">
+                                <TableHead>Beneficiary</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Items</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {rationDistributions.slice(0, 5).map((ration) => (
+                                <TableRow key={ration.id} className="hover:bg-green-50/50">
+                                  <TableCell className="font-medium">
+                                    {ration.userName}
+                                    <span className="block text-xs text-gray-500">{ration.category}</span>
+                                  </TableCell>
+                                  <TableCell>{formatDate(ration.date)}</TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1">
+                                      {ration.items.slice(0, 2).map((item, index) => (
+                                        <Badge key={index} variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                          {item.name}: {item.quantity}
+                                        </Badge>
+                                      ))}
+                                      {ration.items.length > 2 && (
+                                        <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                          +{ration.items.length - 2} more
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-8 bg-green-50/50 rounded-md">
+                            <Package className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-gray-600">No ration distributions recorded</p>
+                          </div>
+                        )}
+                      </CardContent>
+                      {rationDistributions.length > 5 && (
+                        <CardFooter>
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-green-200 text-green-700"
+                            onClick={() => setActiveTab('users')}
+                          >
+                            View All Distributions
+                          </Button>
+                        </CardFooter>
+                      )}
+                    </Card>
+                  </motion.div>
+  
+                  {/* Completed Deliveries */}
+                  <motion.div variants={itemVariants}>
+                    <Card className="border-green-100 shadow-sm">
+                      <CardHeader>
+                        <CardTitle>Completed Deliveries</CardTitle>
+                        <CardDescription>Successfully completed deliveries</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {completedDeliveries.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-green-50 hover:bg-green-100">
+                                <TableHead>ID</TableHead>
+                                <TableHead>Delivery Person</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {completedDeliveries.slice(0, 5).map((delivery) => (
+                                <TableRow key={delivery.id} className="hover:bg-green-50/50">
+                                  <TableCell className="font-medium">{delivery.id}</TableCell>
+                                  <TableCell>{delivery.deliveryPersonName}</TableCell>
+                                  <TableCell>{formatDate(delivery.completedDate)}</TableCell>
+                                  <TableCell>
+                                    <Badge className={getStatusColor('completed')}>Completed</Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-8 bg-green-50/50 rounded-md">
+                            <CheckCircle2 className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="mt-2 text-gray-600">No completed deliveries yet</p>
+                          </div>
+                        )}
+                      </CardContent>
+                      {completedDeliveries.length > 5 && (
+                        <CardFooter>
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-green-200 text-green-700"
+                            onClick={() => setActiveTab('history')}
+                          >
+                            View All Deliveries
+                          </Button>
+                        </CardFooter>
+                      )}
+                    </Card>
+                  </motion.div>
+                </motion.div>
+              </TabsContent>
+  
+              {/* Active Delivery Tab */}
+              <TabsContent value="active-delivery" className="mt-6">
+                {activeDelivery && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                   >
-                    Record Distribution
-                  </button>
+                    <Card className="border-green-100 shadow-sm mb-6">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Active Delivery</CardTitle>
+                          <CardDescription>Processing delivery with {activeDelivery.deliveryPersonName}</CardDescription>
+                        </div>
+                        <Badge className={getStatusColor(activeDelivery.status)}>
+                          <div className="flex items-center">
+                            {activeDelivery.status === 'authenticated' ? (
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                            ) : activeDelivery.status === 'location-verified' ? (
+                              <MapPin className="h-4 w-4 mr-1" />
+                            ) : (
+                              <Clock className="h-4 w-4 mr-1" />
+                            )}
+                            <span>
+                              {activeDelivery.status === 'authenticated' ? 'OTP Verified' : 
+                               activeDelivery.status === 'location-verified' ? 'Location Verified' : 'In Progress'}
+                            </span>
+                          </div>
+                        </Badge>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Start</span>
+                            <span>OTP</span>
+                            <span>Location</span>
+                            <span>Complete</span>
+                          </div>
+                          <div className="relative w-full h-2 bg-green-100 rounded-full overflow-hidden">
+                            <div 
+                              className="absolute left-0 top-0 h-full bg-green-500 transition-all duration-300 ease-in-out"
+                              style={{ 
+                                width: activeDelivery.status === 'in-progress' ? '25%' :
+                                       activeDelivery.status === 'authenticated' ? '50%' :
+                                       activeDelivery.status === 'location-verified' ? '75%' : '25%'
+                              }}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Delivery Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-green-50/50 rounded-lg">
+                          <div>
+                            <p className="text-sm text-gray-500">Delivery Person ID</p>
+                            <p className="font-medium">{activeDelivery.deliveryPersonId}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Start Time</p>
+                            <p className="font-medium">{formatDate(activeDelivery.startTime)}</p>
+                          </div>
+                        </div>
+  
+                        {/* OTP Generation and Display */}
+                        <Card className="border-green-200">
+                          <CardHeader>
+                            <CardTitle className="text-lg">OTP Verification</CardTitle>
+                            <CardDescription>
+                              Generate and provide OTP to the delivery person
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {otpError && (
+                              <Alert variant="destructive" className="mb-4">
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{otpError}</AlertDescription>
+                              </Alert>
+                            )}
+                            
+                            {otpSuccess && (
+                              <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <AlertTitle>Success</AlertTitle>
+                                <AlertDescription>{otpSuccess}</AlertDescription>
+                              </Alert>
+                            )}
+                            
+                            {currentOTP && (
+                              <div className="mt-4 bg-green-50 border border-green-300 rounded-lg p-4">
+                                <h3 className="text-lg font-semibold text-green-800 mb-2">Verification OTP</h3>
+                                <div className="bg-white p-4 border border-green-200 rounded-lg text-center">
+                                  <p className="text-3xl font-mono font-bold tracking-widest">{currentOTP}</p>
+                                </div>
+                                <p className="mt-2 text-sm text-green-700">
+                                  Show this OTP to the delivery person for verification. 
+                                  They need to enter this code in their dashboard.
+                                </p>
+                                <div className="bg-yellow-50 p-3 mt-3 rounded border border-yellow-200">
+                                  <p className="text-yellow-800">
+                                    <strong>Important:</strong> Only the delivery person can verify this OTP from their app.
+                                    After they verify, click "Check Verification Status" below.
+                                  </p>
+                                </div>
+                                <div className="mt-4">
+                                  <Button
+                                    onClick={checkDeliveryStatus}
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Check Verification Status
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {otpError && otpError.includes("pending state") && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 my-4">
+                                <p className="text-yellow-800 mb-2">
+                                  <strong>Delivery State Issue:</strong> This delivery has already progressed beyond the pending state.
+                                </p>
+                                <p className="text-yellow-700 mb-4">
+                                  The OTP can only be generated when a delivery is in the pending state. You need to reset the delivery state first.
+                                </p>
+                                <Button
+                                  onClick={resetDeliveryState}
+                                  className="bg-yellow-600 hover:bg-yellow-700"
+                                  disabled={loading}
+                                >
+                                  {loading ? 'Resetting...' : 'Reset Delivery to Pending State'}
+                                </Button>
+                              </div>
+                            )}
+                            
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <Button 
+                                onClick={generateOTP}
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                disabled={generatingOtp || !activeDelivery}
+                              >
+                                {generatingOtp ? (
+                                  <>
+                                    <span className="inline-block animate-spin h-4 w-4 mr-2 border-t-2 border-white rounded-full"></span>
+                                    Generating...
+                                  </>
+                                ) : 'Generate OTP for Verification'}
+                              </Button>
+                              
+                              <div className="mt-3 flex items-center ml-2">
+                                <input
+                                  type="checkbox"
+                                  id="fake-mode"
+                                  className="mr-2"
+                                  checked={fakeMode}
+                                  onChange={() => setFakeMode(!fakeMode)}
+                                />
+                                <label htmlFor="fake-mode" className="text-sm text-gray-600">
+                                  Enable test mode (simulates blockchain transactions)
+                                </label>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+  
+                        {/* Location Verification Section */}
+                        {activeDelivery.status === 'authenticated' && (
+                          <Card className="border-blue-200">
+                            <CardHeader>
+                              <CardTitle className="text-lg">Location Verification</CardTitle>
+                              <CardDescription>
+                                Verify the delivery person's location
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center">
+                                <Button
+                                  onClick={verifyLocation}
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  <MapPin className="h-4 w-4 mr-2" />
+                                  Verify Location
+                                </Button>
+                                <p className="ml-4 text-sm text-gray-600">
+                                  Click to verify the delivery person's location with your depot
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        {/* Complete Delivery Button */}
+                        {activeDelivery.status === 'location-verified' && (
+                          <div className="flex justify-center mt-6">
+                            <Button
+                              onClick={completeDelivery}
+                              className="bg-green-600 hover:bg-green-700 px-8 py-6 text-lg"
+                            >
+                              <CheckCircle2 className="h-5 w-5 mr-2" />
+                              Complete Delivery
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </TabsContent>
+  
+              {/* Users (Beneficiaries) Tab */}
+              <TabsContent value="users" className="mt-6">
+                <motion.div variants={containerVariants} initial="hidden" animate="show">
+                  <Card className="border-green-100 shadow-sm mb-6">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle>Beneficiaries</CardTitle>
+                        <CardDescription>Manage users assigned to your depot</CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {assignedUsers.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-green-50 hover:bg-green-100">
+                              <TableHead>User ID</TableHead>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Last Ration</TableHead>
+                              <TableHead>Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {assignedUsers.map((user) => (
+                              <TableRow key={user.id} className="hover:bg-green-50/50">
+                                <TableCell className="font-medium">{user.id}</TableCell>
+                                <TableCell>{user.name}</TableCell>
+                                <TableCell>{user.category}</TableCell>
+                                <TableCell>
+                                  {user.lastRationDate ? (
+                                    <>
+                                      {formatDate(user.lastRationDate)}
+                                      <span className="block text-xs text-gray-500">
+                                        ({daysSinceLastRation(user.lastRationDate)} days ago)
+                                      </span>
+                                    </>
+                                  ) : (
+                                    'Never'
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    onClick={() => trackRationDistribution(user.id)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-green-200 text-green-700 hover:bg-green-50"
+                                  >
+                                    <Package className="h-3.5 w-3.5 mr-1" />
+                                    Track Ration
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-12 bg-green-50/50 rounded-md">
+                          <Users className="mx-auto h-12 w-12 text-gray-400" />
+                          <p className="mt-2 text-gray-600">No users assigned to this depot</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+  
+                  {/* Record New Ration Distribution Form */}
+                  <Card className="border-green-100 shadow-sm">
+                    <CardHeader>
+                      <CardTitle>Record New Ration Distribution</CardTitle>
+                      <CardDescription>Track ration distribution to beneficiaries</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        const beneficiaryId = formData.get('beneficiaryId');
+                        const items = [
+                          { name: 'Rice', quantity: formData.get('riceQty') },
+                          { name: 'Wheat', quantity: formData.get('wheatQty') },
+                          { name: 'Sugar', quantity: formData.get('sugarQty') },
+                          { name: 'Oil', quantity: formData.get('oilQty') }
+                        ].filter(item => item.quantity);
+                        
+                        trackRationDistribution(beneficiaryId, items);
+                        e.target.reset();
+                      }}>
+                        <div className="grid grid-cols-1 gap-6">
+                          <div className="grid gap-3">
+                            <Label htmlFor="beneficiaryId">Select Beneficiary</Label>
+                            <Select name="beneficiaryId" required>
+                              <SelectTrigger id="beneficiaryId" className="w-full">
+                                <SelectValue placeholder="Choose a beneficiary" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {assignedUsers.map(user => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name} (ID: {user.id})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="riceQty">Rice</Label>
+                              <Input
+                                id="riceQty"
+                                name="riceQty"
+                                placeholder="e.g., 5kg"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="wheatQty">Wheat</Label>
+                              <Input
+                                id="wheatQty"
+                                name="wheatQty"
+                                placeholder="e.g., 3kg"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="sugarQty">Sugar</Label>
+                              <Input
+                                id="sugarQty"
+                                name="sugarQty"
+                                placeholder="e.g., 1kg"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="oilQty">Oil</Label>
+                              <Input
+                                id="oilQty"
+                                name="oilQty"
+                                placeholder="e.g., 1L"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end">
+                            <Button
+                              type="submit"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Package className="h-4 w-4 mr-2" />
+                              Record Distribution
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+  
+                  {/* All Ration Distributions */}
+                  <Card className="border-green-100 shadow-sm mt-6">
+                    <CardHeader>
+                      <CardTitle>All Ration Distributions</CardTitle>
+                      <CardDescription>Complete history of rations distributed</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {rationDistributions.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-green-50 hover:bg-green-100">
+                              <TableHead>ID</TableHead>
+                              <TableHead>Beneficiary</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Items</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {rationDistributions.map((ration) => (
+                              <TableRow key={ration.id} className="hover:bg-green-50/50">
+                                <TableCell className="font-medium">{ration.id}</TableCell>
+                                <TableCell>{ration.userName}</TableCell>
+                                <TableCell>{ration.category}</TableCell>
+                                <TableCell>{formatDate(ration.date)}</TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {ration.items.map((item, index) => (
+                                      <Badge key={index} variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                        {item.name}: {item.quantity}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-12 bg-green-50/50 rounded-md">
+                          <Package className="mx-auto h-12 w-12 text-gray-400" />
+                          <p className="mt-2 text-gray-600">No ration distributions recorded</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </TabsContent>
+  
+              {/* Transaction History Tab */}
+              <TabsContent value="history" className="mt-6">
+                <motion.div variants={containerVariants} initial="hidden" animate="show">
+                  <Card className="border-green-100 shadow-sm">
+                    <CardHeader>
+                      <CardTitle>Transaction History</CardTitle>
+                      <CardDescription>Record of blockchain transactions</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {txHistory.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-green-50 hover:bg-green-100">
+                              <TableHead>Type</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Details</TableHead>
+                              <TableHead>Transaction</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {txHistory.slice().reverse().map((tx, index) => (
+                              <TableRow key={index} className="hover:bg-green-50/50">
+                                <TableCell className="font-medium">{tx.type}</TableCell>
+                                <TableCell>{formatDate(tx.timestamp)}</TableCell>
+                                <TableCell>{tx.details}</TableCell>
+                                <TableCell>
+                                  {tx.txHash ? (
+                                    <a 
+                                      href={`https://sepolia.etherscan.io/tx/${tx.txHash}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-green-600 hover:underline flex items-center"
+                                    >
+                                      View on Etherscan
+                                      <ArrowUpRight className="ml-1 h-3 w-3" />
+                                    </a>
+                                  ) : 'N/A'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-12 bg-green-50/50 rounded-md">
+                          <History className="mx-auto h-12 w-12 text-gray-400" />
+                          <p className="mt-2 text-gray-600">No transactions recorded yet</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Instruction Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    {/* Delivery Process Instructions */}
+                    <Card className="border-green-100 shadow-sm bg-indigo-50">
+                      <CardHeader>
+                        <CardTitle className="text-indigo-800">Delivery Process</CardTitle>
+                        <CardDescription className="text-indigo-700">
+                          Follow these steps for handling deliveries
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ol className="space-y-2 text-indigo-700 list-decimal pl-5">
+                          <li>
+                            <span className="font-medium">Receive delivery person</span> - When a delivery person arrives, click "Receive Delivery"
+                          </li>
+                          <li>
+                            <span className="font-medium">Generate and share OTP</span> - Create an OTP and show it to the delivery person
+                          </li>
+                          <li>
+                            <span className="font-medium">Verify location</span> - Confirm the delivery person is at your depot location
+                          </li>
+                          <li>
+                            <span className="font-medium">Complete delivery</span> - Process payment to the delivery person automatically via smart contract
+                          </li>
+                        </ol>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Ration Distribution Instructions */}
+                    <Card className="border-green-100 shadow-sm bg-green-50">
+                      <CardHeader>
+                        <CardTitle className="text-green-800">Ration Distribution</CardTitle>
+                        <CardDescription className="text-green-700">
+                          Guidelines for distributing rations to beneficiaries
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ol className="space-y-2 text-green-700 list-decimal pl-5">
+                          <li>
+                            <span className="font-medium">Verify beneficiary identity</span> - Check beneficiary's ID/documents
+                          </li>
+                          <li>
+                            <span className="font-medium">Distribute ration items</span> - Provide the appropriate items based on category
+                          </li>
+                          <li>
+                            <span className="font-medium">Record in blockchain</span> - Click "Track Ration" and enter details
+                          </li>
+                          <li>
+                            <span className="font-medium">Update status</span> - The system will automatically update last ration date for the beneficiary
+                          </li>
+                        </ol>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </motion.div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+  
+        {/* MetaMask Transaction Modal */}
+        {showMetaMaskModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 mr-4 bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg width="28" height="28" viewBox="0 0 35 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M32.9582 1L19.8241 10.7183L22.2665 4.99099L32.9582 1Z" fill="#E17726" stroke="#E17726" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2.65881 1L15.6697 10.8511L13.3487 4.99099L2.65881 1Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-              </form>
+                <h3 className="text-lg font-bold">MetaMask Transaction</h3>
+              </div>
+              
+              <div className="border-t border-b py-4 my-4">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Transaction Type:</span>
+                  <span className="font-medium">
+                    {metaMaskModalType === 'otp' ? 'Generate OTP' : 
+                     metaMaskModalType === 'location' ? 'Verify Location' : 
+                     'Process Payment'}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">From Account:</span>
+                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">0x8Fb3...D21e</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Gas Fee:</span>
+                  <span>0.001 ETH</span>
+                </div>
+              </div>
+              
+              <p className="mb-4 text-center text-gray-700">{metaMaskModalMessage}</p>
+              
+              <div className="flex justify-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+              
+              <p className="mt-4 text-center text-sm text-gray-500">
+                MetaMask transaction in progress...
+              </p>
             </div>
-          </>
+          </div>
         )}
       </div>
     </DepotLayout>

@@ -3,7 +3,7 @@ import contractABI from '@/abi.json';
 
 export const getContract = (signer) => {
   // Contract address - make sure this is correct!
-  const contractAddress = '0x976201d17eD4CDEC800cf658AbAE040e0b532bF5';
+  const contractAddress = '0x8FA84E225F59A5d8451A097D78991C9e76692636';
   
   try {
     if (!signer) {
