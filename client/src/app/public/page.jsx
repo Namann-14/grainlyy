@@ -44,7 +44,7 @@ export default function PublicDashboard() {
   return (
     <PublicLayout>
       <Head>
-        <title>Public Dashboard | RationChain</title>
+        <title>Public Dashboard | Grainlyyy</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">

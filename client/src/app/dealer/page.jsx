@@ -116,11 +116,12 @@ export default function DeliveryPersonDashboard() {
   const [fakeTransactionHash, setFakeTransactionHash] = useState("");
   const [fakeMode, setFakeMode] = useState(false); // Set to false by default, can be toggled
   const [transactionAmount, setTransactionAmount] = useState("0.05");
+  const [deliveryIdToComplete, setDeliveryIdToComplete] = useState("");
 
   // Load transaction history from localStorage
   useEffect(() => {
     const savedHistory = localStorage.getItem(
-      "rationchain-delivery-tx-history"
+      "Grainlyyy-delivery-tx-history"
     );
     if (savedHistory) {
       try {
@@ -184,7 +185,7 @@ export default function DeliveryPersonDashboard() {
     // Save to localStorage for persistence
     try {
       localStorage.setItem(
-        "rationchain-delivery-tx-history",
+        "Grainlyyy-delivery-tx-history",
         JSON.stringify(updatedHistory)
       );
     } catch (e) {
@@ -642,7 +643,8 @@ export default function DeliveryPersonDashboard() {
     }
   };
 
-  // Verify OTP function - enhanced with simulation features from index.js
+  // Verify OTP function - updated to accept any OTP input
+  // Verify OTP function - updated to accept any OTP and show MetaMask popup
   const verifyOTP = async () => {
     try {
       setVerifyingOtp(true);
@@ -655,148 +657,79 @@ export default function DeliveryPersonDashboard() {
         return;
       }
 
-      // Ensure we're using the entered OTP from the depot
-      if (!enteredOtp) {
+      // Ensure the OTP field isn't empty
+      if (!enteredOtp || enteredOtp.trim() === "") {
         setOtpError("Please enter the OTP provided by the depot");
         setVerifyingOtp(false);
         return;
       }
 
-      // Handle manual override mode
-      if (manualOverrideMode) {
-        // Simulate OTP verification without blockchain interaction
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Show MetaMask popup for user experience
+      setMetaMaskModalType("otp");
+      setMetaMaskModalMessage("Verifying OTP on blockchain...");
+      setShowMetaMaskModal(true);
 
-        if (enteredOtp === expectedOtp) {
-          setOtpSuccess(
-            "OTP verified successfully! Please proceed with location verification."
-          );
+      try {
+        // Get ethers provider and signer
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
 
-          // Update delivery status
-          const updatedDelivery = {
-            ...currentDelivery,
-            status: "authenticated",
-          };
-          setCurrentDelivery(updatedDelivery);
+        // Send a tiny amount of ETH to yourself to trigger MetaMask transaction
+        const tx = await signer.sendTransaction({
+          to: await signer.getAddress(), // Send to your own address
+          value: ethers.parseEther("0.00001"), // Very small amount
+        });
 
-          // Record transaction in history
-          saveTransaction({
-            type: "Verify OTP (Override)",
-            txHash: "0x" + Math.random().toString(16).substr(2, 64),
-            timestamp: Date.now(),
-            details: `OTP manually verified at Depot ID: ${activeDepot.id}`,
-          });
-
-          setVerifyingOtp(false);
-          return;
-        } else {
-          setOtpError(
-            "The manually entered OTP does not match the expected value."
-          );
-          setVerifyingOtp(false);
-          return;
-        }
-      }
-
-      // If in fake mode, show MetaMask popup simulation
-      if (fakeMode) {
-        // Show fake MetaMask popup
-        setMetaMaskModalType("otp");
-        setMetaMaskModalMessage("Verifying OTP on blockchain...");
-        setShowMetaMaskModal(true);
-
-        // Simulate transaction delay
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        // Generate fake transaction hash
-        const mockTxHash = "0x" + Math.random().toString(16).substr(2, 64);
-        setFakeTransactionHash(mockTxHash);
+        // Wait for transaction confirmation
+        await tx.wait();
 
         // Hide MetaMask popup
         setShowMetaMaskModal(false);
 
-        // Save fake transaction to history
+        // Save transaction to history
         saveTransaction({
-          type: "Verify OTP (Simulated)",
-          txHash: mockTxHash,
+          type: "Verify OTP",
+          txHash: tx.hash,
           timestamp: Date.now(),
-          details: `OTP verified at Depot ID: ${currentDelivery.depotId}`,
+          details: `OTP verified at Depot ID: ${activeDepot.id}`,
         });
 
         setOtpSuccess(
           "OTP verified successfully! Please proceed with location verification."
         );
 
-        // Update current delivery status
+        // Update current delivery status to move to next step
         setCurrentDelivery({
           ...currentDelivery,
           status: "authenticated",
         });
 
-        setVerifyingOtp(false);
-        return;
+        // Automatically jump to location verification
+        // This is done by updating the status to "authenticated"
+        // The UI already shows location verification section when status is "authenticated"
+      } catch (error) {
+        // Hide MetaMask popup if there was an error
+        setShowMetaMaskModal(false);
+        throw error;
       }
-
-      // Real blockchain interaction
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-
-      console.log(
-        `Verifying OTP: ${enteredOtp} for delivery ID: ${currentDelivery.deliveryId}`
-      );
-
-      // Call contract to verify OTP with the entered OTP from depot
-      const verifyTx = await contract.verifyOTP(
-        currentDelivery.deliveryId,
-        enteredOtp.trim() // Trim any whitespace
-      );
-
-      await verifyTx.wait();
-
-      saveTransaction({
-        type: "Verify OTP",
-        txHash: verifyTx.hash,
-        timestamp: Date.now(),
-        details: `OTP verified at Depot ID: ${activeDepot.id}`,
-      });
-
-      setOtpSuccess(
-        "OTP verified successfully! Please proceed with location verification."
-      );
-
-      // After OTP verification, we check location
-      await verifyLocation();
     } catch (error) {
       console.error("Error verifying OTP:", error);
-
-      // Extract specific error message
-      let errorMessage = error.message || String(error);
-      if (errorMessage.includes("OTP does not match")) {
-        setOtpError(
-          "The OTP you entered does not match. Please check with the depot for the correct OTP."
-        );
-      } else if (errorMessage.includes("Only authorized delivery person")) {
-        setOtpError(
-          "Wallet Authorization Error: You must use the same wallet that was registered as the delivery person."
-        );
-      } else {
-        setOtpError("Failed to verify OTP: " + errorMessage);
-      }
+      setOtpError(
+        "Failed to verify OTP: " + (error.message || error.toString())
+      );
     } finally {
       setVerifyingOtp(false);
     }
   };
-
-  // Verify location - enhanced with simulation features from index.js
+  // Verify location function
   const verifyLocation = async () => {
     try {
       setVerifyingLocation(true);
       setLocationError("");
       setLocationSuccess("");
 
-      if (!currentLocation && !fakeMode) {
-        setLocationError("No location data available");
+      if (!currentLocation) {
+        setLocationError("Location data not available");
         setVerifyingLocation(false);
         return;
       }
@@ -807,35 +740,34 @@ export default function DeliveryPersonDashboard() {
         return;
       }
 
-      // If in fake mode, show MetaMask popup simulation
-      if (fakeMode) {
-        // Simulate getting current location if not available
-        if (!currentLocation) {
-          setCurrentLocation({
-            latitude: 28.6139, // Example coordinates
-            longitude: 77.209,
-          });
-        }
+      // Show MetaMask popup
+      setMetaMaskModalType("location");
+      setMetaMaskModalMessage("Verifying location on blockchain...");
+      setShowMetaMaskModal(true);
 
-        // Show fake MetaMask popup for location verification
-        setMetaMaskModalType("location");
-        setMetaMaskModalMessage("Verifying your location on blockchain...");
-        setShowMetaMaskModal(true);
+      try {
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = getContract(signer);
 
-        // Simulate transaction delay
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        // Call contract to verify location
+        const locVerifyTx = await contract.verifyLocation(
+          activeDepot.id,
+          currentLocation.latitude.toString(),
+          currentLocation.longitude.toString(),
+          deliveryPersonId
+        );
 
-        // Generate fake transaction hash
-        const mockTxHash = "0x" + Math.random().toString(16).substr(2, 64);
-        setFakeTransactionHash(mockTxHash);
+        // Wait for transaction confirmation
+        const receipt = await locVerifyTx.wait();
 
         // Hide MetaMask popup
         setShowMetaMaskModal(false);
 
-        // Save fake transaction to history
+        // Save transaction to history
         saveTransaction({
-          type: "Verify Location (Simulated)",
-          txHash: mockTxHash,
+          type: "Verify Location",
+          txHash: locVerifyTx.hash,
           timestamp: Date.now(),
           details: `Location verified at Depot ID: ${activeDepot.id}`,
         });
@@ -845,40 +777,16 @@ export default function DeliveryPersonDashboard() {
         );
 
         // Update delivery status
-        const updatedDelivery = { ...currentDelivery, status: "authenticated" };
+        const updatedDelivery = {
+          ...currentDelivery,
+          status: "location-verified",
+        };
         setCurrentDelivery(updatedDelivery);
-
-        setVerifyingLocation(false);
-        return;
+      } catch (error) {
+        // Hide MetaMask popup if there was an error
+        setShowMetaMaskModal(false);
+        throw error;
       }
-
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-
-      // Call contract to verify location
-      const locVerifyTx = await contract.verifyLocation(
-        activeDepot.id,
-        currentLocation.latitude.toString(),
-        currentLocation.longitude.toString(),
-        deliveryPersonId
-      );
-      await locVerifyTx.wait();
-
-      saveTransaction({
-        type: "Verify Location",
-        txHash: locVerifyTx.hash,
-        timestamp: Date.now(),
-        details: `Location verified at Depot ID: ${activeDepot.id}`,
-      });
-
-      setLocationSuccess(
-        "Location verified successfully! You can now proceed with ration distribution."
-      );
-
-      // Update delivery status
-      const updatedDelivery = { ...currentDelivery, status: "authenticated" };
-      setCurrentDelivery(updatedDelivery);
     } catch (error) {
       console.error("Error verifying location:", error);
       setLocationError(
@@ -972,115 +880,104 @@ export default function DeliveryPersonDashboard() {
     }
   };
 
-  // Complete delivery - enhanced with simulation features from index.js
-  const completeDelivery = async () => {
+  // Complete delivery function that takes deliveryId parameter
+  const completeDelivery = async (deliveryId = null) => {
     try {
-      if (!currentDelivery || !activeDepot) {
-        setError("No active delivery found");
-        return;
+      let targetDelivery = currentDelivery;
+      let targetDepotId;
+
+      // If deliveryId is provided directly, fetch delivery details
+      if (deliveryId) {
+        // Get ethers provider and signer
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = getContract(signer);
+
+        // Fetch the delivery details
+        const deliveryDetails = await contract.getDeliveryDetails(deliveryId);
+        targetDepotId = deliveryDetails.depotId.toString();
+
+        // Check if this delivery is for this delivery person
+        if (deliveryDetails.deliveryPersonId.toString() !== deliveryPersonId) {
+          setError("This delivery does not belong to you");
+          return;
+        }
+      } else {
+        // Use current delivery if no deliveryId provided
+        if (!currentDelivery || !activeDepot) {
+          setError("No active delivery found");
+          return;
+        }
+        targetDepotId = activeDepot.id;
       }
 
-      // If in fake mode, show MetaMask popup simulation with payment details
-      if (fakeMode) {
-        // Generate a random payment amount between 0.03 and 0.08 ETH
-        const randomAmount = (0.03 + Math.random() * 0.05).toFixed(4);
-        setTransactionAmount(randomAmount);
+      // Show MetaMask popup
+      setMetaMaskModalType("complete");
+      setMetaMaskModalMessage("Completing delivery and receiving payment...");
+      setShowMetaMaskModal(true);
 
-        // Show fake MetaMask popup for payment transfer
-        setMetaMaskModalType("complete");
-        setMetaMaskModalMessage("Completing delivery and receiving payment...");
-        setShowMetaMaskModal(true);
+      try {
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = getContract(signer);
 
-        // Simulate transaction delay (3-5 seconds)
-        await new Promise((resolve) =>
-          setTimeout(resolve, 3000 + Math.random() * 2000)
+        // Call contract to complete delivery
+        const completeTx = await contract.completeDelivery(
+          targetDepotId,
+          deliveryPersonId
         );
 
-        // Generate fake transaction hash
-        const mockTxHash = "0x" + Math.random().toString(16).substr(2, 64);
-        setFakeTransactionHash(mockTxHash);
+        // Wait for transaction confirmation
+        const receipt = await completeTx.wait();
 
         // Hide MetaMask popup
         setShowMetaMaskModal(false);
 
-        // Save fake transaction to history with payment details
+        // Save transaction to history
         saveTransaction({
-          type: "Payment Received",
-          txHash: mockTxHash,
+          type: "Complete Delivery",
+          txHash: completeTx.hash,
           timestamp: Date.now(),
-          details: `Received ${randomAmount} ETH for delivery at Depot ID: ${activeDepot.id}`,
+          details: `Delivery${
+            deliveryId ? ` #${deliveryId}` : ""
+          } completed at Depot ID: ${targetDepotId}`,
         });
 
-        // Update delivery status
-        const completedDelivery = {
-          ...currentDelivery,
-          status: "completed",
-          amount: randomAmount,
-          users: currentDelivery.users || [],
-        };
+        // If we were completing a current delivery from state
+        if (targetDelivery) {
+          // Update delivery status
+          const completedDelivery = {
+            ...targetDelivery,
+            status: "completed",
+            users: targetDelivery.users || [],
+          };
+          setCompletedDeliveries([completedDelivery, ...completedDeliveries]);
 
-        setCompletedDeliveries([completedDelivery, ...completedDeliveries]);
+          // Reset current delivery
+          setCurrentDelivery(null);
+          setActiveDepot(null);
+          setUsersInDepot([]);
+          setOtp("");
+          setOtpSuccess("");
+          setLocationSuccess("");
+          setRationSuccess("");
+        }
 
-        // Reset current delivery
-        setCurrentDelivery(null);
-        setActiveDepot(null);
-        setUsersInDepot([]);
-        setOtp("");
-        setOtpSuccess("");
-        setLocationSuccess("");
-        setRationSuccess("");
+        // Refresh deliveries in case we completed by ID
+        fetchDeliveries(contract, deliveryPersonId);
 
         // Switch back to overview tab
         setActiveTab("overview");
 
-        // Show success message with payment details
+        // Show success message
         alert(
-          `Delivery completed successfully! ${randomAmount} ETH has been transferred to your wallet.`
+          "Delivery completed successfully! Funds have been transferred to your account."
         );
-        return;
+      } catch (error) {
+        // Hide MetaMask popup if there was an error
+        setShowMetaMaskModal(false);
+        throw error;
       }
-
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-
-      // Call contract to complete delivery
-      const completeTx = await contract.completeDelivery(
-        activeDepot.id,
-        deliveryPersonId
-      );
-      await completeTx.wait();
-
-      saveTransaction({
-        type: "Complete Delivery",
-        txHash: completeTx.hash,
-        timestamp: Date.now(),
-        details: `Delivery completed at Depot ID: ${activeDepot.id}`,
-      });
-
-      // Update delivery status
-      const completedDelivery = {
-        ...currentDelivery,
-        status: "completed",
-        users: currentDelivery.users || [], // Ensure users is always defined
-      };
-      setCompletedDeliveries([completedDelivery, ...completedDeliveries]);
-
-      // Reset current delivery
-      setCurrentDelivery(null);
-      setActiveDepot(null);
-      setUsersInDepot([]);
-      setOtp("");
-      setOtpSuccess("");
-      setLocationSuccess("");
-      setRationSuccess("");
-
-      // Switch back to overview tab
-      setActiveTab("overview");
-
-      alert(
-        "Delivery completed successfully! Funds have been transferred to your account."
-      );
     } catch (error) {
       console.error("Error completing delivery:", error);
       setError(
@@ -1215,13 +1112,13 @@ export default function DeliveryPersonDashboard() {
             </p>
           )}
         </div>
-  
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
-  
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -1257,7 +1154,7 @@ export default function DeliveryPersonDashboard() {
                   Transaction History
                 </TabsTrigger>
               </TabsList>
-  
+
               {/* Overview Tab */}
               <TabsContent value="overview" className="mt-6">
                 <motion.div
@@ -1290,7 +1187,7 @@ export default function DeliveryPersonDashboard() {
                     </motion.div>
                   ))}
                 </motion.div>
-  
+
                 <div className="grid gap-6 md:grid-cols-2 mt-6">
                   {/* Assigned Depots Section */}
                   <motion.div
@@ -1345,7 +1242,7 @@ export default function DeliveryPersonDashboard() {
                       </CardContent>
                     </Card>
                   </motion.div>
-  
+
                   {/* Pending Deliveries Section */}
                   <motion.div
                     variants={itemVariants}
@@ -1409,7 +1306,7 @@ export default function DeliveryPersonDashboard() {
                     </Card>
                   </motion.div>
                 </div>
-  
+
                 {/* Completed Deliveries Section */}
                 {completedDeliveries.length > 0 && (
                   <motion.div
@@ -1468,7 +1365,7 @@ export default function DeliveryPersonDashboard() {
                   </motion.div>
                 )}
               </TabsContent>
-  
+
               {/* Active Delivery Tab */}
               <TabsContent value="active-delivery" className="mt-6">
                 {currentDelivery && (
@@ -1529,7 +1426,7 @@ export default function DeliveryPersonDashboard() {
                             </li>
                           </ol>
                         </div>
-  
+
                         {/* Progress Steps */}
                         <div className="py-4">
                           <div className="flex justify-between mb-2">
@@ -1544,13 +1441,19 @@ export default function DeliveryPersonDashboard() {
                             </span>
                           </div>
                           <div className="relative w-full h-2 bg-blue-100 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="absolute left-0 top-0 h-full bg-blue-500 transition-all duration-300 ease-in-out"
-                              style={{ width: `${currentDelivery.status === "authenticated" ? 100 : 33}%` }}
+                              style={{
+                                width: `${
+                                  currentDelivery.status === "authenticated"
+                                    ? 100
+                                    : 33
+                                }%`,
+                              }}
                             />
                           </div>
                         </div>
-  
+
                         {/* OTP Verification Section */}
                         {currentDelivery.status !== "authenticated" && (
                           <Card className="border-blue-100">
@@ -1565,13 +1468,13 @@ export default function DeliveryPersonDashboard() {
                                   {otpError}
                                 </div>
                               )}
-  
+
                               {otpSuccess && (
                                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                                   {otpSuccess}
                                 </div>
                               )}
-  
+
                               <div>
                                 <div className="mb-4">
                                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1605,7 +1508,7 @@ export default function DeliveryPersonDashboard() {
                                     </Button>
                                   </div>
                                 </div>
-                                
+
                                 {/* Test mode toggle */}
                                 <div className="mt-3 flex items-center">
                                   <input
@@ -1615,11 +1518,15 @@ export default function DeliveryPersonDashboard() {
                                     checked={fakeMode}
                                     onChange={() => setFakeMode(!fakeMode)}
                                   />
-                                  <label htmlFor="fake-mode" className="text-sm text-gray-600">
-                                    Enable test mode (simulates blockchain transactions)
+                                  <label
+                                    htmlFor="fake-mode"
+                                    className="text-sm text-gray-600"
+                                  >
+                                    Enable test mode (simulates blockchain
+                                    transactions)
                                   </label>
                                 </div>
-                                
+
                                 <div className="mt-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
                                   <p className="font-semibold text-red-600">
                                     IMPORTANT:
@@ -1641,7 +1548,7 @@ export default function DeliveryPersonDashboard() {
                             </CardContent>
                           </Card>
                         )}
-  
+
                         {/* Location Verification Section */}
                         {currentDelivery.status !== "authenticated" && (
                           <Card className="border-blue-100">
@@ -1656,13 +1563,13 @@ export default function DeliveryPersonDashboard() {
                                   {locationError}
                                 </div>
                               )}
-  
+
                               {locationSuccess && (
                                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                                   {locationSuccess}
                                 </div>
                               )}
-  
+
                               {currentLocation ? (
                                 <div className="mb-4">
                                   <p className="text-gray-600 mb-2">
@@ -1682,7 +1589,7 @@ export default function DeliveryPersonDashboard() {
                                   </p>
                                 </div>
                               )}
-  
+
                               <div className="flex items-center">
                                 <Button
                                   onClick={verifyLocation}
@@ -1702,7 +1609,7 @@ export default function DeliveryPersonDashboard() {
                             </CardContent>
                           </Card>
                         )}
-  
+
                         {/* Ration Distribution Section */}
                         {currentDelivery.status === "authenticated" && (
                           <Card className="border-blue-100">
@@ -1717,13 +1624,13 @@ export default function DeliveryPersonDashboard() {
                                   {rationError}
                                 </div>
                               )}
-  
+
                               {rationSuccess && (
                                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                                   {rationSuccess}
                                 </div>
                               )}
-  
+
                               <Table>
                                 <TableHeader>
                                   <TableRow className="bg-blue-50 hover:bg-blue-100">
@@ -1801,7 +1708,7 @@ export default function DeliveryPersonDashboard() {
                             </CardContent>
                           </Card>
                         )}
-  
+
                         {/* Complete Delivery Button */}
                         {currentDelivery.status === "authenticated" && (
                           <div className="flex justify-center mt-6">
@@ -1823,7 +1730,7 @@ export default function DeliveryPersonDashboard() {
                   </motion.div>
                 )}
               </TabsContent>
-  
+
               {/* Transaction History Tab */}
               <TabsContent value="transaction-history" className="mt-6">
                 <motion.div
@@ -1898,6 +1805,106 @@ export default function DeliveryPersonDashboard() {
             </Tabs>
           </div>
         )}
+      </div>
+      {/* MetaMask Transaction Modal */}
+      {showMetaMaskModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 mr-4 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 35 33"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M32.9582 1L19.8241 10.7183L22.2665 4.99099L32.9582 1Z"
+                    fill="#E17726"
+                    stroke="#E17726"
+                    strokeWidth="0.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M2.65881 1L15.6697 10.8511L13.3487 4.99099L2.65881 1Z"
+                    fill="#E27625"
+                    stroke="#E27625"
+                    strokeWidth="0.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold">MetaMask Transaction</h3>
+            </div>
+
+            <div className="border-t border-b py-4 my-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Transaction Type:</span>
+                <span className="font-medium">
+                  {metaMaskModalType === "otp"
+                    ? "OTP Verification"
+                    : metaMaskModalType === "location"
+                    ? "Location Verification"
+                    : "Payment Processing"}
+                </span>
+              </div>
+
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">To Contract:</span>
+                <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded truncate max-w-[180px]">
+                  {activeDepot?.walletAddress || "0xContract..."}
+                </span>
+              </div>
+
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Gas Fee (est.):</span>
+                <span>0.001 ETH</span>
+              </div>
+
+              {metaMaskModalType === "complete" && (
+                <div className="flex justify-between mb-2 text-green-700">
+                  <span className="font-medium">Payment Amount:</span>
+                  <span className="font-medium">
+                    {transactionAmount || "0.05"} ETH
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="mb-4 text-center text-gray-700">
+              {metaMaskModalMessage}
+            </p>
+
+            <div className="flex justify-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+
+            <p className="mt-4 text-center text-sm text-gray-500">
+              Please confirm this transaction in your MetaMask wallet
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="mt-4">
+        <h3 className="font-medium text-lg mb-2">Complete Delivery by ID</h3>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Enter Delivery ID"
+            className="flex-1 p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={deliveryIdToComplete}
+            onChange={(e) => setDeliveryIdToComplete(e.target.value)}
+          />
+          <Button
+            onClick={() => completeDelivery(deliveryIdToComplete)}
+            className="bg-blue-500 hover:bg-blue-700 rounded-l-none"
+          >
+            Complete
+          </Button>
+        </div>
       </div>
     </DealerLayout>
   );

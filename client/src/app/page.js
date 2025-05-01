@@ -28,6 +28,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+} from "@radix-ui/react-dropdown-menu";
+import {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function Home() {
   const fadeIn = {
@@ -52,11 +62,11 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Navbar */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="fixed left-50 top-5 z-40 w-[80%] mx-auto px-5 rounded-xl border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className=" flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Database className="h-6 w-6 text-green-600" />
-            <span className="text-xl font-bold">Grainly</span>
+            <span className="text-xl font-bold">Grainlyy</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <Link
@@ -86,20 +96,52 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/login">
-              <Button variant="outline" className="hidden md:flex">
+              <Button
+                variant="outline"
+                className="hidden md:flex hover:cursor-pointer"
+              >
                 Log In
               </Button>
             </Link>
-            <Button className="bg-green-600 hover:bg-green-800">
+            {/* <Button className="bg-green-600 hover:bg-green-800">
               Get Started
-            </Button>
+            </Button> */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="bg-green-600 px-5 py-1.5 rounded-sm text-white hover:bg-green-700 hover:cursor-pointer">
+                Get Started
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Get started as</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link href="/signup/delivery" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer">
+                    Delivery
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/signup/vendor" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer">
+                    Vendor
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/signup/ngo" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer">
+                    NGO
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/signup/consumer" className="w-full">
+                  <DropdownMenuItem className="cursor-pointer">
+                    Consumer
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative bg-green-900 text-white overflow-hidden">
+        <section className="relative bg-green-900 text-white overflow-hidden py-24">
           {/* Background Video */}
           <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
             <video
@@ -220,7 +262,7 @@ export default function Home() {
             </div>
 
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-12"
               variants={stagger}
               initial="hidden"
               whileInView="visible"
@@ -297,7 +339,7 @@ export default function Home() {
           <div className="">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Your Advantages of Adopting Grainly
+                Your Advantages of Adopting Grainlyy
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
                 See how our blockchain solution transforms the public
@@ -532,7 +574,7 @@ export default function Home() {
                 Showcasing Remarkable Success Stories
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                See how Grainly is transforming public distribution systems
+                See how Grainlyy is transforming public distribution systems
                 across regions.
               </p>
             </div>
@@ -567,7 +609,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-center text-muted-foreground">
-                      "Grainly has transformed our distribution system. We've
+                      "Grainlyy has transformed our distribution system. We've
                       seen a 95% reduction in complaints and complete
                       transparency in our operations."
                     </p>
@@ -627,7 +669,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-center text-muted-foreground">
-                      "Grainly provides the data we need to ensure food
+                      "Grainlyy provides the data we need to ensure food
                       security. The transparency has been revolutionary for our
                       monitoring efforts."
                     </p>
@@ -646,7 +688,7 @@ export default function Home() {
                 Frequently Asked Questions
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                Find answers to common questions about Grainly's blockchain
+                Find answers to common questions about Grainlyy's blockchain
                 distribution system.
               </p>
             </div>
@@ -731,7 +773,7 @@ export default function Home() {
               </h2>
               <p className="mt-6 text-lg text-green-50 max-w-2xl mx-auto">
                 Join the growing network of governments and organizations using
-                Grainly to ensure transparent and efficient public distribution.
+                Grainlyy to ensure transparent and efficient public distribution.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -760,7 +802,7 @@ export default function Home() {
             <div className="col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <Database className="h-6 w-6 text-green-600" />
-                <span className="text-xl font-bold">Grainly</span>
+                <span className="text-xl font-bold">Grainlyy</span>
               </div>
               <p className="text-muted-foreground max-w-xs">
                 Making government ration delivery transparent, tamper-proof, and
@@ -881,7 +923,7 @@ export default function Home() {
           </div>
           <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Grainly. All rights reserved.
+              © {new Date().getFullYear()} Grainlyy. All rights reserved.
               Blockchain-powered transparency for public distribution.
             </p>
             <div className="flex gap-4">

@@ -74,7 +74,7 @@ export default function AdminDashboard() {
 
   // Load transaction history from localStorage
   useEffect(() => {
-    const savedHistory = localStorage.getItem('rationchain-tx-history');
+    const savedHistory = localStorage.getItem('Grainlyyy-tx-history');
     if (savedHistory) {
       try {
         setTxHistory(JSON.parse(savedHistory));
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
     setTxHistory(updatedHistory);
     
     try {
-      localStorage.setItem('rationchain-tx-history', JSON.stringify(updatedHistory));
+      localStorage.setItem('Grainlyyy-tx-history', JSON.stringify(updatedHistory));
     } catch (e) {
       console.error('Failed to save transaction history:', e);
     }
@@ -411,7 +411,7 @@ const handleRationAllocation = async (e) => {
         <div className="flex flex-col gap-2 mb-6">
           <h1 className="text-3xl font-bold text-green-900">Dashboard</h1>
           <p className="text-muted-foreground text-gray-600">
-            Welcome to the Ration Management System dashboard.
+            Welcome to the Grainlyyy dashboard.
           </p>
         </div>
 

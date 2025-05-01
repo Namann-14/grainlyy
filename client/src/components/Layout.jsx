@@ -18,7 +18,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex flex-col">
       <header className="bg-indigo-600 text-white shadow">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">🔗 RationChain</Link>
+          <Link href="/" className="text-xl font-bold">🔗 Grainlyyy</Link>
           
           <div className="flex items-center space-x-4">
             <nav className="hidden md:flex space-x-6">
@@ -52,7 +52,7 @@ export default function Layout({ children }) {
       <footer className="bg-gray-100 text-gray-600">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center">
-            <p>&copy; 2025 RationChain. All rights reserved.</p>
+            <p>&copy; 2025 Grainlyyy. All rights reserved.</p>
             <p className="mt-2 text-sm">Making Public Distribution Transparent and Verifiable</p>
           </div>
         </div>

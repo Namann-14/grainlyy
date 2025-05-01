@@ -2,7 +2,7 @@ import './globals.css';
 import { MetaMaskProvider } from '@/components/MetaMaskProvider';
 
 export const metadata = {
-  title: 'RationChain',
+  title: 'Grainlyyy',
   description: 'Blockchain-based Public Distribution System',
 };
 

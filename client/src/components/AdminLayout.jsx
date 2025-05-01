@@ -113,7 +113,7 @@ export default function AdminLayout({ children }) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
                   <Package className="h-4 w-4" />
                 </div>
-                <div className="font-semibold text-green-900">Grainlyy</div>
+                <div className="font-semibold text-green-900">Grainlyyy</div>
               </div>
             </Link>
           </SidebarHeader>

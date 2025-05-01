@@ -89,7 +89,7 @@ export function MetaMaskProvider({ children }) {
     console.log("User disconnected from application");
     
     // LocalStorage cleanup if you're storing any wallet-related data
-    localStorage.removeItem('rationchain-connected-account');
+    localStorage.removeItem('Grainlyyy-connected-account');
     
     return true;
   };

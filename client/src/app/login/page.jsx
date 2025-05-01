@@ -1,88 +1,210 @@
-'use client';
-import Head from 'next/head';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useMetaMask } from '@/components/MetaMaskProvider';
+"use client"
 
-export default function Login() {
-  const { connected, provider, connect, disconnect } = useMetaMask();
-  const [connecting, setConnecting] = useState(false);
-  const [userType, setUserType] = useState(null);
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Leaf, AlertCircle } from "lucide-react"
 
-  const handleConnect = async () => {
-    try {
-      setConnecting(true);
-      await connect();
-    } catch (error) {
-      console.error('Error connecting to MetaMask', error);
-    } finally {
-      setConnecting(false);
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { MetaMaskConnect } from "@/components/metamask-connect"
+import { AuthLayout } from "@/components/auth-layout"
+import { useMetaMask } from "@/components/MetaMaskProvider"
+
+export default function LoginPage() {
+  const router = useRouter()
+  const { connected, account } = useMetaMask()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [walletConnected, setWalletConnected] = useState(false)
+  const [walletAddress, setWalletAddress] = useState("")
+  const [userType, setUserType] = useState(null)
+
+  // Sync wallet state with MetaMask provider
+  useEffect(() => {
+    setWalletConnected(connected)
+    setWalletAddress(account || "")
+    
+    if (account) {
+      checkUserType(account)
     }
-  };
-  
-  const handleDisconnect = () => {
-    disconnect();
-  };
+  }, [connected, account])
+
+  // Check user type associated with wallet address
+  const checkUserType = async (address) => {
+    try {
+      setIsLoading(true)
+      
+      // Simulate API call to check user role from database
+      // In a real app, this would query your backend
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Simulated response - in a real app, you'd get this from your API
+      // For demo purposes, we'll use a random user type or fixed mapping
+      // In production, replace this with actual API call to your backend
+      
+      // DEMO ONLY: Different logic for testing different roles
+      // const types = ["delivery", "vendor", "ngo"]
+      // const randomType = types[Math.floor(Math.random() * types.length)]
+      
+      // DEMO ONLY: For fixed testing, uncomment this
+      let foundUserType = null
+      
+      // Mock user database - replace with actual API call
+      const mockUserDB = {
+        "0x123456789abcdef": "delivery",
+        "0x987654321fedcba": "vendor",
+        "0xabcdef123456789": "ngo"
+      }
+      
+      // Check if wallet exists in mock database
+      // In the simplest case, last 5 chars of address determine type
+      const addressEnd = address.slice(-5)
+      const sum = addressEnd.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      
+      if (sum % 3 === 0) foundUserType = "delivery"
+      else if (sum % 3 === 1) foundUserType = "vendor"
+      else foundUserType = "ngo"
+      
+      // For demo purposes only - in real app you'd verify with your backend
+      setUserType(foundUserType)
+    } catch (err) {
+      console.error("Error checking user type:", err)
+      setError("Failed to verify wallet. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleWalletConnect = (address) => {
+    setWalletConnected(true)
+    setWalletAddress(address)
+    checkUserType(address)
+  }
+
+  const handleLogin = async () => {
+    if (!walletConnected) {
+      setError("Please connect your wallet first")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      if (!userType) {
+        setError("This wallet is not registered. Please sign up first.")
+        return
+      }
+
+      // Simulate API authentication call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      
+      // Redirect based on user type
+      router.push(`/dashboard/${userType}`)
+    } catch (err) {
+      setError("Failed to authenticate. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Get button text based on state
+  const getButtonText = () => {
+    if (isLoading) return "Signing in..."
+    if (!walletConnected) return "Connect Wallet to Sign In"
+    if (!userType) return "Wallet Not Registered"
+    return "Sign in"
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Head>
-        <title>RationChain - Public Distribution Tracker</title>
-        <meta name="description" content="Blockchain-based ration delivery tracking system" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className="flex flex-col items-center justify-center min-h-[70vh] text-center">
-        <h1 className="text-4xl font-bold text-gray-800 mb-6">
-          🔗 RationChain
-        </h1>
-        <p className="text-xl text-gray-600 mb-10 max-w-2xl">
-          A blockchain-based system designed to make the government's ration delivery system 
-          transparent, tamper-proof, and publicly verifiable.
-        </p>
-
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-2xl font-semibold mb-6">Select Your Role</h2>
-          
-          {!connected ? (
-            <button 
-              onClick={handleConnect}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-4"
-            >
-              {connecting ? 'Connecting...' : 'Connect Wallet'}
-            </button>
-          ) : (
-            <>
-              <div className="space-y-4">
-                <Link href="/admin" className="block w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                  Government/Admin Dashboard
-                </Link>
-                <Link href="/dealer" className="block w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  Dealer Dashboard
-                </Link>
-                <Link href="/public" className="block w-full py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
-                  Public/NGO Dashboard
-                </Link>
-                <Link href="/depot" className="block w-full py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-                  Depot Dashboard
-                </Link>
+    <AuthLayout title="Welcome back" description="Login to access your Grainlyy dashboard">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <Card className="border-green-100 shadow-md">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
+                <Leaf className="h-4 w-4" />
               </div>
-              
-              {/* Sign Out Button */}
-              <button 
-                onClick={handleDisconnect}
-                className="w-full py-3 mt-8 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              <CardTitle className="text-2xl text-green-900">Sign in</CardTitle>
+            </div>
+            <CardDescription>Connect with MetaMask to access your account</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm"
               >
-                Sign Out
-              </button>
-            </>
-          )}
-        </div>
-      </main>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              </motion.div>
+            )}
 
-      <footer className="mt-10 py-4 border-t text-center text-gray-500">
-        <p>RationChain - Making Public Distribution Transparent</p>
-      </footer>
-    </div>
+            <MetaMaskConnect onConnect={handleWalletConnect} />
+
+            {walletConnected && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-4"
+              >
+                {userType && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+                    <p>Wallet recognized as: <strong className="capitalize">{userType}</strong></p>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="remember" />
+                  <Label htmlFor="remember" className="text-sm text-muted-foreground">
+                    Remember this device
+                  </Label>
+                </div>
+              </motion.div>
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button
+              onClick={handleLogin}
+              disabled={!walletConnected || isLoading || !userType}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              {getButtonText()}
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-green-600 hover:text-green-700 font-medium">
+                Sign up
+              </Link>
+            </div>
+            
+            {walletConnected && !userType && (
+              <div className="text-center text-sm">
+                <p className="text-amber-600">
+                  This wallet is not registered. Please{" "}
+                  <Link href="/signup" className="font-medium underline">
+                    create an account
+                  </Link>
+                  {" "}first.
+                </p>
+              </div>
+            )}
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </AuthLayout>
   )
 }

@@ -82,7 +82,7 @@ export default function AssignDelivery() {
   return (
     <AdminLayout>
       <Head>
-        <title>Assign Delivery | RationChain</title>
+        <title>Assign Delivery | Grainlyyy</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">

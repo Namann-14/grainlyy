@@ -1,26 +1,55 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useMetaMask } from '@/components/MetaMaskProvider';
-import { ethers } from 'ethers';
-import { getContract } from '../../utils/contract';
-import DepotLayout from '../../components/DepotLayout';
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useMetaMask } from "@/components/MetaMaskProvider";
+import { ethers } from "ethers";
+import { getContract } from "../../utils/contract";
+import DepotLayout from "../../components/DepotLayout";
 import { motion } from "framer-motion";
-import { 
-  ArrowUpRight, CheckCircle2, Clock, Package, MapPin, 
-  Truck, Users, Warehouse, UserCheck, ShoppingBag, History 
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  Package,
+  MapPin,
+  Truck,
+  Users,
+  Warehouse,
+  UserCheck,
+  ShoppingBag,
+  History,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Animation variants for Framer Motion
 const containerVariants = {
@@ -49,154 +78,187 @@ const itemVariants = {
 export default function DepotDashboard() {
   const { connected, provider, chainId } = useMetaMask();
   const router = useRouter();
-  
+
   // Depot details
-  const [depotId, setDepotId] = useState('');
-  const [depotName, setDepotName] = useState('');
-  const [depotLocation, setDepotLocation] = useState('');
-  
+  const [depotId, setDepotId] = useState("");
+  const [depotName, setDepotName] = useState("");
+  const [depotLocation, setDepotLocation] = useState("");
+
   // Users and deliveries
   const [assignedUsers, setAssignedUsers] = useState([]);
   const [assignedDeliveryPersons, setAssignedDeliveryPersons] = useState([]);
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
   const [activeDelivery, setActiveDelivery] = useState(null);
   const [completedDeliveries, setCompletedDeliveries] = useState([]);
-  
+
   // MetaMask modal simulation
   const [showMetaMaskModal, setShowMetaMaskModal] = useState(false);
-  const [metaMaskModalType, setMetaMaskModalType] = useState('');
-  const [metaMaskModalMessage, setMetaMaskModalMessage] = useState('');
-  const [fakeTransactionHash, setFakeTransactionHash] = useState('');
+  const [metaMaskModalType, setMetaMaskModalType] = useState("");
+  const [metaMaskModalMessage, setMetaMaskModalMessage] = useState("");
+  const [fakeTransactionHash, setFakeTransactionHash] = useState("");
   const [fakeMode, setFakeMode] = useState(true); // Set to true by default for easier testing
-  
+
   // OTP verification
-  const [otpInput, setOtpInput] = useState('');
-  const [receivedOtp, setReceivedOtp] = useState('');
+  const [otpInput, setOtpInput] = useState("");
+  const [receivedOtp, setReceivedOtp] = useState("");
   const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [currentOTP, setCurrentOTP] = useState('');
+  const [currentOTP, setCurrentOTP] = useState("");
   const [generatingOtp, setGeneratingOtp] = useState(false);
-  const [otpSuccess, setOtpSuccess] = useState('');
-  const [otpError, setOtpError] = useState('');
-  
+  const [otpSuccess, setOtpSuccess] = useState("");
+  const [otpError, setOtpError] = useState("");
+
   // Ration distribution
   const [rationDistributions, setRationDistributions] = useState([]);
-  
+  const [deliveryIdToComplete, setDeliveryIdToComplete] = useState("");
+
   // General state
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [txHistory, setTxHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview');
-  
+  const [activeTab, setActiveTab] = useState("overview");
+
   // Load transaction history from localStorage
   useEffect(() => {
-    const savedHistory = localStorage.getItem('rationchain-depot-tx-history');
+    const savedHistory = localStorage.getItem("Grainlyyy-depot-tx-history");
     if (savedHistory) {
       try {
         setTxHistory(JSON.parse(savedHistory));
       } catch (e) {
-        console.error('Failed to parse transaction history:', e);
+        console.error("Failed to parse transaction history:", e);
       }
     }
   }, []);
-  
+
   // Add this useEffect to poll for verification status updates
   useEffect(() => {
     let interval;
-    
-    if (currentOTP && !otpSuccess && activeDelivery && activeDelivery.status !== 'authenticated') {
+
+    if (
+      currentOTP &&
+      !otpSuccess &&
+      activeDelivery &&
+      activeDelivery.status !== "authenticated"
+    ) {
       // Poll every 10 seconds to check if OTP was verified
       interval = setInterval(() => {
         checkDeliveryStatus();
       }, 10000);
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [currentOTP, otpSuccess, activeDelivery]);
-  
+
   // Save transaction to history
   const saveTransaction = (txData) => {
     const updatedHistory = [...txHistory, txData];
     setTxHistory(updatedHistory);
-    
+
     // Save to localStorage for persistence
     try {
-      localStorage.setItem('rationchain-depot-tx-history', JSON.stringify(updatedHistory));
+      localStorage.setItem(
+        "Grainlyyy-depot-tx-history",
+        JSON.stringify(updatedHistory)
+      );
     } catch (e) {
-      console.error('Failed to save transaction history:', e);
+      console.error("Failed to save transaction history:", e);
     }
   };
-  
+
   // Initialize and fetch depot data
   useEffect(() => {
     if (!connected || !provider) {
-      router.push('/');
+      router.push("/");
       return;
     }
-    
+
     const fetchData = async () => {
       try {
         const ethersProvider = new ethers.BrowserProvider(provider);
         const signer = await ethersProvider.getSigner();
         const contract = getContract(signer);
         const signerAddress = await signer.getAddress();
-        
+
         console.log("Connected with address:", signerAddress);
-        
+
         // Find depot by wallet address
         const depotCount = await contract.depotCount();
-        
+
         for (let i = 1; i <= Number(depotCount); i++) {
           try {
             const depot = await contract.getDepotDetails(i);
-            
-            if (depot.walletAddress.toLowerCase() === signerAddress.toLowerCase()) {
+
+            if (
+              depot.walletAddress.toLowerCase() === signerAddress.toLowerCase()
+            ) {
               setDepotId(String(depot.id));
               setDepotName(depot.name);
               setDepotLocation(depot.location);
-              
+
               // Get assigned users
               await fetchAssignedUsers(contract, String(depot.id));
-              
+
               // Get assigned delivery persons
               await fetchAssignedDeliveryPersons(contract, String(depot.id));
-              
+
               // Get deliveries for this depot
               await fetchDeliveries(contract, String(depot.id));
-              
+
               // Get ration distributions
               await fetchRationDistributions(contract, String(depot.id));
-              
+
               break;
             }
           } catch (error) {
             console.error(`Error checking depot ${i}:`, error);
           }
         }
-        
+
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching depot data:', error);
-        setError('Failed to load your data from blockchain: ' + (error.message || error.toString()));
+        console.error("Error fetching depot data:", error);
+        setError(
+          "Failed to load your data from blockchain: " +
+            (error.message || error.toString())
+        );
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [connected, provider, router]);
-  
+  // Add a useEffect to periodically check verification status
+  useEffect(() => {
+    let interval;
+
+    if (
+      (activeDelivery && activeDelivery.status === "in-progress") ||
+      activeDelivery?.status === "authenticated"
+    ) {
+      // Check every 15 seconds for status changes
+      interval = setInterval(() => {
+        console.log("Checking delivery status...");
+        checkDeliveryStatus();
+      }, 15000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeDelivery, activeDelivery?.status]);
+
   // Fetch assigned users for this depot
   const fetchAssignedUsers = async (contract, depotId) => {
     try {
       const userCount = await contract.userCount();
       const usersData = [];
-      
+
       for (let i = 1; i <= Number(userCount); i++) {
         try {
           const user = await contract.getUserDetails(i);
-          
+
           if (String(user.assignedDepotId) === depotId) {
             usersData.push({
               id: String(user.id),
@@ -204,51 +266,53 @@ export default function DepotDashboard() {
               category: String(user.category),
               walletAddress: user.walletAddress,
               assignedDepotId: String(user.assignedDepotId),
-              lastRationDate: user.lastRationDate || null
+              lastRationDate: user.lastRationDate || null,
             });
           }
         } catch (error) {
           console.error(`Error fetching user ${i}:`, error);
         }
       }
-      
+
       setAssignedUsers(usersData);
     } catch (error) {
-      console.error('Error fetching assigned users:', error);
+      console.error("Error fetching assigned users:", error);
     }
   };
-  
+
   // Fetch assigned delivery persons for this depot
   const fetchAssignedDeliveryPersons = async (contract, depotId) => {
     try {
       const deliveryPersonCount = await contract.deliveryPersonCount();
       const deliveryPersonsData = [];
-      
+
       for (let i = 1; i <= Number(deliveryPersonCount); i++) {
         try {
           const person = await contract.getDeliveryPersonDetails(i);
-          
+
           // Check if this depot is in the person's assigned depots
-          const assignedDepotIds = person.assignedDepotIds.map(id => String(id));
+          const assignedDepotIds = person.assignedDepotIds.map((id) =>
+            String(id)
+          );
           if (assignedDepotIds.includes(depotId)) {
             deliveryPersonsData.push({
               id: String(person.id),
               name: person.name,
               walletAddress: person.walletAddress,
-              phone: person.phone || ''
+              phone: person.phone || "",
             });
           }
         } catch (error) {
           console.error(`Error fetching delivery person ${i}:`, error);
         }
       }
-      
+
       setAssignedDeliveryPersons(deliveryPersonsData);
     } catch (error) {
-      console.error('Error fetching assigned delivery persons:', error);
+      console.error("Error fetching assigned delivery persons:", error);
     }
   };
-  
+
   // Fetch deliveries for this depot
   const fetchDeliveries = async (contract, depotId) => {
     try {
@@ -256,301 +320,354 @@ export default function DepotDashboard() {
       // Here we'll simulate pending and completed deliveries
       const pendingDeliveriesData = [];
       const completedDeliveriesData = [];
-      
+
       // Simulate getting deliveries from blockchain
       // In a real app, you'd have a contract function like getDeliveriesByDepot
       const deliveryCount = await contract.deliveryPersonCount(); // This is just a placeholder
-      
+
       for (let i = 1; i <= Number(deliveryCount); i++) {
         try {
           // Replace with actual contract call to get deliveries
           // const delivery = await contract.getDeliveryDetails(i);
-          
+
           // Simulated delivery data
           if (i % 2 === 0) {
             pendingDeliveriesData.push({
               id: `DEL${i}`,
               deliveryPersonId: String(i),
               deliveryPersonName: `Delivery Person ${i}`,
-              status: 'scheduled',
+              status: "scheduled",
               scheduledDate: new Date(Date.now() + 86400000 * i).toISOString(),
-              users: []
+              users: [],
             });
           } else {
             completedDeliveriesData.push({
               id: `DEL${i}`,
               deliveryPersonId: String(i),
               deliveryPersonName: `Delivery Person ${i}`,
-              status: 'completed',
+              status: "completed",
               completedDate: new Date(Date.now() - 86400000 * i).toISOString(),
-              users: []
+              users: [],
             });
           }
         } catch (error) {
           console.error(`Error fetching delivery ${i}:`, error);
         }
       }
-      
+
       setPendingDeliveries(pendingDeliveriesData);
       setCompletedDeliveries(completedDeliveriesData);
     } catch (error) {
-      console.error('Error fetching deliveries:', error);
+      console.error("Error fetching deliveries:", error);
     }
   };
-  
+
   // Fetch ration distributions for this depot
   const fetchRationDistributions = async (contract, depotId) => {
     try {
       // In a real application, you would fetch ration distributions from the blockchain
       // Here we'll simulate some ration distribution data
       const rationData = [];
-      
+
       for (let i = 1; i <= 5; i++) {
         rationData.push({
           id: `RAT${i}`,
           userId: String(i),
           userName: `User ${i}`,
-          category: `Category ${i % 3 + 1}`,
+          category: `Category ${(i % 3) + 1}`,
           date: new Date(Date.now() - 86400000 * i).toISOString(),
           items: [
-            { name: 'Rice', quantity: '5kg' },
-            { name: 'Wheat', quantity: '3kg' },
-            { name: 'Sugar', quantity: '1kg' },
-            { name: 'Oil', quantity: '1L' }
-          ]
+            { name: "Rice", quantity: "5kg" },
+            { name: "Wheat", quantity: "3kg" },
+            { name: "Sugar", quantity: "1kg" },
+            { name: "Oil", quantity: "1L" },
+          ],
         });
       }
-      
+
       setRationDistributions(rationData);
     } catch (error) {
-      console.error('Error fetching ration distributions:', error);
+      console.error("Error fetching ration distributions:", error);
     }
   };
-  
+
   // Receive delivery person
   const receiveDeliveryPerson = async (deliveryPersonId) => {
     try {
       // Find the delivery person in the assigned list
-      const deliveryPerson = assignedDeliveryPersons.find(person => person.id === deliveryPersonId);
-      
+      const deliveryPerson = assignedDeliveryPersons.find(
+        (person) => person.id === deliveryPersonId
+      );
+
       if (!deliveryPerson) {
-        setError('Selected delivery person not found');
+        setError("Selected delivery person not found");
         return;
       }
-      
+
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contract = getContract(signer);
-      
+
       // Simulate getting OTP from blockchain
       // In a real app, this would be generated by the delivery person
-      const simulatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const simulatedOtp = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
       setReceivedOtp(simulatedOtp);
-      
+
       // Set active delivery
       setActiveDelivery({
         deliveryPersonId: deliveryPersonId,
         deliveryPersonName: deliveryPerson.name,
-        status: 'in-progress',
+        status: "in-progress",
         startTime: new Date().toISOString(),
-        otp: simulatedOtp
+        otp: simulatedOtp,
       });
-      
+
       // Remove from pending deliveries
       const updatedPendingDeliveries = pendingDeliveries.filter(
-        delivery => delivery.deliveryPersonId !== deliveryPersonId
+        (delivery) => delivery.deliveryPersonId !== deliveryPersonId
       );
       setPendingDeliveries(updatedPendingDeliveries);
-      
+
       saveTransaction({
-        type: 'Start Delivery',
+        type: "Start Delivery",
         timestamp: Date.now(),
-        details: `Started delivery process with Delivery Person ID: ${deliveryPersonId}`
+        details: `Started delivery process with Delivery Person ID: ${deliveryPersonId}`,
       });
-      
+
       // Switch to active delivery tab
-      setActiveTab('active-delivery');
+      setActiveTab("active-delivery");
     } catch (error) {
-      console.error('Error receiving delivery person:', error);
-      setError('Failed to receive delivery person: ' + (error.message || error.toString()));
+      console.error("Error receiving delivery person:", error);
+      setError(
+        "Failed to receive delivery person: " +
+          (error.message || error.toString())
+      );
     }
   };
 
-  // Generate OTP - Enhanced version with fake mode support
+  // Generate OTP function that sets delivery to IN_TRANSIT
   const generateOTP = async () => {
     try {
       setGeneratingOtp(true);
-      setOtpError('');
-      setOtpSuccess('');
-      
+      setOtpError("");
+      setOtpSuccess("");
+
       if (!activeDelivery) {
-        setOtpError('No active delivery found');
+        setOtpError("No active delivery found");
         setGeneratingOtp(false);
-        return null;
+        return;
       }
-      
-      // If in fake mode, generate OTP without blockchain interaction
-      if (fakeMode) {
-        // Show fake MetaMask popup
-        setMetaMaskModalType('otp');
-        setMetaMaskModalMessage('Generating OTP on blockchain...');
-        setShowMetaMaskModal(true);
-        
-        // Simulate transaction delay
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
-        // Generate fake transaction hash
-        const mockTxHash = '0x' + Math.random().toString(16).substr(2, 64);
-        setFakeTransactionHash(mockTxHash);
-        
+
+      // Generate random 6-digit OTP locally first so we can display it immediately
+      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      setCurrentOTP(randomOtp);
+
+      // Show MetaMask popup
+      setMetaMaskModalType("otp");
+      setMetaMaskModalMessage(
+        "Setting OTP and transitioning delivery to IN_TRANSIT..."
+      );
+      setShowMetaMaskModal(true);
+
+      try {
+        // Get ethers provider and signer
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = getContract(signer);
+
+        // Find the delivery ID based on the activeDelivery info
+        const deliveryCount = await contract.rationDeliveryCount();
+        let deliveryId = null;
+
+        for (let i = 1; i <= Number(deliveryCount); i++) {
+          try {
+            const delivery = await contract.getDeliveryDetails(i);
+
+            if (
+              delivery.deliveryPersonId.toString() ===
+                activeDelivery.deliveryPersonId &&
+              delivery.depotId.toString() === depotId
+            ) {
+              deliveryId = i;
+              console.log("Found delivery ID:", deliveryId);
+              break;
+            }
+          } catch (err) {
+            console.error(`Error checking delivery ${i}:`, err);
+          }
+        }
+
+        if (!deliveryId) {
+          throw new Error("Could not find delivery ID in the contract");
+        }
+
+        // Call the contract to generate OTP - PASS THE DELIVERY ID AND OUR RANDOM OTP
+        const setOtpTx = await contract.generateOTP(deliveryId);
+
+        console.log("Transaction sent:", setOtpTx.hash);
+
+        // Wait for transaction confirmation
+        const receipt = await setOtpTx.wait();
+        console.log("Transaction confirmed:", receipt);
+
         // Hide MetaMask popup
         setShowMetaMaskModal(false);
-        
-        // Generate a 6-digit OTP
-        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        setCurrentOTP(generatedOtp);
-        setOtpSuccess(`OTP generated successfully: ${generatedOtp}`);
-        
+
         // Save transaction to history
         saveTransaction({
-          type: 'Generate OTP (Simulated)',
-          txHash: mockTxHash,
+          type: "Generate OTP",
+          txHash: setOtpTx.hash,
           timestamp: Date.now(),
-          details: `OTP generated for delivery person: ${activeDelivery.deliveryPersonName}`
+          details: `Generated OTP (${randomOtp}) and set delivery to IN_TRANSIT for Delivery ID: ${deliveryId}`,
         });
-        
-        return generatedOtp;
+
+        setOtpSuccess(
+          `OTP ${randomOtp} generated successfully! The delivery person can now verify this OTP.`
+        );
+
+        // Update delivery status to reflect IN_TRANSIT state
+        const updatedDelivery = {
+          ...activeDelivery,
+          status: "in-progress",
+          otpGenerated: true,
+        };
+        setActiveDelivery(updatedDelivery);
+      } catch (error) {
+        setShowMetaMaskModal(false);
+        throw error;
       }
-      
-      // Original blockchain OTP generation code
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-      
-      console.log(`Generating OTP for active delivery with delivery person: ${activeDelivery.deliveryPersonId}`);
-      
-      // Use deliveryPersonId instead of deliveryId since that's what we have
-      const tx = await contract.generateOTP(activeDelivery.deliveryPersonId);
-      const receipt = await tx.wait();
-      
-      // For testing purposes, generate a random OTP
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      setCurrentOTP(generatedOtp);
-      setOtpSuccess(`OTP generated successfully: ${generatedOtp}`);
-      
-      // Save transaction to history
-      saveTransaction({
-        type: 'Generate OTP',
-        txHash: tx.hash,
-        timestamp: Date.now(),
-        details: `OTP generated for delivery person: ${activeDelivery.deliveryPersonName}`
-      });
-      
-      return generatedOtp;
     } catch (error) {
-      console.error('Error generating OTP:', error);
-      
-      // Parse the error to provide a better message
-      let errorMessage = error.message || error.toString();
-      
-      if (errorMessage.includes("Delivery not in pending state")) {
-        setOtpError("Cannot generate OTP: Delivery is not in pending state. This may happen if the OTP was already generated or delivery is completed.");
-      } else {
-        setOtpError(`Failed to generate OTP: ${errorMessage}`);
-      }
-      return null;
+      console.error("Error generating OTP:", error);
+      setOtpError(
+        "Failed to generate OTP: " + (error.message || error.toString())
+      );
     } finally {
       setGeneratingOtp(false);
     }
   };
-  
-  // Add this function to check OTP verification status
+
+  // Update this function to use activeDelivery instead of currentDelivery
   const checkDeliveryStatus = async () => {
     try {
       if (!activeDelivery) {
-        setError('No active delivery found');
         return;
       }
-      
+
+      console.log("Checking delivery status...");
+
+      // You can implement real checking here
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contract = getContract(signer);
-      
-      // Find the delivery ID
-      const deliveryCount = await contract.rationDeliveryCount();
-      let currentDeliveryId = null;
-      let currentStatus = null;
-      
-      for (let i = 1; i <= Number(deliveryCount); i++) {
-        try {
-          const delivery = await contract.getDeliveryDetails(i);
-          
-          if (delivery.deliveryPersonId.toString() === activeDelivery.deliveryPersonId.toString() &&
-              delivery.depotId.toString() === depotId) {
-            
-            currentDeliveryId = i;
-            currentStatus = Number(delivery.status);
-            console.log(`Found delivery ${currentDeliveryId} with status: ${currentStatus}`);
-            break;
+
+      // Try to get the delivery details from the contract
+      try {
+        // Find the delivery ID based on the activeDelivery info
+        const deliveryCount = await contract.rationDeliveryCount();
+
+        for (let i = 1; i <= Number(deliveryCount); i++) {
+          try {
+            const delivery = await contract.getDeliveryDetails(i);
+
+            if (
+              delivery.deliveryPersonId.toString() ===
+              activeDelivery.deliveryPersonId
+            ) {
+              console.log(
+                "Found delivery:",
+                i,
+                "Status:",
+                delivery.status.toString()
+              );
+
+              // Update UI based on contract status if needed
+              const statusNum = Number(delivery.status);
+
+              if (
+                statusNum === 1 &&
+                activeDelivery.status !== "authenticated"
+              ) {
+                setActiveDelivery({
+                  ...activeDelivery,
+                  status: "authenticated",
+                });
+                setOtpSuccess(
+                  "OTP was successfully verified by the delivery person!"
+                );
+              } else if (
+                statusNum === 2 &&
+                activeDelivery.status !== "location-verified"
+              ) {
+                setActiveDelivery({
+                  ...activeDelivery,
+                  status: "location-verified",
+                });
+              }
+              break;
+            }
+          } catch (err) {
+            console.error(`Error checking delivery ${i}:`, err);
           }
-        } catch (err) {
-          console.error(`Error checking delivery ${i}:`, err);
         }
-      }
-      
-      if (!currentDeliveryId) {
-        setError('Could not find delivery details');
-        return;
-      }
-      
-      // Check if OTP has been verified (status would be IN_TRANSIT but with verified event)
-      if (currentStatus === 1) { // IN_TRANSIT
-        // Check for OTPVerified events for this delivery
-        const filter = contract.filters.OTPVerified(currentDeliveryId);
-        const events = await contract.queryFilter(filter);
-        
-        if (events.length > 0) {
-          // OTP was verified by delivery person
-          setOtpSuccess('OTP was successfully verified by the delivery person!');
-          
-          // Update active delivery status
-          const updatedDelivery = {...activeDelivery, status: 'authenticated'};
-          setActiveDelivery(updatedDelivery);
-        }
+      } catch (error) {
+        console.error("Error getting delivery details:", error);
       }
     } catch (error) {
-      console.error('Error checking delivery status:', error);
-      setError('Failed to check delivery status: ' + (error.message || error.toString()));
+      console.error("Error checking delivery status:", error);
     }
   };
-  
+
+  // Fix the useEffect to use activeDelivery instead of currentDelivery
+  useEffect(() => {
+    let interval;
+
+    if (
+      activeDelivery &&
+      (activeDelivery.status === "in-progress" ||
+        activeDelivery.status === "authenticated")
+    ) {
+      // Check every 15 seconds for status changes
+      interval = setInterval(() => {
+        console.log("Checking delivery status...");
+        checkDeliveryStatus();
+      }, 15000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeDelivery, activeDelivery?.status]);
+
   // Add this function to reset delivery state when needed
   const resetDeliveryState = async () => {
     try {
       setLoading(true);
-      
+
       if (!activeDelivery) {
-        setError('No active delivery to reset');
+        setError("No active delivery to reset");
         setLoading(false);
         return;
       }
-      
+
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contract = getContract(signer);
-      
+
       // Find the actual delivery ID based on the delivery person ID
       const deliveryCount = await contract.rationDeliveryCount();
       let deliveryIdToReset = null;
-      
+
       for (let i = 1; i <= Number(deliveryCount); i++) {
         try {
           const delivery = await contract.getDeliveryDetails(i);
-          
-          if (delivery.deliveryPersonId.toString() === activeDelivery.deliveryPersonId.toString() &&
-              delivery.depotId.toString() === depotId) {
+
+          if (
+            delivery.deliveryPersonId.toString() ===
+              activeDelivery.deliveryPersonId.toString() &&
+            delivery.depotId.toString() === depotId
+          ) {
             deliveryIdToReset = i;
             console.log(`Found delivery to reset: ${deliveryIdToReset}`);
             break;
@@ -559,62 +676,64 @@ export default function DepotDashboard() {
           console.error(`Error checking delivery ${i}:`, err);
         }
       }
-      
+
       if (!deliveryIdToReset) {
-        setError('Could not find the delivery to reset.');
+        setError("Could not find the delivery to reset.");
         setLoading(false);
         return;
       }
-      
+
       console.log(`Resetting delivery ID: ${deliveryIdToReset}`);
-      
+
       // Reset the delivery state back to pending using the found ID
       const tx = await contract.resetDeliveryState(deliveryIdToReset);
       await tx.wait();
-      
+
       // Clear success/error states
-      setError('');
-      setSuccess('Delivery state successfully reset to pending');
-      
+      setError("");
+      setSuccess("Delivery state successfully reset to pending");
+
       // Reset the current delivery state
       setCurrentOTP(null);
       setActiveDelivery(null);
-      setOtpSuccess('');
-      setOtpError('');
-      
+      setOtpSuccess("");
+      setOtpError("");
+
       // Refresh deliveries data
-      if (typeof fetchDeliveries === 'function') {
+      if (typeof fetchDeliveries === "function") {
         fetchDeliveries(contract, depotId);
       }
     } catch (error) {
-      console.error('Error resetting delivery state:', error);
-      setError('Failed to reset delivery state: ' + (error.message || error.toString()));
+      console.error("Error resetting delivery state:", error);
+      setError(
+        "Failed to reset delivery state: " + (error.message || error.toString())
+      );
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Verify OTP
   const verifyOTP = async () => {
     try {
       setVerifyingOtp(true);
-      setOtpError('');
-      setOtpSuccess('');
-      
+      setOtpError("");
+      setOtpSuccess("");
+
       if (!activeDelivery) {
-        setOtpError('No active delivery found');
+        setOtpError("No active delivery found");
         return;
       }
-      
+
       if (otpInput !== receivedOtp) {
-        setOtpError('OTP does not match. Please try again.');
+        setOtpError("OTP does not match. Please try again.");
         return;
       }
-      
+
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contract = getContract(signer);
-      
+
       // Call contract to verify OTP
       const verifyTx = await contract.verifyOTP(
         depotId,
@@ -622,206 +741,317 @@ export default function DepotDashboard() {
         activeDelivery.deliveryPersonId
       );
       await verifyTx.wait();
-      
+
       saveTransaction({
-        type: 'Verify OTP',
+        type: "Verify OTP",
         txHash: verifyTx.hash,
         timestamp: Date.now(),
-        details: `OTP verified for Delivery Person ID: ${activeDelivery.deliveryPersonId}`
+        details: `OTP verified for Delivery Person ID: ${activeDelivery.deliveryPersonId}`,
       });
-      
-      setOtpSuccess('OTP verified successfully! Proceeding to location verification.');
-      
+
+      setOtpSuccess(
+        "OTP verified successfully! Proceeding to location verification."
+      );
+
       // Update active delivery status
-      const updatedDelivery = {...activeDelivery, status: 'authenticated'};
+      const updatedDelivery = { ...activeDelivery, status: "authenticated" };
       setActiveDelivery(updatedDelivery);
     } catch (error) {
-      console.error('Error verifying OTP:', error);
-      setOtpError('Failed to verify OTP: ' + (error.message || error.toString()));
+      console.error("Error verifying OTP:", error);
+      setOtpError(
+        "Failed to verify OTP: " + (error.message || error.toString())
+      );
     } finally {
       setVerifyingOtp(false);
     }
   };
-  
-  // Complete delivery
-  const completeDelivery = async () => {
+
+  // Complete delivery function with proper contract interaction and payment
+  // Complete delivery function with proper contract interaction and payment
+  const completeDelivery = async (deliveryId = null) => {
     try {
-      if (!activeDelivery) {
-        setError('No active delivery found');
+      if (!deliveryId && !activeDelivery) {
+        setError("No active delivery found");
         return;
       }
-      
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-      
-      // Call contract to complete delivery
-      const completeTx = await contract.completeDelivery(
-        depotId,
-        activeDelivery.deliveryPersonId
-      );
-      await completeTx.wait();
-      
-      saveTransaction({
-        type: 'Complete Delivery',
-        txHash: completeTx.hash,
-        timestamp: Date.now(),
-        details: `Delivery completed with Delivery Person ID: ${activeDelivery.deliveryPersonId}`
-      });
-      
-      // Update delivery status
-      const completedDelivery = {
-        ...activeDelivery,
-        status: 'completed',
-        completedDate: new Date().toISOString()
-      };
-      setCompletedDeliveries([completedDelivery, ...completedDeliveries]);
-      
-      // Reset active delivery
-      setActiveDelivery(null);
-      setOtpInput('');
-      setReceivedOtp('');
-      setOtpSuccess('');
-      setOtpError('');
-      setCurrentOTP('');
-      
-      // Switch back to overview tab
-      setActiveTab('overview');
-      
-      alert('Delivery completed successfully! Funds have been transferred to the delivery person.');
+
+      // Show MetaMask popup
+      setMetaMaskModalType("complete");
+      setMetaMaskModalMessage("Processing final payment on blockchain...");
+      setShowMetaMaskModal(true);
+
+      try {
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+        const contract = getContract(signer);
+
+        // If no deliveryId provided, find it from activeDelivery
+        let targetDeliveryId = deliveryId;
+        if (!targetDeliveryId && activeDelivery) {
+          // Find the delivery ID based on the activeDelivery info
+          const deliveryCount = await contract.rationDeliveryCount();
+
+          for (let i = 1; i <= Number(deliveryCount); i++) {
+            try {
+              const delivery = await contract.getDeliveryDetails(i);
+
+              if (
+                delivery.deliveryPersonId.toString() ===
+                  activeDelivery.deliveryPersonId &&
+                delivery.depotId.toString() === depotId
+              ) {
+                targetDeliveryId = i;
+                console.log("Found delivery ID:", targetDeliveryId);
+                break;
+              }
+            } catch (err) {
+              console.error(`Error checking delivery ${i}:`, err);
+            }
+          }
+        }
+
+        if (!targetDeliveryId) {
+          throw new Error("Could not find delivery ID in the contract");
+        }
+
+        console.log("Completing delivery with ID:", targetDeliveryId);
+
+        // IMPORTANT: Send ETH with the transaction
+        // This is the payment amount for the delivery person
+        const paymentAmount = ethers.parseEther("0.01"); // Adjust as needed - 0.01 ETH
+
+        // Call contract with the delivery ID and include payment
+        const completeTx = await contract.completeDelivery(targetDeliveryId, {
+          value: paymentAmount,
+        });
+
+        console.log("Transaction sent:", completeTx.hash);
+
+        // Wait for transaction confirmation
+        const receipt = await completeTx.wait();
+        console.log("Transaction confirmed:", receipt);
+
+        // Hide MetaMask popup
+        setShowMetaMaskModal(false);
+
+        // Save transaction to history
+        saveTransaction({
+          type: "Complete Delivery",
+          txHash: completeTx.hash,
+          timestamp: Date.now(),
+          details: `Delivery #${targetDeliveryId} completed successfully with payment of 0.01 ETH`,
+        });
+
+        // If we were completing an active delivery from state
+        if (activeDelivery) {
+          // Update delivery status
+          const completedDelivery = {
+            ...activeDelivery,
+            status: "completed",
+            completedDate: new Date().toISOString(),
+          };
+
+          // Add to completed deliveries list
+          setCompletedDeliveries((prev) => [completedDelivery, ...prev]);
+
+          // Reset active delivery state
+          setActiveDelivery(null);
+          setOtpInput("");
+          setReceivedOtp("");
+          setOtpSuccess("");
+          setOtpError("");
+          setCurrentOTP("");
+
+          // Switch back to overview tab
+          setActiveTab("overview");
+        }
+
+        // Reset the deliveryIdToComplete input
+        setDeliveryIdToComplete("");
+
+        // Show success message
+        setSuccess(
+          "Delivery completed successfully! Payment of 0.01 ETH has been sent to the delivery person."
+        );
+      } catch (error) {
+        setShowMetaMaskModal(false);
+        throw error;
+      }
     } catch (error) {
-      console.error('Error completing delivery:', error);
-      setError('Failed to complete delivery: ' + (error.message || error.toString()));
+      console.error("Error completing delivery:", error);
+      setError(
+        "Failed to complete delivery: " + (error.message || error.toString())
+      );
     }
   };
-  
-  // Verify location
   const verifyLocation = async () => {
     try {
       if (!activeDelivery) {
-        setError('No active delivery found');
+        setError("No active delivery found");
         return;
       }
-      
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contract = getContract(signer);
-      
+
       // Get current location
       let currentLocation = null;
-      
-      if (navigator.geolocation) {
-        currentLocation = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              resolve({
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-              });
-            },
-            (error) => {
-              reject(error);
-            }
-          );
-        });
-      } else {
-        throw new Error('Geolocation is not supported by your browser');
+
+      try {
+        if (navigator.geolocation) {
+          currentLocation = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                resolve({
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                });
+              },
+              (error) => {
+                reject(error);
+              }
+            );
+          });
+        } else {
+          throw new Error("Geolocation is not supported by your browser");
+        }
+      } catch (err) {
+        setError(
+          "Unable to get your current location. Please enable location services."
+        );
+        return;
       }
-      
-      // Call contract to verify location
-      const verifyTx = await contract.verifyLocation(
-        depotId,
-        currentLocation.latitude.toString(),
-        currentLocation.longitude.toString(),
-        activeDelivery.deliveryPersonId
+
+      // Show MetaMask popup
+      setMetaMaskModalType("location");
+      setMetaMaskModalMessage(
+        "Verifying location and sending verification payment..."
       );
-      await verifyTx.wait();
-      
-      saveTransaction({
-        type: 'Verify Location',
-        txHash: verifyTx.hash,
-        timestamp: Date.now(),
-        details: `Location verified for Delivery Person ID: ${activeDelivery.deliveryPersonId}`
-      });
-      
-      // Update active delivery status
-      const updatedDelivery = {...activeDelivery, status: 'location-verified'};
-      setActiveDelivery(updatedDelivery);
-      
-      alert('Location verified successfully! You can now proceed with ration distribution.');
+      setShowMetaMaskModal(true);
+
+      try {
+        // Get ethers provider and signer
+        const ethersProvider = new ethers.BrowserProvider(provider);
+        const signer = await ethersProvider.getSigner();
+
+        // Find the delivery person's address
+        const deliveryPerson = assignedDeliveryPersons.find(
+          (person) => person.id === activeDelivery.deliveryPersonId
+        );
+
+        if (!deliveryPerson || !deliveryPerson.walletAddress) {
+          throw new Error("Delivery person wallet address not found");
+        }
+
+        // Send another small amount of ETH to the delivery person
+        const tx = await signer.sendTransaction({
+          to: deliveryPerson.walletAddress,
+          value: ethers.parseEther("0.00001"),
+        });
+
+        // Wait for transaction confirmation
+        await tx.wait();
+
+        // Hide MetaMask popup
+        setShowMetaMaskModal(false);
+
+        // Save transaction to history
+        saveTransaction({
+          type: "Verify Location",
+          txHash: tx.hash,
+          timestamp: Date.now(),
+          details: `Location verified and payment sent to Delivery Person ID: ${activeDelivery.deliveryPersonId}`,
+        });
+
+        // Update active delivery status
+        const updatedDelivery = {
+          ...activeDelivery,
+          status: "location-verified",
+        };
+        setActiveDelivery(updatedDelivery);
+
+        setSuccess(
+          "Location verified successfully! You can now proceed with ration distribution."
+        );
+      } catch (error) {
+        setShowMetaMaskModal(false);
+        throw error;
+      }
     } catch (error) {
-      console.error('Error verifying location:', error);
-      setError('Failed to verify location: ' + (error.message || error.toString()));
+      console.error("Error verifying location:", error);
+      setError(
+        "Failed to verify location: " + (error.message || error.toString())
+      );
     }
   };
-  
+
   // Track ration distribution
   const trackRationDistribution = async (userId, items) => {
     try {
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contract = getContract(signer);
-      
+
       // Call contract to track ration distribution
       const trackTx = await contract.allocateRation(
         userId,
         depotId,
-        activeDelivery ? activeDelivery.deliveryPersonId : '0'
+        activeDelivery ? activeDelivery.deliveryPersonId : "0"
       );
       await trackTx.wait();
-      
+
       saveTransaction({
-        type: 'Allocate Ration',
+        type: "Allocate Ration",
         txHash: trackTx.hash,
         timestamp: Date.now(),
-        details: `Ration allocated to User ID: ${userId}`
+        details: `Ration allocated to User ID: ${userId}`,
       });
-      
+
       // Update ration distributions
-      const user = assignedUsers.find(u => u.id === userId);
+      const user = assignedUsers.find((u) => u.id === userId);
       const newDistribution = {
         id: `RAT${Date.now()}`,
         userId: userId,
         userName: user ? user.name : `User ${userId}`,
-        category: user ? user.category : 'Unknown',
+        category: user ? user.category : "Unknown",
         date: new Date().toISOString(),
         items: items || [
-          { name: 'Rice', quantity: '5kg' },
-          { name: 'Wheat', quantity: '3kg' },
-          { name: 'Sugar', quantity: '1kg' },
-          { name: 'Oil', quantity: '1L' }
-        ]
+          { name: "Rice", quantity: "5kg" },
+          { name: "Wheat", quantity: "3kg" },
+          { name: "Sugar", quantity: "1kg" },
+          { name: "Oil", quantity: "1L" },
+        ],
       };
-      
+
       setRationDistributions([newDistribution, ...rationDistributions]);
-      
+
       // Update user's last ration date
-      const updatedUsers = assignedUsers.map(u => {
+      const updatedUsers = assignedUsers.map((u) => {
         if (u.id === userId) {
-          return {...u, lastRationDate: new Date().toISOString()};
+          return { ...u, lastRationDate: new Date().toISOString() };
         }
         return u;
       });
-      
+
       setAssignedUsers(updatedUsers);
-      
-      alert('Ration distribution tracked successfully!');
+
+      alert("Ration distribution tracked successfully!");
     } catch (error) {
-      console.error('Error tracking ration distribution:', error);
-      setError('Failed to track ration distribution: ' + (error.message || error.toString()));
+      console.error("Error tracking ration distribution:", error);
+      setError(
+        "Failed to track ration distribution: " +
+          (error.message || error.toString())
+      );
     }
   };
-  
+
   // Format date for display
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleString();
   };
-  
+
   // Calculate days since last ration
   const daysSinceLastRation = (lastRationDate) => {
-    if (!lastRationDate) return 'Never';
+    if (!lastRationDate) return "Never";
     const lastDate = new Date(lastRationDate);
     const now = new Date();
     const diffTime = Math.abs(now - lastDate);
@@ -841,21 +1071,27 @@ export default function DepotDashboard() {
     {
       title: "Delivery Personnel",
       value: assignedDeliveryPersons.length,
-      change: `+${assignedDeliveryPersons.length > 0 ? assignedDeliveryPersons.length : 0}%`,
+      change: `+${
+        assignedDeliveryPersons.length > 0 ? assignedDeliveryPersons.length : 0
+      }%`,
       icon: Truck,
       color: "bg-amber-50 text-amber-700",
     },
     {
       title: "Total Distributions",
       value: rationDistributions.length,
-      change: `+${rationDistributions.length > 0 ? rationDistributions.length : 0}%`,
+      change: `+${
+        rationDistributions.length > 0 ? rationDistributions.length : 0
+      }%`,
       icon: ShoppingBag,
       color: "bg-blue-50 text-blue-700",
     },
     {
       title: "Completed Deliveries",
       value: completedDeliveries.length,
-      change: `+${completedDeliveries.length > 0 ? completedDeliveries.length : 0}%`,
+      change: `+${
+        completedDeliveries.length > 0 ? completedDeliveries.length : 0
+      }%`,
       icon: CheckCircle2,
       color: "bg-green-50 text-green-700",
     },
@@ -864,15 +1100,15 @@ export default function DepotDashboard() {
   // Get status badge color
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'completed':
+      case "completed":
         return "bg-green-100 text-green-800";
-      case 'authenticated':
+      case "authenticated":
         return "bg-blue-100 text-blue-800";
-      case 'in-progress':
+      case "in-progress":
         return "bg-amber-100 text-amber-800";
-      case 'scheduled':
+      case "scheduled":
         return "bg-purple-100 text-purple-800";
-      case 'location-verified':
+      case "location-verified":
         return "bg-emerald-100 text-emerald-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -889,22 +1125,24 @@ export default function DepotDashboard() {
             </p>
           )}
         </div>
-  
+
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-  
+
         {success && (
           <Alert className="mb-6 bg-green-50 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertTitle className="text-green-800">Success</AlertTitle>
-            <AlertDescription className="text-green-700">{success}</AlertDescription>
+            <AlertDescription className="text-green-700">
+              {success}
+            </AlertDescription>
           </Alert>
         )}
-  
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -912,38 +1150,42 @@ export default function DepotDashboard() {
           </div>
         ) : (
           <div className="flex items-center justify-between mb-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="bg-green-50">
-                <TabsTrigger 
-                  value="overview" 
+                <TabsTrigger
+                  value="overview"
                   className="data-[state=active]:bg-white"
                   disabled={activeDelivery !== null}
                 >
                   Overview
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="active-delivery" 
+                <TabsTrigger
+                  value="active-delivery"
                   className="data-[state=active]:bg-white"
                   disabled={!activeDelivery}
                 >
                   Active Delivery
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="users" 
+                <TabsTrigger
+                  value="users"
                   className="data-[state=active]:bg-white"
                   disabled={activeDelivery !== null}
                 >
                   Beneficiaries
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="history" 
+                <TabsTrigger
+                  value="history"
                   className="data-[state=active]:bg-white"
                   disabled={activeDelivery !== null}
                 >
                   Transaction History
                 </TabsTrigger>
               </TabsList>
-  
+
               {/* Overview Tab */}
               <TabsContent value="overview" className="mt-6">
                 <motion.div
@@ -957,7 +1199,9 @@ export default function DepotDashboard() {
                       <Card className="overflow-hidden border-green-100 shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                              {stat.title}
+                            </CardTitle>
                             <div className={`rounded-full p-2 ${stat.color}`}>
                               <stat.icon className="h-4 w-4" />
                             </div>
@@ -974,15 +1218,22 @@ export default function DepotDashboard() {
                     </motion.div>
                   ))}
                 </motion.div>
-  
+
                 <div className="grid gap-6 md:grid-cols-2 mt-6">
                   {/* Assigned Delivery Persons */}
-                  <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.3 }}>
+                  <motion.div
+                    variants={itemVariants}
+                    initial="hidden"
+                    animate="show"
+                    transition={{ delay: 0.3 }}
+                  >
                     <Card className="border-green-100 shadow-sm">
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
                           <CardTitle>Assigned Delivery Personnel</CardTitle>
-                          <CardDescription>Manage delivery personnel assigned to your depot</CardDescription>
+                          <CardDescription>
+                            Manage delivery personnel assigned to your depot
+                          </CardDescription>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -998,13 +1249,22 @@ export default function DepotDashboard() {
                             </TableHeader>
                             <TableBody>
                               {assignedDeliveryPersons.map((person) => (
-                                <TableRow key={person.id} className="hover:bg-green-50/50">
-                                  <TableCell className="font-medium">{person.id}</TableCell>
+                                <TableRow
+                                  key={person.id}
+                                  className="hover:bg-green-50/50"
+                                >
+                                  <TableCell className="font-medium">
+                                    {person.id}
+                                  </TableCell>
                                   <TableCell>{person.name}</TableCell>
-                                  <TableCell>{person.phone || 'Not Available'}</TableCell>
+                                  <TableCell>
+                                    {person.phone || "Not Available"}
+                                  </TableCell>
                                   <TableCell>
                                     <Button
-                                      onClick={() => receiveDeliveryPerson(person.id)}
+                                      onClick={() =>
+                                        receiveDeliveryPerson(person.id)
+                                      }
                                       variant="outline"
                                       size="sm"
                                       className="border-green-200 text-green-700 hover:bg-green-50"
@@ -1021,43 +1281,66 @@ export default function DepotDashboard() {
                         ) : (
                           <div className="text-center py-8 bg-green-50/50 rounded-md">
                             <Truck className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-gray-600">No delivery personnel assigned yet</p>
+                            <p className="mt-2 text-gray-600">
+                              No delivery personnel assigned yet
+                            </p>
                           </div>
                         )}
                       </CardContent>
                     </Card>
                   </motion.div>
-  
+
                   {/* Pending Deliveries */}
-                  <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.4 }}>
+                  <motion.div
+                    variants={itemVariants}
+                    initial="hidden"
+                    animate="show"
+                    transition={{ delay: 0.4 }}
+                  >
                     <Card className="border-green-100 shadow-sm">
                       <CardHeader>
                         <CardTitle>Pending Deliveries</CardTitle>
-                        <CardDescription>Deliveries scheduled for your depot</CardDescription>
+                        <CardDescription>
+                          Deliveries scheduled for your depot
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         {pendingDeliveries.length > 0 ? (
                           <div className="space-y-4">
                             {pendingDeliveries.map((delivery) => (
-                              <div key={delivery.id} className="border rounded-lg p-4 bg-green-50/50 hover:bg-green-50 transition-colors">
+                              <div
+                                key={delivery.id}
+                                className="border rounded-lg p-4 bg-green-50/50 hover:bg-green-50 transition-colors"
+                              >
                                 <div className="flex justify-between items-center">
                                   <div className="flex items-center">
                                     <div className="rounded-full p-2 bg-green-100 text-green-700 mr-3">
                                       <Clock className="h-4 w-4" />
                                     </div>
                                     <div>
-                                      <h3 className="font-bold">{delivery.id}</h3>
+                                      <h3 className="font-bold">
+                                        {delivery.id}
+                                      </h3>
                                       <p className="text-gray-600 text-sm">
-                                        {delivery.deliveryPersonName} | {formatDate(delivery.scheduledDate)}
+                                        {delivery.deliveryPersonName} |{" "}
+                                        {formatDate(delivery.scheduledDate)}
                                       </p>
                                     </div>
                                   </div>
-                                  <Badge className={getStatusColor(delivery.status)}>
-                                    {delivery.status === 'scheduled' ? 'Scheduled' : 'In Progress'}
+                                  <Badge
+                                    className={getStatusColor(delivery.status)}
+                                  >
+                                    {delivery.status === "scheduled"
+                                      ? "Scheduled"
+                                      : "In Progress"}
                                   </Badge>
                                 </div>
                                 <Button
-                                  onClick={() => receiveDeliveryPerson(delivery.deliveryPersonId)}
+                                  onClick={() =>
+                                    receiveDeliveryPerson(
+                                      delivery.deliveryPersonId
+                                    )
+                                  }
                                   className="mt-3 bg-green-600 hover:bg-green-700 w-full"
                                   disabled={activeDelivery !== null}
                                 >
@@ -1069,22 +1352,32 @@ export default function DepotDashboard() {
                         ) : (
                           <div className="text-center py-8 bg-green-50/50 rounded-md">
                             <Clock className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-gray-600">No pending deliveries</p>
+                            <p className="mt-2 text-gray-600">
+                              No pending deliveries
+                            </p>
                           </div>
                         )}
                       </CardContent>
                     </Card>
                   </motion.div>
                 </div>
-  
+
                 {/* Recent Activity */}
-                <motion.div className="grid gap-6 md:grid-cols-2 mt-6" variants={containerVariants} initial="hidden" animate="show" transition={{ delay: 0.5 }}>
+                <motion.div
+                  className="grid gap-6 md:grid-cols-2 mt-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  transition={{ delay: 0.5 }}
+                >
                   {/* Recent Ration Distributions */}
                   <motion.div variants={itemVariants}>
                     <Card className="border-green-100 shadow-sm">
                       <CardHeader>
                         <CardTitle>Recent Ration Distributions</CardTitle>
-                        <CardDescription>Latest rations distributed to beneficiaries</CardDescription>
+                        <CardDescription>
+                          Latest rations distributed to beneficiaries
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         {rationDistributions.length > 0 ? (
@@ -1098,21 +1391,37 @@ export default function DepotDashboard() {
                             </TableHeader>
                             <TableBody>
                               {rationDistributions.slice(0, 5).map((ration) => (
-                                <TableRow key={ration.id} className="hover:bg-green-50/50">
+                                <TableRow
+                                  key={ration.id}
+                                  className="hover:bg-green-50/50"
+                                >
                                   <TableCell className="font-medium">
                                     {ration.userName}
-                                    <span className="block text-xs text-gray-500">{ration.category}</span>
+                                    <span className="block text-xs text-gray-500">
+                                      {ration.category}
+                                    </span>
                                   </TableCell>
-                                  <TableCell>{formatDate(ration.date)}</TableCell>
+                                  <TableCell>
+                                    {formatDate(ration.date)}
+                                  </TableCell>
                                   <TableCell>
                                     <div className="flex flex-wrap gap-1">
-                                      {ration.items.slice(0, 2).map((item, index) => (
-                                        <Badge key={index} variant="outline" className="bg-green-50 text-green-800 border-green-200">
-                                          {item.name}: {item.quantity}
-                                        </Badge>
-                                      ))}
+                                      {ration.items
+                                        .slice(0, 2)
+                                        .map((item, index) => (
+                                          <Badge
+                                            key={index}
+                                            variant="outline"
+                                            className="bg-green-50 text-green-800 border-green-200"
+                                          >
+                                            {item.name}: {item.quantity}
+                                          </Badge>
+                                        ))}
                                       {ration.items.length > 2 && (
-                                        <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                        <Badge
+                                          variant="outline"
+                                          className="bg-green-50 text-green-800 border-green-200"
+                                        >
                                           +{ration.items.length - 2} more
                                         </Badge>
                                       )}
@@ -1125,16 +1434,18 @@ export default function DepotDashboard() {
                         ) : (
                           <div className="text-center py-8 bg-green-50/50 rounded-md">
                             <Package className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-gray-600">No ration distributions recorded</p>
+                            <p className="mt-2 text-gray-600">
+                              No ration distributions recorded
+                            </p>
                           </div>
                         )}
                       </CardContent>
                       {rationDistributions.length > 5 && (
                         <CardFooter>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="w-full border-green-200 text-green-700"
-                            onClick={() => setActiveTab('users')}
+                            onClick={() => setActiveTab("users")}
                           >
                             View All Distributions
                           </Button>
@@ -1142,13 +1453,15 @@ export default function DepotDashboard() {
                       )}
                     </Card>
                   </motion.div>
-  
+
                   {/* Completed Deliveries */}
                   <motion.div variants={itemVariants}>
                     <Card className="border-green-100 shadow-sm">
                       <CardHeader>
                         <CardTitle>Completed Deliveries</CardTitle>
-                        <CardDescription>Successfully completed deliveries</CardDescription>
+                        <CardDescription>
+                          Successfully completed deliveries
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         {completedDeliveries.length > 0 ? (
@@ -1162,31 +1475,48 @@ export default function DepotDashboard() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {completedDeliveries.slice(0, 5).map((delivery) => (
-                                <TableRow key={delivery.id} className="hover:bg-green-50/50">
-                                  <TableCell className="font-medium">{delivery.id}</TableCell>
-                                  <TableCell>{delivery.deliveryPersonName}</TableCell>
-                                  <TableCell>{formatDate(delivery.completedDate)}</TableCell>
-                                  <TableCell>
-                                    <Badge className={getStatusColor('completed')}>Completed</Badge>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {completedDeliveries
+                                .slice(0, 5)
+                                .map((delivery) => (
+                                  <TableRow
+                                    key={delivery.id}
+                                    className="hover:bg-green-50/50"
+                                  >
+                                    <TableCell className="font-medium">
+                                      {delivery.id}
+                                    </TableCell>
+                                    <TableCell>
+                                      {delivery.deliveryPersonName}
+                                    </TableCell>
+                                    <TableCell>
+                                      {formatDate(delivery.completedDate)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        className={getStatusColor("completed")}
+                                      >
+                                        Completed
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
                             </TableBody>
                           </Table>
                         ) : (
                           <div className="text-center py-8 bg-green-50/50 rounded-md">
                             <CheckCircle2 className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-gray-600">No completed deliveries yet</p>
+                            <p className="mt-2 text-gray-600">
+                              No completed deliveries yet
+                            </p>
                           </div>
                         )}
                       </CardContent>
                       {completedDeliveries.length > 5 && (
                         <CardFooter>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="w-full border-green-200 text-green-700"
-                            onClick={() => setActiveTab('history')}
+                            onClick={() => setActiveTab("history")}
                           >
                             View All Deliveries
                           </Button>
@@ -1196,7 +1526,7 @@ export default function DepotDashboard() {
                   </motion.div>
                 </motion.div>
               </TabsContent>
-  
+
               {/* Active Delivery Tab */}
               <TabsContent value="active-delivery" className="mt-6">
                 {activeDelivery && (
@@ -1209,20 +1539,29 @@ export default function DepotDashboard() {
                       <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                           <CardTitle>Active Delivery</CardTitle>
-                          <CardDescription>Processing delivery with {activeDelivery.deliveryPersonName}</CardDescription>
+                          <CardDescription>
+                            Processing delivery with{" "}
+                            {activeDelivery.deliveryPersonName}
+                          </CardDescription>
                         </div>
-                        <Badge className={getStatusColor(activeDelivery.status)}>
+                        <Badge
+                          className={getStatusColor(activeDelivery.status)}
+                        >
                           <div className="flex items-center">
-                            {activeDelivery.status === 'authenticated' ? (
+                            {activeDelivery.status === "authenticated" ? (
                               <CheckCircle2 className="h-4 w-4 mr-1" />
-                            ) : activeDelivery.status === 'location-verified' ? (
+                            ) : activeDelivery.status ===
+                              "location-verified" ? (
                               <MapPin className="h-4 w-4 mr-1" />
                             ) : (
                               <Clock className="h-4 w-4 mr-1" />
                             )}
                             <span>
-                              {activeDelivery.status === 'authenticated' ? 'OTP Verified' : 
-                               activeDelivery.status === 'location-verified' ? 'Location Verified' : 'In Progress'}
+                              {activeDelivery.status === "authenticated"
+                                ? "OTP Verified"
+                                : activeDelivery.status === "location-verified"
+                                ? "Location Verified"
+                                : "In Progress"}
                             </span>
                           </div>
                         </Badge>
@@ -1237,33 +1576,47 @@ export default function DepotDashboard() {
                             <span>Complete</span>
                           </div>
                           <div className="relative w-full h-2 bg-green-100 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className="absolute left-0 top-0 h-full bg-green-500 transition-all duration-300 ease-in-out"
-                              style={{ 
-                                width: activeDelivery.status === 'in-progress' ? '25%' :
-                                       activeDelivery.status === 'authenticated' ? '50%' :
-                                       activeDelivery.status === 'location-verified' ? '75%' : '25%'
+                              style={{
+                                width:
+                                  activeDelivery.status === "in-progress"
+                                    ? "25%"
+                                    : activeDelivery.status === "authenticated"
+                                    ? "50%"
+                                    : activeDelivery.status ===
+                                      "location-verified"
+                                    ? "75%"
+                                    : "25%",
                               }}
                             />
                           </div>
                         </div>
-                        
+
                         {/* Delivery Details */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-green-50/50 rounded-lg">
                           <div>
-                            <p className="text-sm text-gray-500">Delivery Person ID</p>
-                            <p className="font-medium">{activeDelivery.deliveryPersonId}</p>
+                            <p className="text-sm text-gray-500">
+                              Delivery Person ID
+                            </p>
+                            <p className="font-medium">
+                              {activeDelivery.deliveryPersonId}
+                            </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-500">Start Time</p>
-                            <p className="font-medium">{formatDate(activeDelivery.startTime)}</p>
+                            <p className="font-medium">
+                              {formatDate(activeDelivery.startTime)}
+                            </p>
                           </div>
                         </div>
-  
+
                         {/* OTP Generation and Display */}
                         <Card className="border-green-200">
                           <CardHeader>
-                            <CardTitle className="text-lg">OTP Verification</CardTitle>
+                            <CardTitle className="text-lg">
+                              OTP Verification
+                            </CardTitle>
                             <CardDescription>
                               Generate and provide OTP to the delivery person
                             </CardDescription>
@@ -1275,29 +1628,38 @@ export default function DepotDashboard() {
                                 <AlertDescription>{otpError}</AlertDescription>
                               </Alert>
                             )}
-                            
+
                             {otpSuccess && (
                               <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
                                 <CheckCircle2 className="h-4 w-4" />
                                 <AlertTitle>Success</AlertTitle>
-                                <AlertDescription>{otpSuccess}</AlertDescription>
+                                <AlertDescription>
+                                  {otpSuccess}
+                                </AlertDescription>
                               </Alert>
                             )}
-                            
+
                             {currentOTP && (
                               <div className="mt-4 bg-green-50 border border-green-300 rounded-lg p-4">
-                                <h3 className="text-lg font-semibold text-green-800 mb-2">Verification OTP</h3>
+                                <h3 className="text-lg font-semibold text-green-800 mb-2">
+                                  Verification OTP
+                                </h3>
                                 <div className="bg-white p-4 border border-green-200 rounded-lg text-center">
-                                  <p className="text-3xl font-mono font-bold tracking-widest">{currentOTP}</p>
+                                  <p className="text-3xl font-mono font-bold tracking-widest">
+                                    {currentOTP}
+                                  </p>
                                 </div>
                                 <p className="mt-2 text-sm text-green-700">
-                                  Show this OTP to the delivery person for verification. 
-                                  They need to enter this code in their dashboard.
+                                  Show this OTP to the delivery person for
+                                  verification. They need to enter this code in
+                                  their dashboard.
                                 </p>
                                 <div className="bg-yellow-50 p-3 mt-3 rounded border border-yellow-200">
                                   <p className="text-yellow-800">
-                                    <strong>Important:</strong> Only the delivery person can verify this OTP from their app.
-                                    After they verify, click "Check Verification Status" below.
+                                    <strong>Important:</strong> Only the
+                                    delivery person can verify this OTP from
+                                    their app. After they verify, click "Check
+                                    Verification Status" below.
                                   </p>
                                 </div>
                                 <div className="mt-4">
@@ -1310,27 +1672,33 @@ export default function DepotDashboard() {
                                 </div>
                               </div>
                             )}
-                            
+
                             {otpError && otpError.includes("pending state") && (
                               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 my-4">
                                 <p className="text-yellow-800 mb-2">
-                                  <strong>Delivery State Issue:</strong> This delivery has already progressed beyond the pending state.
+                                  <strong>Delivery State Issue:</strong> This
+                                  delivery has already progressed beyond the
+                                  pending state.
                                 </p>
                                 <p className="text-yellow-700 mb-4">
-                                  The OTP can only be generated when a delivery is in the pending state. You need to reset the delivery state first.
+                                  The OTP can only be generated when a delivery
+                                  is in the pending state. You need to reset the
+                                  delivery state first.
                                 </p>
                                 <Button
                                   onClick={resetDeliveryState}
                                   className="bg-yellow-600 hover:bg-yellow-700"
                                   disabled={loading}
                                 >
-                                  {loading ? 'Resetting...' : 'Reset Delivery to Pending State'}
+                                  {loading
+                                    ? "Resetting..."
+                                    : "Reset Delivery to Pending State"}
                                 </Button>
                               </div>
                             )}
-                            
+
                             <div className="mt-4 flex flex-wrap gap-2">
-                              <Button 
+                              <Button
                                 onClick={generateOTP}
                                 variant="default"
                                 className="bg-green-600 hover:bg-green-700"
@@ -1341,9 +1709,11 @@ export default function DepotDashboard() {
                                     <span className="inline-block animate-spin h-4 w-4 mr-2 border-t-2 border-white rounded-full"></span>
                                     Generating...
                                   </>
-                                ) : 'Generate OTP for Verification'}
+                                ) : (
+                                  "Generate OTP for Verification"
+                                )}
                               </Button>
-                              
+
                               <div className="mt-3 flex items-center ml-2">
                                 <input
                                   type="checkbox"
@@ -1352,19 +1722,25 @@ export default function DepotDashboard() {
                                   checked={fakeMode}
                                   onChange={() => setFakeMode(!fakeMode)}
                                 />
-                                <label htmlFor="fake-mode" className="text-sm text-gray-600">
-                                  Enable test mode (simulates blockchain transactions)
+                                <label
+                                  htmlFor="fake-mode"
+                                  className="text-sm text-gray-600"
+                                >
+                                  Enable test mode (simulates blockchain
+                                  transactions)
                                 </label>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-  
+
                         {/* Location Verification Section */}
-                        {activeDelivery.status === 'authenticated' && (
+                        {activeDelivery.status === "authenticated" && (
                           <Card className="border-blue-200">
                             <CardHeader>
-                              <CardTitle className="text-lg">Location Verification</CardTitle>
+                              <CardTitle className="text-lg">
+                                Location Verification
+                              </CardTitle>
                               <CardDescription>
                                 Verify the delivery person's location
                               </CardDescription>
@@ -1379,15 +1755,16 @@ export default function DepotDashboard() {
                                   Verify Location
                                 </Button>
                                 <p className="ml-4 text-sm text-gray-600">
-                                  Click to verify the delivery person's location with your depot
+                                  Click to verify the delivery person's location
+                                  with your depot
                                 </p>
                               </div>
                             </CardContent>
                           </Card>
                         )}
-                        
+
                         {/* Complete Delivery Button */}
-                        {activeDelivery.status === 'location-verified' && (
+                        {activeDelivery.status === "location-verified" && (
                           <div className="flex justify-center mt-6">
                             <Button
                               onClick={completeDelivery}
@@ -1403,15 +1780,21 @@ export default function DepotDashboard() {
                   </motion.div>
                 )}
               </TabsContent>
-  
+
               {/* Users (Beneficiaries) Tab */}
               <TabsContent value="users" className="mt-6">
-                <motion.div variants={containerVariants} initial="hidden" animate="show">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
                   <Card className="border-green-100 shadow-sm mb-6">
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle>Beneficiaries</CardTitle>
-                        <CardDescription>Manage users assigned to your depot</CardDescription>
+                        <CardDescription>
+                          Manage users assigned to your depot
+                        </CardDescription>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -1428,8 +1811,13 @@ export default function DepotDashboard() {
                           </TableHeader>
                           <TableBody>
                             {assignedUsers.map((user) => (
-                              <TableRow key={user.id} className="hover:bg-green-50/50">
-                                <TableCell className="font-medium">{user.id}</TableCell>
+                              <TableRow
+                                key={user.id}
+                                className="hover:bg-green-50/50"
+                              >
+                                <TableCell className="font-medium">
+                                  {user.id}
+                                </TableCell>
                                 <TableCell>{user.name}</TableCell>
                                 <TableCell>{user.category}</TableCell>
                                 <TableCell>
@@ -1437,16 +1825,22 @@ export default function DepotDashboard() {
                                     <>
                                       {formatDate(user.lastRationDate)}
                                       <span className="block text-xs text-gray-500">
-                                        ({daysSinceLastRation(user.lastRationDate)} days ago)
+                                        (
+                                        {daysSinceLastRation(
+                                          user.lastRationDate
+                                        )}{" "}
+                                        days ago)
                                       </span>
                                     </>
                                   ) : (
-                                    'Never'
+                                    "Never"
                                   )}
                                 </TableCell>
                                 <TableCell>
                                   <Button
-                                    onClick={() => trackRationDistribution(user.id)}
+                                    onClick={() =>
+                                      trackRationDistribution(user.id)
+                                    }
                                     variant="outline"
                                     size="sm"
                                     className="border-green-200 text-green-700 hover:bg-green-50"
@@ -1462,42 +1856,59 @@ export default function DepotDashboard() {
                       ) : (
                         <div className="text-center py-12 bg-green-50/50 rounded-md">
                           <Users className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-gray-600">No users assigned to this depot</p>
+                          <p className="mt-2 text-gray-600">
+                            No users assigned to this depot
+                          </p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
-  
+
                   {/* Record New Ration Distribution Form */}
                   <Card className="border-green-100 shadow-sm">
                     <CardHeader>
                       <CardTitle>Record New Ration Distribution</CardTitle>
-                      <CardDescription>Track ration distribution to beneficiaries</CardDescription>
+                      <CardDescription>
+                        Track ration distribution to beneficiaries
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.target);
-                        const beneficiaryId = formData.get('beneficiaryId');
-                        const items = [
-                          { name: 'Rice', quantity: formData.get('riceQty') },
-                          { name: 'Wheat', quantity: formData.get('wheatQty') },
-                          { name: 'Sugar', quantity: formData.get('sugarQty') },
-                          { name: 'Oil', quantity: formData.get('oilQty') }
-                        ].filter(item => item.quantity);
-                        
-                        trackRationDistribution(beneficiaryId, items);
-                        e.target.reset();
-                      }}>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.target);
+                          const beneficiaryId = formData.get("beneficiaryId");
+                          const items = [
+                            { name: "Rice", quantity: formData.get("riceQty") },
+                            {
+                              name: "Wheat",
+                              quantity: formData.get("wheatQty"),
+                            },
+                            {
+                              name: "Sugar",
+                              quantity: formData.get("sugarQty"),
+                            },
+                            { name: "Oil", quantity: formData.get("oilQty") },
+                          ].filter((item) => item.quantity);
+
+                          trackRationDistribution(beneficiaryId, items);
+                          e.target.reset();
+                        }}
+                      >
                         <div className="grid grid-cols-1 gap-6">
                           <div className="grid gap-3">
-                            <Label htmlFor="beneficiaryId">Select Beneficiary</Label>
+                            <Label htmlFor="beneficiaryId">
+                              Select Beneficiary
+                            </Label>
                             <Select name="beneficiaryId" required>
-                              <SelectTrigger id="beneficiaryId" className="w-full">
+                              <SelectTrigger
+                                id="beneficiaryId"
+                                className="w-full"
+                              >
                                 <SelectValue placeholder="Choose a beneficiary" />
                               </SelectTrigger>
                               <SelectContent>
-                                {assignedUsers.map(user => (
+                                {assignedUsers.map((user) => (
                                   <SelectItem key={user.id} value={user.id}>
                                     {user.name} (ID: {user.id})
                                   </SelectItem>
@@ -1505,7 +1916,7 @@ export default function DepotDashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="grid gap-2">
                               <Label htmlFor="riceQty">Rice</Label>
@@ -1540,7 +1951,7 @@ export default function DepotDashboard() {
                               />
                             </div>
                           </div>
-                          
+
                           <div className="flex justify-end">
                             <Button
                               type="submit"
@@ -1554,12 +1965,14 @@ export default function DepotDashboard() {
                       </form>
                     </CardContent>
                   </Card>
-  
+
                   {/* All Ration Distributions */}
                   <Card className="border-green-100 shadow-sm mt-6">
                     <CardHeader>
                       <CardTitle>All Ration Distributions</CardTitle>
-                      <CardDescription>Complete history of rations distributed</CardDescription>
+                      <CardDescription>
+                        Complete history of rations distributed
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {rationDistributions.length > 0 ? (
@@ -1575,15 +1988,24 @@ export default function DepotDashboard() {
                           </TableHeader>
                           <TableBody>
                             {rationDistributions.map((ration) => (
-                              <TableRow key={ration.id} className="hover:bg-green-50/50">
-                                <TableCell className="font-medium">{ration.id}</TableCell>
+                              <TableRow
+                                key={ration.id}
+                                className="hover:bg-green-50/50"
+                              >
+                                <TableCell className="font-medium">
+                                  {ration.id}
+                                </TableCell>
                                 <TableCell>{ration.userName}</TableCell>
                                 <TableCell>{ration.category}</TableCell>
                                 <TableCell>{formatDate(ration.date)}</TableCell>
                                 <TableCell>
                                   <div className="flex flex-wrap gap-1">
                                     {ration.items.map((item, index) => (
-                                      <Badge key={index} variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="bg-green-50 text-green-800 border-green-200"
+                                      >
                                         {item.name}: {item.quantity}
                                       </Badge>
                                     ))}
@@ -1596,21 +2018,29 @@ export default function DepotDashboard() {
                       ) : (
                         <div className="text-center py-12 bg-green-50/50 rounded-md">
                           <Package className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-gray-600">No ration distributions recorded</p>
+                          <p className="mt-2 text-gray-600">
+                            No ration distributions recorded
+                          </p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 </motion.div>
               </TabsContent>
-  
+
               {/* Transaction History Tab */}
               <TabsContent value="history" className="mt-6">
-                <motion.div variants={containerVariants} initial="hidden" animate="show">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
                   <Card className="border-green-100 shadow-sm">
                     <CardHeader>
                       <CardTitle>Transaction History</CardTitle>
-                      <CardDescription>Record of blockchain transactions</CardDescription>
+                      <CardDescription>
+                        Record of blockchain transactions
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {txHistory.length > 0 ? (
@@ -1624,43 +2054,59 @@ export default function DepotDashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {txHistory.slice().reverse().map((tx, index) => (
-                              <TableRow key={index} className="hover:bg-green-50/50">
-                                <TableCell className="font-medium">{tx.type}</TableCell>
-                                <TableCell>{formatDate(tx.timestamp)}</TableCell>
-                                <TableCell>{tx.details}</TableCell>
-                                <TableCell>
-                                  {tx.txHash ? (
-                                    <a 
-                                      href={`https://sepolia.etherscan.io/tx/${tx.txHash}`} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-green-600 hover:underline flex items-center"
-                                    >
-                                      View on Etherscan
-                                      <ArrowUpRight className="ml-1 h-3 w-3" />
-                                    </a>
-                                  ) : 'N/A'}
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {txHistory
+                              .slice()
+                              .reverse()
+                              .map((tx, index) => (
+                                <TableRow
+                                  key={index}
+                                  className="hover:bg-green-50/50"
+                                >
+                                  <TableCell className="font-medium">
+                                    {tx.type}
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatDate(tx.timestamp)}
+                                  </TableCell>
+                                  <TableCell>{tx.details}</TableCell>
+                                  <TableCell>
+                                    {tx.txHash ? (
+                                      <a
+                                        href={`https://sepolia.etherscan.io/tx/${tx.txHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-green-600 hover:underline flex items-center"
+                                      >
+                                        View on Etherscan
+                                        <ArrowUpRight className="ml-1 h-3 w-3" />
+                                      </a>
+                                    ) : (
+                                      "N/A"
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                           </TableBody>
                         </Table>
                       ) : (
                         <div className="text-center py-12 bg-green-50/50 rounded-md">
                           <History className="mx-auto h-12 w-12 text-gray-400" />
-                          <p className="mt-2 text-gray-600">No transactions recorded yet</p>
+                          <p className="mt-2 text-gray-600">
+                            No transactions recorded yet
+                          </p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                  
+
                   {/* Instruction Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     {/* Delivery Process Instructions */}
                     <Card className="border-green-100 shadow-sm bg-indigo-50">
                       <CardHeader>
-                        <CardTitle className="text-indigo-800">Delivery Process</CardTitle>
+                        <CardTitle className="text-indigo-800">
+                          Delivery Process
+                        </CardTitle>
                         <CardDescription className="text-indigo-700">
                           Follow these steps for handling deliveries
                         </CardDescription>
@@ -1668,25 +2114,40 @@ export default function DepotDashboard() {
                       <CardContent>
                         <ol className="space-y-2 text-indigo-700 list-decimal pl-5">
                           <li>
-                            <span className="font-medium">Receive delivery person</span> - When a delivery person arrives, click "Receive Delivery"
+                            <span className="font-medium">
+                              Receive delivery person
+                            </span>{" "}
+                            - When a delivery person arrives, click "Receive
+                            Delivery"
                           </li>
                           <li>
-                            <span className="font-medium">Generate and share OTP</span> - Create an OTP and show it to the delivery person
+                            <span className="font-medium">
+                              Generate and share OTP
+                            </span>{" "}
+                            - Create an OTP and show it to the delivery person
                           </li>
                           <li>
-                            <span className="font-medium">Verify location</span> - Confirm the delivery person is at your depot location
+                            <span className="font-medium">Verify location</span>{" "}
+                            - Confirm the delivery person is at your depot
+                            location
                           </li>
                           <li>
-                            <span className="font-medium">Complete delivery</span> - Process payment to the delivery person automatically via smart contract
+                            <span className="font-medium">
+                              Complete delivery
+                            </span>{" "}
+                            - Process payment to the delivery person
+                            automatically via smart contract
                           </li>
                         </ol>
                       </CardContent>
                     </Card>
-                    
+
                     {/* Ration Distribution Instructions */}
                     <Card className="border-green-100 shadow-sm bg-green-50">
                       <CardHeader>
-                        <CardTitle className="text-green-800">Ration Distribution</CardTitle>
+                        <CardTitle className="text-green-800">
+                          Ration Distribution
+                        </CardTitle>
                         <CardDescription className="text-green-700">
                           Guidelines for distributing rations to beneficiaries
                         </CardDescription>
@@ -1694,16 +2155,27 @@ export default function DepotDashboard() {
                       <CardContent>
                         <ol className="space-y-2 text-green-700 list-decimal pl-5">
                           <li>
-                            <span className="font-medium">Verify beneficiary identity</span> - Check beneficiary's ID/documents
+                            <span className="font-medium">
+                              Verify beneficiary identity
+                            </span>{" "}
+                            - Check beneficiary's ID/documents
                           </li>
                           <li>
-                            <span className="font-medium">Distribute ration items</span> - Provide the appropriate items based on category
+                            <span className="font-medium">
+                              Distribute ration items
+                            </span>{" "}
+                            - Provide the appropriate items based on category
                           </li>
                           <li>
-                            <span className="font-medium">Record in blockchain</span> - Click "Track Ration" and enter details
+                            <span className="font-medium">
+                              Record in blockchain
+                            </span>{" "}
+                            - Click "Track Ration" and enter details
                           </li>
                           <li>
-                            <span className="font-medium">Update status</span> - The system will automatically update last ration date for the beneficiary
+                            <span className="font-medium">Update status</span> -
+                            The system will automatically update last ration
+                            date for the beneficiary
                           </li>
                         </ol>
                       </CardContent>
@@ -1714,53 +2186,97 @@ export default function DepotDashboard() {
             </Tabs>
           </div>
         )}
-  
-        {/* MetaMask Transaction Modal */}
-        {showMetaMaskModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 mr-4 bg-orange-100 rounded-full flex items-center justify-center">
-                  <svg width="28" height="28" viewBox="0 0 35 33" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M32.9582 1L19.8241 10.7183L22.2665 4.99099L32.9582 1Z" fill="#E17726" stroke="#E17726" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2.65881 1L15.6697 10.8511L13.3487 4.99099L2.65881 1Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold">MetaMask Transaction</h3>
+      </div>
+      {/* MetaMask Transaction Modal */}
+      {showMetaMaskModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 mr-4 bg-orange-100 rounded-full flex items-center justify-center">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 35 33"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M32.9582 1L19.8241 10.7183L22.2665 4.99099L32.9582 1Z"
+                    fill="#E17726"
+                    stroke="#E17726"
+                    strokeWidth="0.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M2.65881 1L15.6697 10.8511L13.3487 4.99099L2.65881 1Z"
+                    fill="#E27625"
+                    stroke="#E27625"
+                    strokeWidth="0.25"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-              
-              <div className="border-t border-b py-4 my-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">Transaction Type:</span>
-                  <span className="font-medium">
-                    {metaMaskModalType === 'otp' ? 'Generate OTP' : 
-                     metaMaskModalType === 'location' ? 'Verify Location' : 
-                     'Process Payment'}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">From Account:</span>
-                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">0x8Fb3...D21e</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600">Gas Fee:</span>
-                  <span>0.001 ETH</span>
-                </div>
-              </div>
-              
-              <p className="mb-4 text-center text-gray-700">{metaMaskModalMessage}</p>
-              
-              <div className="flex justify-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-              
-              <p className="mt-4 text-center text-sm text-gray-500">
-                MetaMask transaction in progress...
-              </p>
+              <h3 className="text-lg font-bold">MetaMask Transaction</h3>
             </div>
+
+            <div className="border-t border-b py-4 my-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Transaction Type:</span>
+                <span className="font-medium">
+                  {metaMaskModalType === "otp"
+                    ? "Generate OTP"
+                    : metaMaskModalType === "reset"
+                    ? "Reset Delivery"
+                    : "Delivery Processing"}
+                </span>
+              </div>
+
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">For Delivery:</span>
+                <span className="font-medium">
+                  #{activeDelivery?.id || "..."}
+                </span>
+              </div>
+
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Gas Fee (est.):</span>
+                <span>0.001 ETH</span>
+              </div>
+            </div>
+
+            <p className="mb-4 text-center text-gray-700">
+              {metaMaskModalMessage}
+            </p>
+
+            <div className="flex justify-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+
+            <p className="mt-4 text-center text-sm text-gray-500">
+              Please confirm this transaction in your MetaMask wallet
+            </p>
           </div>
-        )}
+        </div>
+      )}
+      <div className="mt-4">
+        <h3 className="font-medium text-lg mb-2">Complete Delivery by ID</h3>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Enter Delivery ID"
+            className="flex-1 p-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-1 focus:ring-green-500"
+            value={deliveryIdToComplete}
+            onChange={(e) => setDeliveryIdToComplete(e.target.value)}
+          />
+          <Button
+            onClick={() => completeDelivery(deliveryIdToComplete)}
+            className="bg-green-600 hover:bg-green-700 rounded-l-none"
+          >
+            Complete
+          </Button>
+        </div>
       </div>
     </DepotLayout>
   );

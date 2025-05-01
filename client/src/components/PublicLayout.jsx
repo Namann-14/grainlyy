@@ -57,7 +57,7 @@ export default function PublicLayout({ children }) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
                   <Globe className="h-4 w-4" />
                 </div>
-                <div className="font-semibold text-green-900">Public Portal</div>
+                <div className="font-semibold text-green-900">Grainlyyy</div>
               </div>
             </Link>
           </SidebarHeader>
@@ -127,7 +127,7 @@ export default function PublicLayout({ children }) {
                     <SidebarMenuButton asChild isActive={pathname === "/public/about"}>
                       <Link href="/public/about">
                         <Info className="h-4 w-4 text-green-700" />
-                        <span>About RationChain</span>
+                        <span>About Grainlyyy</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -138,7 +138,7 @@ export default function PublicLayout({ children }) {
           <SidebarFooter className="border-t border-green-100 p-4">
             <div className="text-xs text-center text-muted-foreground">
               <p>Public Transparency Portal</p>
-              <p className="mt-1">© {new Date().getFullYear()} RationChain</p>
+              <p className="mt-1">© {new Date().getFullYear()} Grainlyyy</p>
             </div>
           </SidebarFooter>
           <SidebarRail />
@@ -212,7 +212,7 @@ export default function PublicLayout({ children }) {
           </main>
           
           <footer className="border-t border-green-100 py-4 px-6 text-center text-sm text-muted-foreground">
-            <p>RationChain Public Transparency Portal — Making ration distribution accountable and transparent.</p>
+            <p>Grainlyyy Public Transparency Portal — Making ration distribution accountable and transparent.</p>
           </footer>
         </div>
       </div>

@@ -106,7 +106,7 @@ export default function DepotVerifications() {
         // Load transaction history from local storage only after mounting
         if (isMounted) {
           try {
-            const savedHistory = localStorage.getItem('rationchain-verification-history');
+            const savedHistory = localStorage.getItem('Grainlyyy-verification-history');
             if (savedHistory) {
               setTransactionHistory(JSON.parse(savedHistory));
             }
@@ -380,7 +380,7 @@ export default function DepotVerifications() {
     // Save to local storage - only on client side
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('rationchain-verification-history', JSON.stringify(updatedHistory));
+        localStorage.setItem('Grainlyyy-verification-history', JSON.stringify(updatedHistory));
       }
     } catch (err) {
       console.error('Error saving transaction history:', err);
@@ -398,7 +398,7 @@ export default function DepotVerifications() {
     return (
       <DepotLayout>
         <Head>
-          <title>Delivery Verifications | RationChain</title>
+          <title>Delivery Verifications | Grainlyyy</title>
         </Head>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center mb-8">
@@ -421,7 +421,7 @@ export default function DepotVerifications() {
   return (
     <DepotLayout>
       <Head>
-        <title>Delivery Verifications | RationChain</title>
+        <title>Delivery Verifications | Grainlyyy</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">

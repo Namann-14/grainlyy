@@ -177,7 +177,7 @@ export default function DepotAllocations() {
     return (
       <DepotLayout>
         <Head>
-          <title>Allocate Rations | RationChain</title>
+          <title>Allocate Rations | Grainlyyy</title>
         </Head>
         
         <div className="container mx-auto px-4 py-8">
@@ -208,7 +208,7 @@ export default function DepotAllocations() {
   return (
     <DepotLayout>
       <Head>
-        <title>Allocate Rations | RationChain</title>
+        <title>Allocate Rations | Grainlyyy</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">

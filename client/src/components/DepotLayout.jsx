@@ -78,7 +78,7 @@ export default function DepotLayout({ children }) {
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
                 <Warehouse className="h-4 w-4" />
               </div>
-              <div className="font-semibold text-green-900">RationChain</div>
+              <div className="font-semibold text-green-900">Grainlyyy</div>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -174,7 +174,7 @@ export default function DepotLayout({ children }) {
                     </Avatar>
                     <div className="flex flex-col items-start text-sm">
                       <span className="font-medium">Depot Manager</span>
-                      <span className="text-xs text-muted-foreground">depot@rationchain.com</span>
+                      <span className="text-xs text-muted-foreground">depot@Grainlyyy.com</span>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
