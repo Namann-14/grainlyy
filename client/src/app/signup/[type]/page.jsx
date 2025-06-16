@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Leaf, Truck, Store, HeartHandshake, Home } from "lucide-react";
+import { Leaf, Truck, Store, HeartHandshake } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,11 +26,17 @@ import {
 import { MetaMaskConnect } from "@/components/metamask-connect";
 import { AuthLayout } from "@/components/auth-layout";
 import { useMetaMask } from "@/components/MetaMaskProvider";
+import { ConsumerSignup } from "@/components/ConsumerSignup";
 
 export default function SignupPage() {
   const router = useRouter();
   const params = useParams();
   const userType = params.type || "consumer";
+
+  // If it's a consumer, render the separate component
+  if (userType === "consumer") {
+    return <ConsumerSignup />;
+  }
 
   const { connected, account } = useMetaMask();
   const [isLoading, setIsLoading] = useState(false);
@@ -38,36 +44,24 @@ export default function SignupPage() {
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
 
-  // Default form data with common fields
+  // Form data for non-consumer user types
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    // Fields for specific user types will be conditionally shown
     vehicleType: "", // For delivery
     licenseNumber: "", // For delivery & vendor
     storeName: "", // For vendor
     storeAddress: "", // For vendor
     ngoId: "", // For NGO
     registrationNumber: "", // For NGO
-    // Consumer specific fields
-    homeAddress: "", // For consumer
-    rationCardId: "", // For consumer
-    aadharNumber: "", // For consumer
-    familySize: "", // For consumer
   });
 
-  // Sync wallet state with MetaMask provider (only for non-consumer types)
+  // Sync wallet state with MetaMask provider
   useEffect(() => {
-    if (userType !== "consumer") {
-      setWalletConnected(connected);
-      setWalletAddress(account || "");
-    } else {
-      // For consumers, bypass wallet connection
-      setWalletConnected(true);
-      setWalletAddress("");
-    }
-  }, [connected, account, userType]);
+    setWalletConnected(connected);
+    setWalletAddress(account || "");
+  }, [connected, account]);
 
   // Get user type title for display
   const getUserTypeTitle = () => {
@@ -78,8 +72,6 @@ export default function SignupPage() {
         return "Vendor";
       case "ngo":
         return "NGO";
-      case "consumer":
-        return "Consumer";
       default:
         return "User";
     }
@@ -94,8 +86,6 @@ export default function SignupPage() {
         return <Store className="h-4 w-4" />;
       case "ngo":
         return <HeartHandshake className="h-4 w-4" />;
-      case "consumer":
-        return <Home className="h-4 w-4" />;
       default:
         return <Leaf className="h-4 w-4" />;
     }
@@ -115,41 +105,10 @@ export default function SignupPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Function to validate consumer data against mock data
-  const validateConsumerData = async () => {
-    try {
-      const response = await fetch("/mockdata.json");
-      const mockData = await response.json();
-
-      // Find a record that matches both ration card and aadhar number
-      const matchingRecord = mockData.find(
-        (record) =>
-          record.rationCardNumber === formData.rationCardId &&
-          record.aadhaar === formData.aadharNumber
-      );
-
-      if (!matchingRecord) {
-        setError(
-          "Invalid Ration Card ID or Aadhar number. Please verify your details."
-        );
-        return false;
-      }
-
-      // Optional: You can also update the name field with the verified name
-      // setFormData(prev => ({ ...prev, name: matchingRecord.name }));
-
-      return true;
-    } catch (error) {
-      console.error("Error validating consumer data:", error);
-      setError("Unable to verify your details. Please try again.");
-      return false;
-    }
-  };
-
   // Validate based on user type
   const validateForm = async () => {
-    // For non-consumer types, check wallet connection
-    if (userType !== "consumer" && !walletConnected) {
+    // Check wallet connection
+    if (!walletConnected) {
       setError("Please connect your wallet first");
       return false;
     }
@@ -183,27 +142,10 @@ export default function SignupPage() {
           return false;
         }
         break;
-      case "consumer":
-        if (
-          !formData.homeAddress ||
-          !formData.rationCardId ||
-          !formData.aadharNumber
-        ) {
-          setError("Please fill in all consumer details");
-          return false;
-        }
-        // Additional validation for consumer data against mock data
-        const isValidConsumer = await validateConsumerData();
-        if (!isValidConsumer) {
-          return false;
-        }
-        break;
     }
 
     return true;
   };
-
-  // ...existing code...
 
   const handleSignup = async () => {
     const isValid = await validateForm();
@@ -213,52 +155,20 @@ export default function SignupPage() {
       setIsLoading(true);
       setError(null);
 
-      if (userType === "consumer") {
-        // Send consumer signup request to admin for approval
-        const response = await fetch("/api/consumer-signup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone,
-            homeAddress: formData.homeAddress,
-            rationCardId: formData.rationCardId,
-            aadharNumber: formData.aadharNumber,
-            familySize: formData.familySize,
-          }),
-        });
+      // Handle non-consumer user types with wallet connection
+      const signupData = {
+        ...formData,
+        userType,
+        walletAddress,
+      };
 
-        const data = await response.json();
+      console.log("Signing up user:", signupData);
 
-        if (!response.ok) {
-          setError(data.error || "Failed to submit signup request");
-          return;
-        }
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-        // Show success message and redirect
-        alert(
-          "Signup request submitted successfully! Please wait for admin approval. You will be notified via email."
-        );
-        router.push("/signup-pending");
-      } else {
-        // Handle other user types with wallet connection
-        const signupData = {
-          ...formData,
-          userType,
-          walletAddress,
-        };
-
-        console.log("Signing up user:", signupData);
-
-        // Simulate API call for other user types
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Redirect to dashboard after successful signup
-        router.push(`/user`);
-      }
+      // Redirect to dashboard after successful signup
+      router.push(`/user`);
     } catch (err) {
       console.error("Signup error:", err);
       setError("Failed to create account. Please try again.");
@@ -266,8 +176,6 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
-
-  // ...existing code...
 
   // Render additional fields based on user type
   const renderUserTypeFields = () => {
@@ -396,75 +304,6 @@ export default function SignupPage() {
           </>
         );
 
-      case "consumer":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="homeAddress">
-                Home Address <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="homeAddress"
-                name="homeAddress"
-                placeholder="Enter your home address"
-                value={formData.homeAddress}
-                onChange={handleInputChange}
-                required
-                className="border-green-200 focus-visible:ring-green-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rationCardId">
-                Ration Card ID <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="rationCardId"
-                name="rationCardId"
-                placeholder="Enter your ration card ID"
-                value={formData.rationCardId}
-                onChange={handleInputChange}
-                required
-                className="border-green-200 focus-visible:ring-green-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="aadharNumber">
-                Aadhar Card Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="aadharNumber"
-                name="aadharNumber"
-                placeholder="Enter your 12-digit Aadhar number"
-                value={formData.aadharNumber}
-                onChange={handleInputChange}
-                required
-                maxLength={12}
-                pattern="[0-9]{12}"
-                className="border-green-200 focus-visible:ring-green-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="familySize">Family Size</Label>
-              <Select
-                onValueChange={(value) =>
-                  handleSelectChange("familySize", value)
-                }
-                defaultValue={formData.familySize}
-              >
-                <SelectTrigger className="border-green-200 focus-visible:ring-green-500">
-                  <SelectValue placeholder="Select your family size" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 person</SelectItem>
-                  <SelectItem value="2-3">2-3 people</SelectItem>
-                  <SelectItem value="4-5">4-5 people</SelectItem>
-                  <SelectItem value="6+">6+ people</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
-        );
-
       default:
         return null;
     }
@@ -492,8 +331,7 @@ export default function SignupPage() {
               </CardTitle>
             </div>
             <CardDescription>
-              Create a new {getUserTypeTitle().toLowerCase()} account
-              {userType !== "consumer" && " with MetaMask"}
+              Create a new {getUserTypeTitle().toLowerCase()} account with MetaMask
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -507,10 +345,7 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* Only show MetaMask connect for non-consumer users */}
-            {userType !== "consumer" && (
-              <MetaMaskConnect onConnect={handleWalletConnect} />
-            )}
+            <MetaMaskConnect onConnect={handleWalletConnect} />
 
             {walletConnected && (
               <motion.div

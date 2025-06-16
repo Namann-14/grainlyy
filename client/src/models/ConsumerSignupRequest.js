@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 const ConsumerSignupRequestSchema = new mongoose.Schema({
   name: {
@@ -37,6 +38,10 @@ const ConsumerSignupRequestSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  pin: {
+    type: String,
+    required: true
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
@@ -59,6 +64,24 @@ const ConsumerSignupRequestSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Hash PIN before saving
+ConsumerSignupRequestSchema.pre('save', async function(next) {
+  if (!this.isModified('pin')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.pin = await bcrypt.hash(this.pin, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Method to compare PIN
+ConsumerSignupRequestSchema.methods.comparePin = async function(candidatePin) {
+  return await bcrypt.compare(candidatePin, this.pin);
+};
 
 // Index for faster queries
 ConsumerSignupRequestSchema.index({ status: 1, submittedAt: -1 });
