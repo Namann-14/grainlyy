@@ -39,6 +39,25 @@ export function ConsumerSignup() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Handle Aadhar number input - only allow digits and limit to 12
+    if (name === 'aadharNumber') {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length <= 12) {
+        setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      }
+      return;
+    }
+
+    // Handle phone number - only allow digits and common formats
+    if (name === 'phone') {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length <= 10) {
+        setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      }
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -76,17 +95,28 @@ export function ConsumerSignup() {
   };
 
   const validateForm = async () => {
+    // Clear previous errors
+    setError(null);
+
     if (!formData.name || !formData.phone) {
       setError("Please fill in all required fields");
       return false;
     }
 
-    if (
-      !formData.homeAddress ||
-      !formData.rationCardId ||
-      !formData.aadharNumber
-    ) {
+    if (!formData.homeAddress || !formData.rationCardId || !formData.aadharNumber) {
       setError("Please fill in all consumer details");
+      return false;
+    }
+
+    // Validate phone number
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setError("Phone number must be exactly 10 digits");
+      return false;
+    }
+
+    // Validate Aadhar number
+    if (!/^\d{12}$/.test(formData.aadharNumber)) {
+      setError("Aadhar number must be exactly 12 digits");
       return false;
     }
 
@@ -124,10 +154,10 @@ export function ConsumerSignup() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: formData.name,
+          name: formData.name.trim(),
           phone: formData.phone,
-          homeAddress: formData.homeAddress,
-          rationCardId: formData.rationCardId,
+          homeAddress: formData.homeAddress.trim(),
+          rationCardId: formData.rationCardId.trim(),
           aadharNumber: formData.aadharNumber,
           pin: pin,
         }),
@@ -217,12 +247,16 @@ export function ConsumerSignup() {
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="Enter your phone number"
+                  placeholder="Enter your 10-digit phone number"
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
+                  maxLength={10}
                   className="border-green-200 focus-visible:ring-green-500"
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.phone.length}/10 digits
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="homeAddress">
@@ -264,9 +298,11 @@ export function ConsumerSignup() {
                   onChange={handleInputChange}
                   required
                   maxLength={12}
-                  pattern="[0-9]{12}"
                   className="border-green-200 focus-visible:ring-green-500"
                 />
+                <p className="text-xs text-muted-foreground">
+                  {formData.aadharNumber.length}/12 digits
+                </p>
               </div>
               
               {/* PIN Input Section */}
@@ -287,7 +323,7 @@ export function ConsumerSignup() {
                   </InputOTP>
                 </div>
                 <p className="text-sm text-muted-foreground text-center">
-                  Enter a 6-digit PIN for account security
+                  Enter a 6-digit PIN for account security ({pin.length}/6)
                 </p>
               </div>
 

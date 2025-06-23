@@ -25,8 +25,16 @@ export async function POST(request) {
       );
     }
 
-    // Check if consumer already exists
-    const existingRequest = await ConsumerSignupRequest.findOne({
+    // Validate Aadhar number format (12 digits)
+    if (!/^\d{12}$/.test(aadharNumber)) {
+      return NextResponse.json(
+        { error: 'Aadhar number must be exactly 12 digits' },
+        { status: 400 }
+      );
+    }
+
+    // Check if consumer already exists with detailed error messages
+    const existingRequests = await ConsumerSignupRequest.find({
       $or: [
         { phone },
         { rationCardId },
@@ -34,9 +42,16 @@ export async function POST(request) {
       ]
     });
 
-    if (existingRequest) {
+    if (existingRequests.length > 0) {
+      const conflicts = [];
+      existingRequests.forEach(req => {
+        if (req.phone === phone) conflicts.push('phone number');
+        if (req.rationCardId === rationCardId) conflicts.push('ration card ID');
+        if (req.aadharNumber === aadharNumber) conflicts.push('Aadhar number');
+      });
+      
       return NextResponse.json(
-        { error: 'A signup request with this ration card, or Aadhar number already exists' },
+        { error: `A signup request with this ${[...new Set(conflicts)].join(', ')} already exists` },
         { status: 409 }
       );
     }
@@ -65,8 +80,14 @@ export async function POST(request) {
     console.error('Error creating consumer signup request:', error);
     
     if (error.code === 11000) {
+      // Handle specific duplicate key errors
+      let field = 'information';
+      if (error.keyPattern?.phone) field = 'phone number';
+      else if (error.keyPattern?.rationCardId) field = 'ration card ID';
+      else if (error.keyPattern?.aadharNumber) field = 'Aadhar number';
+      
       return NextResponse.json(
-        { error: 'A signup request with this information already exists' },
+        { error: `A signup request with this ${field} already exists` },
         { status: 409 }
       );
     }

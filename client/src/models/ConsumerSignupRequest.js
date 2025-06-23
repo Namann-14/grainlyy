@@ -75,7 +75,8 @@ ConsumerSignupRequestSchema.methods.comparePin = async function(candidatePin) {
 
 // Index for faster queries
 ConsumerSignupRequestSchema.index({ status: 1, submittedAt: -1 });
-ConsumerSignupRequestSchema.index({ email: 1 }, { unique: true });
+ConsumerSignupRequestSchema.index({ phone: 1 }, { unique: true });
 ConsumerSignupRequestSchema.index({ rationCardId: 1 }, { unique: true });
+ConsumerSignupRequestSchema.index({ aadharNumber: 1 }, { unique: true });
 
 export default mongoose.models.ConsumerSignupRequest || mongoose.model('ConsumerSignupRequest', ConsumerSignupRequestSchema);
