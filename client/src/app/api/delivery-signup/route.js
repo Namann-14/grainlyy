@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import ConsumerSignupRequest from '@/models/ConsumerSignupRequest';
+import DeliverySignupRequest from '@/models/DeliverySignupRequest';
 
 export async function POST(request) {
   try {
     await dbConnect();
     
     const body = await request.json();
-    const { name, phone, homeAddress, rationCardId, aadharNumber, pin } = body;
+    const { name, phone, address, vehicleType, licenseNumber, pin } = body;
 
     // Validate required fields
-    if (!name || !phone || !homeAddress || !rationCardId || !aadharNumber || !pin) {
+    if (!name || !phone || !address || !vehicleType || !licenseNumber || !pin) {
       return NextResponse.json(
         { error: 'All required fields must be provided' },
         { status: 400 }
@@ -25,29 +25,37 @@ export async function POST(request) {
       );
     }
 
-    // Check if consumer already exists
-    const existingRequest = await ConsumerSignupRequest.findOne({
+    // Validate vehicle type
+    const validVehicleTypes = ['bicycle', 'motorcycle', 'car', 'van', 'truck'];
+    if (!validVehicleTypes.includes(vehicleType.toLowerCase())) {
+      return NextResponse.json(
+        { error: 'Invalid vehicle type' },
+        { status: 400 }
+      );
+    }
+
+    // Check if delivery partner already exists
+    const existingRequest = await DeliverySignupRequest.findOne({
       $or: [
         { phone },
-        { rationCardId },
-        { aadharNumber }
+        { licenseNumber }
       ]
     });
 
     if (existingRequest) {
       return NextResponse.json(
-        { error: 'A signup request with this ration card, or Aadhar number already exists' },
+        { error: 'A signup request with this phone number or license number already exists' },
         { status: 409 }
       );
     }
 
     // Create new signup request (PIN will be hashed automatically via pre-save middleware)
-    const signupRequest = new ConsumerSignupRequest({
+    const signupRequest = new DeliverySignupRequest({
       name,
       phone,
-      homeAddress,
-      rationCardId,
-      aadharNumber,
+      address,
+      vehicleType: vehicleType.toLowerCase(),
+      licenseNumber,
       pin
     });
 
@@ -62,7 +70,7 @@ export async function POST(request) {
     );
 
   } catch (error) {
-    console.error('Error creating consumer signup request:', error);
+    console.error('Error creating delivery signup request:', error);
     
     if (error.code === 11000) {
       return NextResponse.json(
@@ -90,13 +98,13 @@ export async function GET(request) {
 
     const query = status === 'all' ? {} : { status };
 
-    const requests = await ConsumerSignupRequest.find(query)
+    const requests = await DeliverySignupRequest.find(query)
       .select('-pin') // Exclude PIN from response for security
       .sort({ submittedAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await ConsumerSignupRequest.countDocuments(query);
+    const total = await DeliverySignupRequest.countDocuments(query);
 
     return NextResponse.json({
       requests,
@@ -108,7 +116,7 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Error fetching consumer signup requests:', error);
+    console.error('Error fetching delivery signup requests:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

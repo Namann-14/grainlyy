@@ -112,7 +112,7 @@ export default function AdminLayout({ children }) {
                       asChild
                       isActive={pathname === "/deliveries"}
                     >
-                      <Link href="/deliveries">
+                      <Link href="/admin/deliveries">
                         <ShoppingCart className="h-4 w-4 text-green-700" />
                         <span>Deliveries</span>
                       </Link>

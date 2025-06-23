@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const ConsumerSignupRequestSchema = new mongoose.Schema({
+const DeliverySignupRequestSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -12,21 +12,21 @@ const ConsumerSignupRequestSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  homeAddress: {
+  address: {
     type: String,
     required: true,
     trim: true
   },
-  rationCardId: {
+  vehicleType: {
+    type: String,
+    required: true,
+    enum: ['bicycle', 'motorcycle', 'car', 'van', 'truck'],
+    trim: true
+  },
+  licenseNumber: {
     type: String,
     required: true,
     trim: true
-  },
-  aadharNumber: {
-    type: String,
-    required: true,
-    trim: true,
-    length: 12
   },
   pin: {
     type: String,
@@ -56,7 +56,7 @@ const ConsumerSignupRequestSchema = new mongoose.Schema({
 });
 
 // Hash PIN before saving
-ConsumerSignupRequestSchema.pre('save', async function(next) {
+DeliverySignupRequestSchema.pre('save', async function(next) {
   if (!this.isModified('pin')) return next();
   
   try {
@@ -69,13 +69,13 @@ ConsumerSignupRequestSchema.pre('save', async function(next) {
 });
 
 // Method to compare PIN
-ConsumerSignupRequestSchema.methods.comparePin = async function(candidatePin) {
+DeliverySignupRequestSchema.methods.comparePin = async function(candidatePin) {
   return await bcrypt.compare(candidatePin, this.pin);
 };
 
 // Index for faster queries
-ConsumerSignupRequestSchema.index({ status: 1, submittedAt: -1 });
-ConsumerSignupRequestSchema.index({ email: 1 }, { unique: true });
-ConsumerSignupRequestSchema.index({ rationCardId: 1 }, { unique: true });
+DeliverySignupRequestSchema.index({ status: 1, submittedAt: -1 });
+DeliverySignupRequestSchema.index({ phone: 1 }, { unique: true });
+DeliverySignupRequestSchema.index({ licenseNumber: 1 }, { unique: true });
 
-export default mongoose.models.ConsumerSignupRequest || mongoose.model('ConsumerSignupRequest', ConsumerSignupRequestSchema);
+export default mongoose.models.DeliverySignupRequest || mongoose.model('DeliverySignupRequest', DeliverySignupRequestSchema);

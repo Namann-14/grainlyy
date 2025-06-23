@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Leaf, Truck, Store, HeartHandshake } from "lucide-react";
+import { Leaf, Store, HeartHandshake } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ import { MetaMaskConnect } from "@/components/metamask-connect";
 import { AuthLayout } from "@/components/auth-layout";
 import { useMetaMask } from "@/components/MetaMaskProvider";
 import { ConsumerSignup } from "@/components/ConsumerSignup";
+import { DeliverySignup } from "@/components/DeliverySignup";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -38,21 +39,25 @@ export default function SignupPage() {
     return <ConsumerSignup />;
   }
 
+  // If it's a delivery partner, render the separate component
+  if (userType === "delivery") {
+    return <DeliverySignup />;
+  }
+
   const { connected, account } = useMetaMask();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
 
-  // Form data for non-consumer user types
+  // Form data for vendor and NGO user types only
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    vehicleType: "", // For delivery
-    licenseNumber: "", // For delivery & vendor
     storeName: "", // For vendor
     storeAddress: "", // For vendor
+    licenseNumber: "", // For vendor
     ngoId: "", // For NGO
     registrationNumber: "", // For NGO
   });
@@ -66,8 +71,6 @@ export default function SignupPage() {
   // Get user type title for display
   const getUserTypeTitle = () => {
     switch (userType) {
-      case "delivery":
-        return "Delivery Partner";
       case "vendor":
         return "Vendor";
       case "ngo":
@@ -80,8 +83,6 @@ export default function SignupPage() {
   // Get user type icon
   const getUserTypeIcon = () => {
     switch (userType) {
-      case "delivery":
-        return <Truck className="h-4 w-4" />;
       case "vendor":
         return <Store className="h-4 w-4" />;
       case "ngo":
@@ -120,12 +121,6 @@ export default function SignupPage() {
 
     // Validate specific user type fields
     switch (userType) {
-      case "delivery":
-        if (!formData.vehicleType || !formData.licenseNumber) {
-          setError("Please fill in all delivery partner details");
-          return false;
-        }
-        break;
       case "vendor":
         if (
           !formData.storeName ||
@@ -180,48 +175,6 @@ export default function SignupPage() {
   // Render additional fields based on user type
   const renderUserTypeFields = () => {
     switch (userType) {
-      case "delivery":
-        return (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="vehicleType">
-                Vehicle Type <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                onValueChange={(value) =>
-                  handleSelectChange("vehicleType", value)
-                }
-                defaultValue={formData.vehicleType}
-              >
-                <SelectTrigger className="border-green-200 focus-visible:ring-green-500">
-                  <SelectValue placeholder="Select your vehicle type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bicycle">Bicycle</SelectItem>
-                  <SelectItem value="motorcycle">Motorcycle</SelectItem>
-                  <SelectItem value="car">Car</SelectItem>
-                  <SelectItem value="van">Van</SelectItem>
-                  <SelectItem value="truck">Truck</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="licenseNumber">
-                License Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="licenseNumber"
-                name="licenseNumber"
-                placeholder="Enter your license number"
-                value={formData.licenseNumber}
-                onChange={handleInputChange}
-                required
-                className="border-green-200 focus-visible:ring-green-500"
-              />
-            </div>
-          </>
-        );
-
       case "vendor":
         return (
           <>

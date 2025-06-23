@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Home } from "lucide-react";
+import { Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +17,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { AuthLayout } from "@/components/auth-layout";
 
-export function ConsumerSignup() {
+export function DeliverySignup() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,9 +39,9 @@ export function ConsumerSignup() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    homeAddress: "",
-    rationCardId: "",
-    aadharNumber: "",
+    vehicleType: "",
+    licenseNumber: "",
+    address: "",
   });
 
   const handleInputChange = (e) => {
@@ -42,34 +49,38 @@ export function ConsumerSignup() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectChange = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handlePinChange = (value) => {
     setPin(value);
   };
 
-  // Function to validate consumer data against mock data
-  const validateConsumerData = async () => {
+  // Function to validate delivery rider data against mock data
+  const validateDeliveryData = async () => {
     try {
-      const response = await fetch("/mockdata.json");
+      const response = await fetch("/mockdata-delivery.json");
       const mockData = await response.json();
 
-      // Find a record that matches name, ration card ID, and aadhar number
+      // Find a record that matches name, license number, and vehicle type
       const matchingRecord = mockData.find(
         (record) =>
           record.name.toLowerCase().trim() === formData.name.toLowerCase().trim() &&
-          record.rationCardNumber === formData.rationCardId &&
-          record.aadhaar === formData.aadharNumber
+          record.licenseNumber === formData.licenseNumber &&
+          record.vehicleType.toLowerCase() === formData.vehicleType.toLowerCase()
       );
 
       if (!matchingRecord) {
         setError(
-          "Name, Ration Card ID, and Aadhar number do not match our records. Please verify your details."
+          "Name, License Number, and Vehicle Type do not match our records. Please verify your details."
         );
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Error validating consumer data:", error);
+      console.error("Error validating delivery rider data:", error);
       setError("Unable to verify your details. Please try again.");
       return false;
     }
@@ -82,11 +93,11 @@ export function ConsumerSignup() {
     }
 
     if (
-      !formData.homeAddress ||
-      !formData.rationCardId ||
-      !formData.aadharNumber
+      !formData.vehicleType ||
+      !formData.licenseNumber ||
+      !formData.address
     ) {
-      setError("Please fill in all consumer details");
+      setError("Please fill in all delivery partner details");
       return false;
     }
 
@@ -100,9 +111,9 @@ export function ConsumerSignup() {
       return false;
     }
 
-    // Additional validation for consumer data against mock data
-    const isValidConsumer = await validateConsumerData();
-    if (!isValidConsumer) {
+    // Additional validation for delivery rider data against mock data
+    const isValidDeliveryRider = await validateDeliveryData();
+    if (!isValidDeliveryRider) {
       return false;
     }
 
@@ -117,8 +128,8 @@ export function ConsumerSignup() {
       setIsLoading(true);
       setError(null);
 
-      // Send consumer signup request to admin for approval
-      const response = await fetch("/api/consumer-signup", {
+      // Send delivery rider signup request to admin for approval
+      const response = await fetch("/api/delivery-signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -126,9 +137,9 @@ export function ConsumerSignup() {
         body: JSON.stringify({
           name: formData.name,
           phone: formData.phone,
-          homeAddress: formData.homeAddress,
-          rationCardId: formData.rationCardId,
-          aadharNumber: formData.aadharNumber,
+          vehicleType: formData.vehicleType,
+          licenseNumber: formData.licenseNumber,
+          address: formData.address,
           pin: pin,
         }),
       });
@@ -155,7 +166,7 @@ export function ConsumerSignup() {
 
   return (
     <AuthLayout
-      title="Create a Consumer account"
+      title="Create a Delivery Partner account"
       description="Sign up to access the Grainlyy platform"
     >
       <motion.div
@@ -168,14 +179,14 @@ export function ConsumerSignup() {
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
-                <Home className="h-4 w-4" />
+                <Truck className="h-4 w-4" />
               </div>
               <CardTitle className="text-2xl text-green-900">
-                Consumer Sign Up
+                Delivery Partner Sign Up
               </CardTitle>
             </div>
             <CardDescription>
-              Create a new consumer account
+              Create a new delivery partner account
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -225,46 +236,52 @@ export function ConsumerSignup() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="homeAddress">
-                  Home Address <span className="text-red-500">*</span>
+                <Label htmlFor="address">
+                  Address <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="homeAddress"
-                  name="homeAddress"
-                  placeholder="Enter your home address"
-                  value={formData.homeAddress}
+                  id="address"
+                  name="address"
+                  placeholder="Enter your address"
+                  value={formData.address}
                   onChange={handleInputChange}
                   required
                   className="border-green-200 focus-visible:ring-green-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="rationCardId">
-                  Ration Card ID <span className="text-red-500">*</span>
+                <Label htmlFor="vehicleType">
+                  Vehicle Type <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="rationCardId"
-                  name="rationCardId"
-                  placeholder="Enter your ration card ID"
-                  value={formData.rationCardId}
-                  onChange={handleInputChange}
-                  required
-                  className="border-green-200 focus-visible:ring-green-500"
-                />
+                <Select
+                  onValueChange={(value) =>
+                    handleSelectChange("vehicleType", value)
+                  }
+                  value={formData.vehicleType}
+                >
+                  <SelectTrigger className="border-green-200 focus-visible:ring-green-500">
+                    <SelectValue placeholder="Select your vehicle type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bicycle">Bicycle</SelectItem>
+                    <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                    <SelectItem value="car">Car</SelectItem>
+                    <SelectItem value="van">Van</SelectItem>
+                    <SelectItem value="truck">Truck</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="aadharNumber">
-                  Aadhar Card Number <span className="text-red-500">*</span>
+                <Label htmlFor="licenseNumber">
+                  License Number <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="aadharNumber"
-                  name="aadharNumber"
-                  placeholder="Enter your 12-digit Aadhar number"
-                  value={formData.aadharNumber}
+                  id="licenseNumber"
+                  name="licenseNumber"
+                  placeholder="Enter your license number"
+                  value={formData.licenseNumber}
                   onChange={handleInputChange}
                   required
-                  maxLength={12}
-                  pattern="[0-9]{12}"
                   className="border-green-200 focus-visible:ring-green-500"
                 />
               </div>
@@ -315,7 +332,7 @@ export function ConsumerSignup() {
               disabled={isLoading}
               className="w-full bg-green-600 hover:bg-green-700"
             >
-              {isLoading ? "Creating account..." : "Create Consumer Account"}
+              {isLoading ? "Creating account..." : "Create Delivery Partner Account"}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
