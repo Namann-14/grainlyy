@@ -1,0 +1,306 @@
+{
+  "name": "AI Content Agent (OpenAI)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "setup",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook Setup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "/*\nStore incoming configuration in workflowStaticData.global.config\nExpected JSON body:\n{\n  \"logoUrl\": \"...\",\n  \"businessName\": \"...\",\n  \"contactEmail\": \"...\",\n  \"socialPlatforms\": [\"instagram\",\"twitter\"],   // optional\n  \"keywords\": [\"topic1\",\"topic2\"]            // optional\n}\n*/\nconst body = $json;\nif (!body.logoUrl || !body.businessName || !body.contactEmail) {\n  return [{ json: { success: false, message: 'Missing required fields: logoUrl, businessName, contactEmail' } }];\n}\n$workflowStaticData['global'].config = {\n  logoUrl: body.logoUrl,\n  businessName: body.businessName,\n  contactEmail: body.contactEmail,\n  socialPlatforms: Array.isArray(body.socialPlatforms) ? body.socialPlatforms : [],\n  keywords: Array.isArray(body.keywords) ? body.keywords : []\n};\nreturn [{ json: { success: true, message: 'Configuration saved.' } }];"
+      },
+      "name": "Set Config",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "mode": "everyDay",
+          "time": "09:00"
+        }
+      },
+      "name": "Daily Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Verify config exists */\nconst config = $workflowStaticData['global'].config;\nif (!config) {\n  throw new Error('Configuration missing. Please POST to /webhook/AIAgent/setup with required fields.');\n}\nreturn items;"
+      },
+      "name": "Check Config",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "url": "={{ `https://newsapi.org/v2/top-headlines?country=us&pageSize=5&apiKey=${$credentials.NewsAPI.apiKey}` }}",
+        "options": {}
+      },
+      "name": "Fetch Trending News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [650, 50],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NewsAPI",
+          "name": "NewsAPI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendarId": "primary",
+        "options": {
+          "timeMin": "={{ new Date().toISOString() }}",
+          "timeMax": "={{ new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() }}",
+          "singleEvents": true,
+          "orderBy": "startTime",
+          "maxResults": 5
+        }
+      },
+      "name": "Fetch Upcoming Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GoogleCalendar",
+          "name": "GoogleCalendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "/* Build prompt for OpenAI Chat completion */\nconst config = $workflowStaticData['global'].config;\n\n// News headlines\nlet headlines = [];\nif ($node[\"Fetch Trending News\"].json && $node[\"Fetch Trending News\"].json.articles) {\n  headlines = $node[\"Fetch Trending News\"].json.articles\n    .map(a => a.title)\n    .filter(t => typeof t === 'string');\n}\n// Upcoming events\nlet eventsInfo = [];\nif (Array.isArray($node[\"Fetch Upcoming Events\"].json)) {\n  eventsInfo = $node[\"Fetch Upcoming Events\"].json.map(evt => {\n    const title = evt.summary || 'No title';\n    const start = evt.start && (evt.start.dateTime || evt.start.date) || '';\n    return `${title} on ${start}`;\n  });\n}\n// Keywords\nconst keywords = Array.isArray(config.keywords) && config.keywords.length ? config.keywords : [];\n\nlet prompt = `You are a social media content assistant for a business. Business name: ${config.businessName}. Logo URL: ${config.logoUrl}. Contact email: ${config.contactEmail}.`;\nif (config.socialPlatforms.length) {\n  prompt += ` Target platforms: ${config.socialPlatforms.join(', ')}.`;\n}\nif (keywords.length) {\n  prompt += ` Focus topics/keywords: ${keywords.join(', ')}.`;\n}\nif (headlines.length) {\n  prompt += ` Current trending headlines: ${headlines.join(' | ')}.`;\n}\nif (eventsInfo.length) {\n  prompt += ` Upcoming events this week: ${eventsInfo.join(' | ')}.`;\n}\nprompt += `\nGenerate:\n1) Three short text post ideas with engaging captions.\n2) Three short video/reel scripts, including suggested visuals (you can reference the logo URL for branding elements).\n3) Suggest relevant hashtags or key phrases.\n4) A suggested posting schedule (best times/days) for maximum engagement.\n5) One idea for a simple AI-generated image (via DALL·E) that fits one of the posts; provide a brief image prompt.\nKeep tone friendly and professional, aligned to a small business owner looking to boost engagement.\n`;\nreturn [{ json: { prompt } }];"
+      },
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 125]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.7,
+        "maxTokens": 500,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant that generates social media content ideas."
+          },
+          {
+            "role": "user",
+            "content": "={{ $node[\"Build Prompt\"].json.prompt }}"
+          }
+        ]
+      },
+      "name": "OpenAI Chat Completion",
+      "type": "n8n-nodes-base.openAI",
+      "typeVersion": 1,
+      "position": [1050, 125],
+      "credentials": {
+        "openAIApi": {
+          "id": "OpenAI",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "/*\nExtract the text from OpenAI response and also prepare DALL·E image generation if prompt included.\nExpect response in $node[\"OpenAI Chat Completion\"].json.choices[0].message.content\n*/\nconst aiText = $node[\"OpenAI Chat Completion\"].json.choices[0].message.content;\n// Attempt to extract the DALL·E prompt from the AI text: assume AI includes a line like 'Image prompt: ...'\nlet dallePrompt = null;\nconst lines = aiText.split(/\\r?\\n/);\nfor (const line of lines) {\n  const lower = line.toLowerCase();\n  if (lower.includes('image prompt:')) {\n    const idx = line.toLowerCase().indexOf('image prompt:');\n    dallePrompt = line.substring(idx + 'image prompt:'.length).trim();\n    break;\n  }\n}\nreturn [{ json: { aiText, dallePrompt } }];"
+      },
+      "name": "Extract AI Output",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 125]
+    },
+    {
+      "parameters": {
+        "model": "dall-e-3",
+        "prompt": "={{ $node[\"Extract AI Output\"].json.dallePrompt }}",
+        "size": "1024x1024"
+      },
+      "name": "Generate Image (DALL·E)",
+      "type": "n8n-nodes-base.openAIImage",
+      "typeVersion": 1,
+      "position": [1450, 125],
+      "credentials": {
+        "openAIApi": {
+          "id": "OpenAI",
+          "name": "OpenAI"
+        }
+      },
+      "disabled": false
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $workflowStaticData['global'].config.contactEmail }}",
+        "toEmail": "={{ $workflowStaticData['global'].config.contactEmail }}",
+        "subject": "Daily AI Content Suggestions for {{ $workflowStaticData['global'].config.businessName }}",
+        "text": "Hello,\n\nHere are today’s AI-generated content suggestions for {{ $workflowStaticData['global'].config.businessName }}:\n\n{{$node[\"Extract AI Output\"].json.aiText}}\n\n---\nPlease review and post manually. Attached is an AI-generated image suggestion (if generated).\n\nBest,\nYour AI Content Agent",
+        "attachmentsUi": {
+          "attachImage": [
+            {
+              "binaryPropertyName": "imageData",
+              "fileName": "ai_image.png"
+            }
+          ]
+        }
+      },
+      "name": "Send Email with Drafts",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [1650, 125],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIALS",
+          "name": "SMTP_CREDENTIALS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "/*\nIf an image was generated, place it in binary for email attachment. Otherwise skip.\n*/\nconst items = [];\nconst nodeOutput = $node[\"Generate Image (DALL·E)\"];\nif (nodeOutput && nodeOutput.json && nodeOutput.binary) {\n  // n8n stores image in binary property 'data' by default\n  // Copy binary data to a property 'imageData'\n  const binary = nodeOutput.binary;\n  if (binary.data) {\n    items.push({\n      json: {},\n      binary: { imageData: binary.data }\n    });\n    return items;\n  }\n}\n// No image: return empty binary so email node attaches nothing\nitems.push({ json: {}, binary: {} });\nreturn items;"
+      },
+      "name": "Prepare Image Attachment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1550, 275]
+    }
+  ],
+  "connections": {
+    "Webhook Setup": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Cron": {
+      "main": [
+        [
+          {
+            "node": "Check Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Trending News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Upcoming Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Trending News": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Upcoming Events": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Chat Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Completion": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI Output": {
+      "main": [
+        [
+          {
+            "node": "Generate Image (DALL·E)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email with Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image (DALL·E)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Image Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Image Attachment": {
+      "main": [
+        [
+          {
+            "node": "Send Email with Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

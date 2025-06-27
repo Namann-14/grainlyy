@@ -3,8 +3,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import AdminLayout from '@/components/AdminLayout';
+import { Truck, UserCheck, UserX, Clock } from 'lucide-react';
+import { ethers } from "ethers";
+import RegistrationFaucetABI from "../../../../abis/RegistrationFaucet.json";
+import DashboardFaucetABI from "../../../../abis/DashboardFaucet.json";
 
-import { Truck, UserCheck, UserX, Clock, ArrowUpRight } from 'lucide-react';
+// IMPORTANT: Use your Diamond Proxy address here!
+const DASHBOARD_DIAMOND_ADDRESS = "0x46a92d404A83304249e1A51695994DF7Fc51Dc35"; // <-- CHANGE THIS!
+const REGISTRATION_FAUCET_ADDRESS = "0xBd5F4cD4df0e9e77904a717ea2139779DA538d17";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,9 +37,15 @@ export default function DeliverySignupRequests() {
     rejected: 0,
     total: 0
   });
+  const [assigning, setAssigning] = useState(false);
+
+  // Shopkeeper dropdown state
+  const [shopkeepers, setShopkeepers] = useState([]);
+  const [selectedShopkeepers, setSelectedShopkeepers] = useState({});
 
   useEffect(() => {
     fetchRequests();
+    fetchShopkeepersFromBlockchain();
   }, [filter]);
 
   const fetchRequests = async () => {
@@ -42,12 +54,12 @@ export default function DeliverySignupRequests() {
       const response = await fetch(`/api/delivery-signup?status=${filter}`);
       const data = await response.json();
       setRequests(data.requests);
-      
+
       // Calculate stats
       const allResponse = await fetch('/api/delivery-signup?status=all');
       const allData = await allResponse.json();
       const allRequests = allData.requests;
-      
+
       setStats({
         pending: allRequests.filter(r => r.status === 'pending').length,
         approved: allRequests.filter(r => r.status === 'approved').length,
@@ -61,27 +73,110 @@ export default function DeliverySignupRequests() {
     }
   };
 
-  const handleAction = async (requestId, action, adminNote = '') => {
+  // Fetch shopkeepers from Diamond Proxy using DashboardFaucet ABI
+  const fetchShopkeepersFromBlockchain = async () => {
     try {
-      const response = await fetch(`/api/delivery-signup/${requestId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action,
-          adminNote,
-          adminId: '69420' // Replace with actual admin ID
-        }),
-      });
-
-      if (response.ok) {
-        fetchRequests(); // Refresh the list
-      }
-    } catch (error) {
-      console.error('Error updating request:', error);
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL || "https://polygon-mumbai.infura.io/v3/");
+      const contract = new ethers.Contract(
+        DASHBOARD_DIAMOND_ADDRESS,
+        DashboardFaucetABI,
+        provider
+      );
+      const addresses = await contract.getAllShopkeepers();
+      console.log("Shopkeeper addresses from blockchain:", addresses);
+      setShopkeepers(addresses.map(addr => ({ walletAddress: addr })));
+    } catch (err) {
+      setShopkeepers([]);
+      console.error("Error fetching shopkeepers from blockchain:", err);
     }
   };
+
+const handleAction = async (requestId, action, adminNote = '') => {
+  try {
+    setAssigning(true);
+    const request = requests.find(r => r._id === requestId);
+    const shopkeeperAddress = selectedShopkeepers[request._id];
+
+    if (action === "approve" && !shopkeeperAddress) {
+      alert("Please select a shopkeeper before approving.");
+      setAssigning(false);
+      return;
+    }
+    if (!request.walletAddress) {
+      alert("Delivery agent wallet address is missing!");
+      setAssigning(false);
+      return;
+    }
+
+    let txHash = null;
+    if (action === "approve") {
+      if (!window.ethereum) {
+        alert("Please install MetaMask!");
+        setAssigning(false);
+        return;
+      }
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        DASHBOARD_DIAMOND_ADDRESS,
+        RegistrationFaucetABI,
+        signer
+      );
+      // Register delivery agent on-chain
+      const tx = await contract.registerDeliveryAgent(
+        request.walletAddress,
+        request.name,
+        request.phone
+      );
+      await tx.wait();
+      txHash = tx.hash;
+
+      // Assign delivery agent to shopkeeper (if needed)
+      const assignTx = await contract.assignDeliveryAgentToShopkeeper(
+        request.walletAddress,
+        shopkeeperAddress
+      );
+      await assignTx.wait();
+    }
+
+    // 2. Update DB status
+    const response = await fetch(`/api/delivery-signup/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        adminNote,
+        adminId: '69420',
+        name: request.name,
+        phone: request.phone,
+        walletAddress: request.walletAddress,
+        shopkeeperAddress,
+        txHash
+      }),
+    });
+
+    if (response.ok) {
+      fetchRequests();
+      if (txHash) {
+        window.open(`https://mumbai.polygonscan.com/tx/${txHash}`, '_blank');
+      }
+    } else {
+      let errorMsg = "Failed to update request.";
+      try {
+        const data = await response.json();
+        errorMsg = data.error || errorMsg;
+      } catch (e) {
+        errorMsg = `Server error: ${response.status}`;
+      }
+      alert(errorMsg);
+    }
+  } catch (error) {
+    console.error('Error updating request:', error);
+    alert("Failed: " + error.message);
+  } finally {
+    setAssigning(false);
+  }
+};
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -303,16 +398,35 @@ export default function DeliverySignupRequests() {
                     
                     {request.status === 'pending' && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3 items-center">
+                          <select
+                            className="border rounded-md px-3 py-2 flex-1"
+                            value={selectedShopkeepers[request._id] || ""}
+                            onChange={e =>
+                              setSelectedShopkeepers(prev => ({
+                                ...prev,
+                                [request._id]: e.target.value
+                              }))
+                            }
+                          >
+                            <option value="">Select Shopkeeper</option>
+                            {shopkeepers.map(sk => (
+                              <option key={sk.walletAddress} value={sk.walletAddress}>
+                                {sk.walletAddress}
+                              </option>
+                            ))}
+                          </select>
                           <button
                             onClick={() => handleAction(request._id, 'approve')}
                             className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors flex-1 sm:flex-none"
+                            disabled={assigning}
                           >
-                            Approve Request
+                            {assigning ? "Processing..." : "Approve Request"}
                           </button>
                           <button
                             onClick={() => handleAction(request._id, 'reject')}
                             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-colors flex-1 sm:flex-none"
+                            disabled={assigning}
                           >
                             Reject Request
                           </button>
