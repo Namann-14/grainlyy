@@ -45,7 +45,7 @@ try {
     provider
   );
 
-  const CONTRACT_ADDRESS = "0xB58Ec9EC4a0a8cfFEA29db6099f094a079919c80";
+  const CONTRACT_ADDRESS = "0x3Dc96d060b9F1C5Ca408B68e3C1071078451bE67";
   
   dashboardContract = new ethers.Contract(
     CONTRACT_ADDRESS,

@@ -119,66 +119,54 @@ export default function LoginPage() {
     setConsumerData(prev => ({ ...prev, pin: value }))
   }
 
-  // Consumer login function
-  const handleConsumerLogin = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
+const handleConsumerLogin = async () => {
+  try {
+    setIsLoading(true)
+    setError(null)
 
-      // Validate inputs
-      if (!consumerData.identifier || !consumerData.pin) {
-        setError("Please enter both identifier and PIN")
-        return
-      }
-
-      if (identifierType === 'aadhar' && !/^\d{12}$/.test(consumerData.identifier)) {
-        setError("Aadhar number must be exactly 12 digits")
-        return
-      }
-
-      if (!/^\d{6}$/.test(consumerData.pin)) {
-        setError("PIN must be exactly 6 digits")
-        return
-      }
-
-      // Make API call to verify consumer credentials
-      const response = await fetch("/api/consumer-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identifier: consumerData.identifier,
-          identifierType: identifierType,
-          pin: consumerData.pin
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Login failed")
-        return
-      }
-
-      // Store consumer session data
-      localStorage.setItem("consumerSession", JSON.stringify({
-        id: data.consumer.id,
-        name: data.consumer.name,
-        phone: data.consumer.phone,
-        loginTime: new Date().toISOString()
-      }))
-
-      // Redirect to consumer dashboard
-      router.push("/user")
-
-    } catch (err) {
-      console.error("Consumer login error:", err)
-      setError("Failed to authenticate. Please try again.")
-    } finally {
-      setIsLoading(false)
+    // Validate inputs
+    if (!consumerData.identifier || !consumerData.pin) {
+      setError("Please enter both identifier and PIN")
+      return
     }
+
+    if (identifierType === 'aadhar' && !/^\d{12}$/.test(consumerData.identifier)) {
+      setError("Aadhar number must be exactly 12 digits")
+      return
+    }
+
+    if (!/^\d{6}$/.test(consumerData.pin)) {
+      setError("PIN must be exactly 6 digits")
+      return
+    }
+
+    // Call API
+    const response = await fetch("/api/consumer-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        identifier: consumerData.identifier,
+        identifierType,
+        pin: consumerData.pin,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Login failed");
+      setIsLoading(false);
+      return;
+    }
+
+    // Redirect to consumer dashboard with aadhaar in URL
+    router.push(`/user?aadhaar=${data.consumer.aadharNumber}`);
+  } catch (error) {
+    setError("Login failed. Please try again.");
+  } finally {
+    setIsLoading(false);
   }
+};
 
   // Wallet login function
   const handleWalletLogin = async () => {
