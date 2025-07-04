@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 const DeliverySignupRequestSchema = new mongoose.Schema({
   name: {
@@ -28,9 +27,16 @@ const DeliverySignupRequestSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  pin: {
+  walletAddress: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        return /^0x[a-fA-F0-9]{40}$/.test(v);
+      },
+      message: 'Invalid Ethereum wallet address format'
+    }
   },
   status: {
     type: String,
@@ -45,6 +51,16 @@ const DeliverySignupRequestSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  // Add this field to your existing schema (if not already present)
+
+// ...existing code...
+
+blockchainTxHash: {
+  type: String,
+  default: null
+},
+
+// ...rest of your schema...
   reviewedAt: {
     type: Date
   },
@@ -55,27 +71,10 @@ const DeliverySignupRequestSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Hash PIN before saving
-DeliverySignupRequestSchema.pre('save', async function(next) {
-  if (!this.isModified('pin')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.pin = await bcrypt.hash(this.pin, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Method to compare PIN
-DeliverySignupRequestSchema.methods.comparePin = async function(candidatePin) {
-  return await bcrypt.compare(candidatePin, this.pin);
-};
-
 // Index for faster queries
 DeliverySignupRequestSchema.index({ status: 1, submittedAt: -1 });
 DeliverySignupRequestSchema.index({ phone: 1 }, { unique: true });
 DeliverySignupRequestSchema.index({ licenseNumber: 1 }, { unique: true });
+DeliverySignupRequestSchema.index({ walletAddress: 1 }, { unique: true });
 
 export default mongoose.models.DeliverySignupRequest || mongoose.model('DeliverySignupRequest', DeliverySignupRequestSchema);

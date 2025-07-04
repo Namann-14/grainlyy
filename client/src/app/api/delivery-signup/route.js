@@ -7,20 +7,20 @@ export async function POST(request) {
     await dbConnect();
     
     const body = await request.json();
-    const { name, phone, address, vehicleType, licenseNumber, pin } = body;
+    const { name, phone, address, vehicleType, licenseNumber, walletAddress } = body;
 
     // Validate required fields
-    if (!name || !phone || !address || !vehicleType || !licenseNumber || !pin) {
+    if (!name || !phone || !address || !vehicleType || !licenseNumber || !walletAddress) {
       return NextResponse.json(
         { error: 'All required fields must be provided' },
         { status: 400 }
       );
     }
 
-    // Validate PIN format (6 digits)
-    if (!/^\d{6}$/.test(pin)) {
+    // Validate wallet address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json(
-        { error: 'PIN must be exactly 6 digits' },
+        { error: 'Invalid Ethereum wallet address format' },
         { status: 400 }
       );
     }
@@ -38,25 +38,31 @@ export async function POST(request) {
     const existingRequest = await DeliverySignupRequest.findOne({
       $or: [
         { phone },
-        { licenseNumber }
+        { licenseNumber },
+        { walletAddress }
       ]
     });
 
     if (existingRequest) {
+      let errorMessage = 'A signup request already exists with this ';
+      if (existingRequest.phone === phone) errorMessage += 'phone number';
+      else if (existingRequest.licenseNumber === licenseNumber) errorMessage += 'license number';
+      else if (existingRequest.walletAddress === walletAddress) errorMessage += 'wallet address';
+      
       return NextResponse.json(
-        { error: 'A signup request with this phone number or license number already exists' },
+        { error: errorMessage },
         { status: 409 }
       );
     }
 
-    // Create new signup request (PIN will be hashed automatically via pre-save middleware)
+    // Create new signup request
     const signupRequest = new DeliverySignupRequest({
       name,
       phone,
       address,
       vehicleType: vehicleType.toLowerCase(),
       licenseNumber,
-      pin
+      walletAddress
     });
 
     await signupRequest.save();
@@ -99,7 +105,6 @@ export async function GET(request) {
     const query = status === 'all' ? {} : { status };
 
     const requests = await DeliverySignupRequest.find(query)
-      .select('-pin') // Exclude PIN from response for security
       .sort({ submittedAt: -1 })
       .skip(skip)
       .limit(limit);

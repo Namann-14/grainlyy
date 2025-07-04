@@ -3,7 +3,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Truck } from "lucide-react";
+import { Truck, Wallet } from "lucide-react";
+import { ethers } from "ethers";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,18 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { AuthLayout } from "@/components/auth-layout";
 
 export function DeliverySignup() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [pin, setPin] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -42,6 +38,7 @@ export function DeliverySignup() {
     vehicleType: "",
     licenseNumber: "",
     address: "",
+    walletAddress: "",
   });
 
   const handleInputChange = (e) => {
@@ -53,8 +50,44 @@ export function DeliverySignup() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePinChange = (value) => {
-    setPin(value);
+  // Function to connect wallet and get address
+  const connectWallet = async () => {
+    try {
+      setIsConnecting(true);
+      setError(null);
+
+      if (!window.ethereum) {
+        setError("MetaMask is not installed. Please install MetaMask to continue.");
+        return;
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+
+      if (accounts.length > 0) {
+        const walletAddress = accounts[0];
+        
+        // Validate the address format
+        if (ethers.isAddress(walletAddress)) {
+          setFormData((prev) => ({ ...prev, walletAddress }));
+        } else {
+          setError("Invalid wallet address format.");
+        }
+      } else {
+        setError("No wallet accounts found. Please make sure MetaMask is unlocked.");
+      }
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+      if (error.code === 4001) {
+        setError("Wallet connection was rejected. Please approve the connection to continue.");
+      } else {
+        setError("Failed to connect wallet. Please try again.");
+      }
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   // Function to validate delivery rider data against mock data
@@ -101,13 +134,14 @@ export function DeliverySignup() {
       return false;
     }
 
-    if (!pin || pin.length !== 6) {
-      setError("Please enter a valid 6-digit PIN");
+    if (!formData.walletAddress) {
+      setError("Please connect your wallet to continue");
       return false;
     }
 
-    if (!/^\d{6}$/.test(pin)) {
-      setError("PIN must contain only numbers");
+    // Validate wallet address format
+    if (!ethers.isAddress(formData.walletAddress)) {
+      setError("Invalid wallet address format");
       return false;
     }
 
@@ -140,13 +174,12 @@ export function DeliverySignup() {
           vehicleType: formData.vehicleType,
           licenseNumber: formData.licenseNumber,
           address: formData.address,
-          pin: pin,
+          walletAddress: formData.walletAddress,
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         setError(data.error || "Failed to submit signup request");
         return;
       }
@@ -249,6 +282,56 @@ export function DeliverySignup() {
                   className="border-green-200 focus-visible:ring-green-500"
                 />
               </div>
+              
+              {/* Wallet Address Section */}
+              <div className="space-y-2">
+                <Label htmlFor="walletAddress">
+                  Wallet Address <span className="text-red-500">*</span>
+                </Label>
+                <div className="space-y-2">
+                  {formData.walletAddress ? (
+                    <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                      <Wallet className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-mono text-green-700 flex-1 truncate">
+                        {formData.walletAddress}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={connectWallet}
+                        disabled={isConnecting}
+                        className="border-green-300 text-green-700 hover:bg-green-100"
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={connectWallet}
+                      disabled={isConnecting}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      {isConnecting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Connect Wallet
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Connect your MetaMask wallet to register for blockchain transactions
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="vehicleType">
                   Vehicle Type <span className="text-red-500">*</span>
@@ -284,28 +367,6 @@ export function DeliverySignup() {
                   required
                   className="border-green-200 focus-visible:ring-green-500"
                 />
-              </div>
-              
-              {/* PIN Input Section */}
-              <div className="space-y-2">
-                <Label htmlFor="pin">
-                  Set Account PIN <span className="text-red-500">*</span>
-                </Label>
-                <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={pin} onChange={handlePinChange}>
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="border-green-200 focus-visible:ring-green-500" />
-                      <InputOTPSlot index={1} className="border-green-200 focus-visible:ring-green-500" />
-                      <InputOTPSlot index={2} className="border-green-200 focus-visible:ring-green-500" />
-                      <InputOTPSlot index={3} className="border-green-200 focus-visible:ring-green-500" />
-                      <InputOTPSlot index={4} className="border-green-200 focus-visible:ring-green-500" />
-                      <InputOTPSlot index={5} className="border-green-200 focus-visible:ring-green-500" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-                <p className="text-sm text-muted-foreground text-center">
-                  Enter a 6-digit PIN for account security
-                </p>
               </div>
 
               <div className="text-sm text-muted-foreground">

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import twilio from 'twilio';
+import dbConnect from '@/lib/mongodb';
+import DeliverySignupRequest from '@/models/DeliverySignupRequest';
+import DiamondMergedABI from "../../../../abis/DiamondMergedABI.json";
 
 // Initialize Twilio
 const twilioClient = twilio(
@@ -37,7 +40,7 @@ const DASHBOARD_ABI = [
 const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
 
 // Initialize contracts
-let adminWallet, dashboardContract, tokenOpsContract;
+let adminWallet, dashboardContract, tokenOpsContract, diamondContract;
 
 try {
   adminWallet = new ethers.Wallet(
@@ -59,6 +62,13 @@ try {
     adminWallet
   );
 
+  // Add Diamond contract initialization
+  diamondContract = new ethers.Contract(
+    CONTRACT_ADDRESS,
+    DiamondMergedABI,
+    provider
+  );
+
   console.log('Blockchain components initialized successfully');
   console.log('Admin wallet address:', adminWallet.address);
   console.log('Contract address:', CONTRACT_ADDRESS);
@@ -75,23 +85,17 @@ async function sendSMSNotification(phoneNumber, message) {
       return { success: false, error: 'Twilio not configured' };
     }
 
-    // Check message length for trial account (limit is usually 160 characters)
     if (message.length > 160) {
       console.warn(`⚠️ Message too long (${message.length} chars), truncating...`);
       message = message.substring(0, 157) + '...';
     }
 
-    // Format phone number - ensure it has country code
-    let formattedNumber = phoneNumber.toString().replace(/\D/g, ''); // Remove non-digits
+    let formattedNumber = phoneNumber.toString().replace(/\D/g, '');
     if (formattedNumber.length === 10) {
-      formattedNumber = '+91' + formattedNumber; // Add India country code
+      formattedNumber = '+91' + formattedNumber;
     } else if (!formattedNumber.startsWith('+')) {
       formattedNumber = '+91' + formattedNumber;
     }
-
-    console.log(`📱 Attempting to send SMS to: ${formattedNumber}`);
-    console.log(`📝 Message length: ${message.length} characters`);
-    console.log(`📄 Message: ${message}`);
 
     const result = await twilioClient.messages.create({
       body: message,
@@ -103,19 +107,6 @@ async function sendSMSNotification(phoneNumber, message) {
     return { success: true, messageSid: result.sid };
   } catch (error) {
     console.error('❌ SMS sending failed:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    
-    // Handle specific Twilio errors
-    if (error.code === 30044) {
-      console.error('🚫 Message too long for trial account');
-      return { 
-        success: false, 
-        error: 'Message too long for trial account. Please upgrade Twilio or use shorter messages.',
-        errorCode: error.code
-      };
-    }
-    
     return { success: false, error: error.message, errorCode: error.code };
   }
 }
@@ -151,41 +142,31 @@ async function getShopkeeperDetails(shopkeeperAddress) {
 }
 
 function createSMSMessage(consumerName, tokenId, shopkeeperName, shopkeeperArea, category, rationAmount = 5) {
-  // Short message under 160 characters for trial account
   return `🍚 GRAINLY: ${consumerName}, your ${category} ration token #${tokenId} is ready! Collect ${rationAmount}kg from ${shopkeeperName}. Valid till month end.`;
 }
 
-// Alternative even shorter message if needed
 function createShortSMSMessage(consumerName, tokenId, category) {
   return `GRAINLY: ${consumerName}, token #${tokenId} ready. Collect your ${category} ration now!`;
 }
 
-// Updated sendSMSToConsumer function with shorter message
 async function sendSMSToConsumer(consumer) {
   try {
-    // Get shopkeeper details
     const shopkeeper = await getShopkeeperDetails(consumer.assignedShopkeeper);
-
-    // Generate a mock token ID based on current time
-    const tokenId = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-
-    // Create SHORT SMS message for trial account
+    const tokenId = Date.now().toString().slice(-6);
     const message = createSMSMessage(
       consumer.name,
       tokenId,
       shopkeeper.name,
       shopkeeper.area,
       consumer.category,
-      5 // Default ration amount
+      5
     );
 
-    // If still too long, use even shorter version
     let finalMessage = message;
     if (message.length > 160) {
       finalMessage = createShortSMSMessage(consumer.name, tokenId, consumer.category);
     }
 
-    // Send SMS
     const result = await sendSMSNotification(consumer.mobile, finalMessage);
     
     if (result.success) {
@@ -201,7 +182,6 @@ async function sendSMSToConsumer(consumer) {
   }
 }
 
-// Helper function to format consumer data for SMS
 function formatConsumerBasic(consumer) {
   return {
     aadhaar: Number(consumer.aadhaar),
@@ -212,7 +192,6 @@ function formatConsumerBasic(consumer) {
   };
 }
 
-// MISSING FUNCTION - Simplified SMS notification without event dependency
 async function sendSMSNotifications(operationType, category = null, aadhaarList = null) {
   try {
     console.log(`📱 Starting SMS notifications for ${operationType}...`);
@@ -220,7 +199,6 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
     let consumersToNotify = [];
     
     if (operationType === 'individual' && aadhaarList && aadhaarList.length > 0) {
-      // Individual consumer(s)
       for (const aadhaar of aadhaarList) {
         try {
           const consumer = await getConsumerDetails(aadhaar);
@@ -232,7 +210,6 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
         }
       }
     } else if (operationType === 'category' && category) {
-      // Category-based
       try {
         const consumers = await dashboardContract.getConsumersByCategory(category);
         consumersToNotify = consumers.map(formatConsumerBasic);
@@ -240,9 +217,8 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
         console.error('Failed to get category consumers:', error);
       }
     } else if (operationType === 'monthly') {
-      // All consumers
       try {
-        const result = await dashboardContract.getConsumersPaginated(0, 1000); // Get up to 1000
+        const result = await dashboardContract.getConsumersPaginated(0, 1000);
         consumersToNotify = result.consumerList.map(formatConsumerBasic);
       } catch (error) {
         console.error('Failed to get all consumers:', error);
@@ -258,7 +234,6 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
         smsCount++;
         console.log(`SMS ${smsCount}/${consumersToNotify.length} sent to ${consumer.name}`);
         
-        // Rate limiting - 2 seconds between SMS to avoid Twilio limits
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
         console.error(`Failed to send SMS to ${consumer.name}:`, error);
@@ -311,7 +286,7 @@ export async function GET(request) {
   }
 }
 
-// POST request handler with simplified SMS integration
+// POST request handler
 export async function POST(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -363,7 +338,6 @@ export async function POST(request) {
   }
 }
 
-// Generate monthly tokens for all consumers with SMS
 async function handleGenerateMonthlyTokens() {
   try {
     if (!tokenOpsContract) {
@@ -378,12 +352,10 @@ async function handleGenerateMonthlyTokens() {
     
     console.log('✅ Transaction sent:', tx.hash);
 
-    // Wait for transaction confirmation before sending SMS
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
 
     if (receipt.status === 1) {
-      // Send SMS notifications in background
       setTimeout(async () => {
         try {
           const result = await sendSMSNotifications('monthly');
@@ -391,7 +363,7 @@ async function handleGenerateMonthlyTokens() {
         } catch (error) {
           console.error('SMS notification error:', error);
         }
-      }, 2000); // Wait 2 seconds before starting SMS
+      }, 2000);
     }
     
     return NextResponse.json({
@@ -409,7 +381,6 @@ async function handleGenerateMonthlyTokens() {
   }
 }
 
-// Generate token for specific consumer with SMS
 async function handleGenerateTokenForConsumer(body) {
   try {
     if (!tokenOpsContract) {
@@ -430,12 +401,10 @@ async function handleGenerateTokenForConsumer(body) {
     
     console.log('✅ Transaction sent:', tx.hash);
 
-    // Wait for transaction confirmation before sending SMS
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
 
     if (receipt.status === 1) {
-      // Send SMS notification in background
       setTimeout(async () => {
         try {
           const result = await sendSMSNotifications('individual', null, [aadhaar]);
@@ -443,7 +412,7 @@ async function handleGenerateTokenForConsumer(body) {
         } catch (error) {
           console.error('SMS notification error:', error);
         }
-      }, 2000); // Wait 2 seconds before starting SMS
+      }, 2000);
     }
     
     return NextResponse.json({
@@ -461,7 +430,6 @@ async function handleGenerateTokenForConsumer(body) {
   }
 }
 
-// Generate tokens for category with SMS
 async function handleGenerateTokensForCategory(body) {
   try {
     if (!tokenOpsContract) {
@@ -482,12 +450,10 @@ async function handleGenerateTokensForCategory(body) {
     
     console.log('✅ Transaction sent:', tx.hash);
 
-    // Wait for transaction confirmation before sending SMS
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
 
     if (receipt.status === 1) {
-      // Send SMS notifications in background
       setTimeout(async () => {
         try {
           const result = await sendSMSNotifications('category', category);
@@ -495,7 +461,7 @@ async function handleGenerateTokensForCategory(body) {
         } catch (error) {
           console.error('SMS notification error:', error);
         }
-      }, 2000); // Wait 2 seconds before starting SMS
+      }, 2000);
     }
     
     return NextResponse.json({
@@ -513,7 +479,6 @@ async function handleGenerateTokensForCategory(body) {
   }
 }
 
-// Test SMS handler
 async function handleTestSMS() {
   try {
     const testMessage = `GRAINLY TEST: SMS working! Time: ${new Date().getHours()}:${new Date().getMinutes()}`;
@@ -540,7 +505,6 @@ async function handleTestSMS() {
   }
 }
 
-// Dashboard data with fallback
 async function handleDashboard() {
   try {
     console.log('Fetching dashboard data...');
@@ -588,7 +552,6 @@ async function handleDashboard() {
   }
 }
 
-// Consumers data with fallback
 async function handleConsumers(searchParams) {
   try {
     const offset = searchParams.get('offset') || '0';
@@ -636,7 +599,6 @@ async function handleConsumers(searchParams) {
   }
 }
 
-// Shopkeepers data with fallback
 async function handleShopkeepers() {
   try {
     const shopkeepers = await dashboardContract.getShopkeepers();
@@ -664,34 +626,143 @@ async function handleShopkeepers() {
   }
 }
 
-// Delivery agents data with fallback
+// SINGLE handleDeliveryAgents function - Enhanced version that combines blockchain and database data
 async function handleDeliveryAgents() {
   try {
-    const agents = await dashboardContract.getDeliveryAgents();
+    await dbConnect();
     
-    return NextResponse.json({
-      success: true,
-      data: agents.map(agent => ({
+    // Get approved delivery partners from MongoDB
+    const approvedPartners = await DeliverySignupRequest.find({ 
+      status: 'approved' 
+    }).select('name phone walletAddress vehicleType licenseNumber reviewedAt blockchainTxHash');
+
+    let blockchainAgents = [];
+    
+    // Try to get data from multiple contract sources
+    try {
+      // Method 1: Try the dashboard contract getDeliveryAgents
+      try {
+        blockchainAgents = await dashboardContract.getDeliveryAgents();
+        console.log('✅ Successfully fetched from dashboardContract.getDeliveryAgents()');
+      } catch (dashError) {
+        console.log('⚠️ Dashboard contract method failed, trying Diamond contract...');
+        
+        // Method 2: Try to get delivery persons from Diamond contract
+        try {
+          const deliveryPersonCount = await diamondContract.deliveryPersonCount();
+          console.log('📊 Delivery person count:', deliveryPersonCount.toString());
+          
+          const agents = [];
+          for (let i = 1; i <= Number(deliveryPersonCount); i++) {
+            try {
+              const person = await diamondContract.getDeliveryPersonDetails(i);
+              agents.push({
+                agentAddress: person.walletAddress,
+                name: person.name,
+                mobile: person.phone || 'N/A',
+                assignedShopkeeper: '0x0000000000000000000000000000000000000000',
+                totalDeliveries: 0,
+                registrationTime: Math.floor(Date.now() / 1000),
+                isActive: true
+              });
+            } catch (personError) {
+              console.error(`Error fetching delivery person ${i}:`, personError);
+            }
+          }
+          blockchainAgents = agents;
+          console.log('✅ Successfully fetched from Diamond contract delivery persons');
+        } catch (diamondError) {
+          console.error('❌ Diamond contract method also failed:', diamondError);
+        }
+      }
+    } catch (error) {
+      console.error('All blockchain methods failed:', error);
+    }
+
+    // Combine data from both sources, prioritizing blockchain data
+    const combinedAgents = [];
+    const processedAddresses = new Set();
+
+    // Add blockchain agents first
+    for (const agent of blockchainAgents) {
+      combinedAgents.push({
         agentAddress: agent.agentAddress,
         name: agent.name,
         mobile: agent.mobile,
         assignedShopkeeper: agent.assignedShopkeeper,
-        totalDeliveries: Number(agent.totalDeliveries),
-        registrationTime: Number(agent.registrationTime),
-        isActive: agent.isActive
-      }))
-    });
-  } catch (error) {
-    console.error('Delivery agents fetch error:', error);
+        totalDeliveries: Number(agent.totalDeliveries || 0),
+        registrationTime: Number(agent.registrationTime || 0),
+        isActive: agent.isActive,
+        source: 'blockchain'
+      });
+      processedAddresses.add(agent.agentAddress.toLowerCase());
+    }
+
+    // Add approved partners not already in blockchain data
+    for (const partner of approvedPartners) {
+      if (!processedAddresses.has(partner.walletAddress.toLowerCase())) {
+        combinedAgents.push({
+          agentAddress: partner.walletAddress,
+          name: partner.name,
+          mobile: partner.phone,
+          assignedShopkeeper: '0x0000000000000000000000000000000000000000',
+          totalDeliveries: 0,
+          registrationTime: Math.floor(new Date(partner.reviewedAt).getTime() / 1000),
+          isActive: true,
+          source: 'database',
+          txHash: partner.blockchainTxHash
+        });
+      }
+    }
+
+    console.log(`📊 Combined agents: ${combinedAgents.length} total (${blockchainAgents.length} from blockchain, ${approvedPartners.length} from database)`);
+
     return NextResponse.json({
       success: true,
-      data: [],
-      warning: 'No delivery agent data available - blockchain connection issue'
+      data: combinedAgents,
+      metadata: {
+        totalAgents: combinedAgents.length,
+        blockchainAgents: blockchainAgents.length,
+        databaseAgents: approvedPartners.length,
+        lastUpdated: new Date().toISOString()
+      }
     });
+
+  } catch (error) {
+    console.error('❌ Delivery agents fetch error:', error);
+    
+    // Fallback: Return only database data if blockchain fails
+    try {
+      await dbConnect();
+      const fallbackPartners = await DeliverySignupRequest.find({ 
+        status: 'approved' 
+      }).select('name phone walletAddress reviewedAt blockchainTxHash');
+
+      return NextResponse.json({
+        success: true,
+        data: fallbackPartners.map(partner => ({
+          agentAddress: partner.walletAddress,
+          name: partner.name,
+          mobile: partner.phone,
+          assignedShopkeeper: '0x0000000000000000000000000000000000000000',
+          totalDeliveries: 0,
+          registrationTime: Math.floor(new Date(partner.reviewedAt).getTime() / 1000),
+          isActive: true,
+          source: 'database_fallback',
+          txHash: partner.blockchainTxHash
+        })),
+        warning: 'Using database fallback due to blockchain connection issues'
+      });
+    } catch (fallbackError) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch delivery agents from any source',
+        details: fallbackError.message
+      }, { status: 500 });
+    }
   }
 }
 
-// Area-wise statistics with fallback
 async function handleAreaStats() {
   try {
     const areaStats = await dashboardContract.getAreaWiseStats();
@@ -722,7 +793,6 @@ async function handleAreaStats() {
   }
 }
 
-// Category-wise statistics with fallback
 async function handleCategoryStats() {
   try {
     const categoryStats = await dashboardContract.getCategoryWiseStats();
@@ -751,7 +821,6 @@ async function handleCategoryStats() {
   }
 }
 
-// Emergency cases with fallback
 async function handleEmergencyCases() {
   try {
     const emergencyAadhaars = await dashboardContract.getConsumersNeedingEmergencyHelp();
@@ -781,7 +850,6 @@ async function handleEmergencyCases() {
   }
 }
 
-// System health report with fallback
 async function handleSystemHealth() {
   try {
     const healthData = await dashboardContract.getSystemHealthReport();
@@ -818,7 +886,6 @@ async function handleSystemHealth() {
   }
 }
 
-// Recent activity with fallback
 async function handleRecentActivity(searchParams) {
   try {
     const limit = searchParams.get('limit') || '10';
@@ -845,7 +912,6 @@ async function handleRecentActivity(searchParams) {
   }
 }
 
-// Helper function to format consumer data
 function formatConsumer(consumer) {
   return {
     aadhaar: Number(consumer.aadhaar),

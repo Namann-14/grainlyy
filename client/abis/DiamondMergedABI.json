@@ -1,6 +1,252 @@
 [
   {
     "type": "function",
+    "name": "assignDeliveryAgentToShopkeeper",
+    "inputs": [
+      {
+        "name": "deliveryAgent",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkGenerateTokens",
+    "inputs": [
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkMarkDeliveries",
+    "inputs": [
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkRegisterConsumers",
+    "inputs": [
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "names",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "mobiles",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "assignedShopkeepers",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "calculatePaymentAmount",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "subsidyAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "payableAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "canShopkeeperMarkDelivery",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "claimRationByConsumer",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimRationByWallet",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "completePayment",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "upiTransactionId",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmDeliveryByAgent",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deactivateConsumer",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deactivateDeliveryAgent",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deactivateShopkeeper",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "diamondCut",
     "inputs": [
       {
@@ -40,88 +286,25 @@
     "stateMutability": "nonpayable"
   },
   {
-    "type": "event",
-    "name": "DiamondCut",
-    "inputs": [
-      {
-        "name": "_diamondCut",
-        "type": "tuple[]",
-        "indexed": false,
-        "internalType": "struct IDiamondCut.FacetCut[]",
-        "components": [
-          {
-            "name": "facetAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "action",
-            "type": "uint8",
-            "internalType": "enum IDiamondCut.FacetCutAction"
-          },
-          {
-            "name": "functionSelectors",
-            "type": "bytes4[]",
-            "internalType": "bytes4[]"
-          }
-        ]
-      },
-      {
-        "name": "_init",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "_calldata",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
+    "type": "function",
+    "name": "disablePaymentSystem",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    "type": "event",
-    "name": "DiamondCut",
-    "inputs": [
-      {
-        "name": "_diamondCut",
-        "type": "tuple[]",
-        "indexed": false,
-        "internalType": "struct IDiamondCut.FacetCut[]",
-        "components": [
-          {
-            "name": "facetAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "action",
-            "type": "uint8",
-            "internalType": "enum IDiamondCut.FacetCutAction"
-          },
-          {
-            "name": "functionSelectors",
-            "type": "bytes4[]",
-            "internalType": "bytes4[]"
-          }
-        ]
-      },
-      {
-        "name": "_init",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "_calldata",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      }
-    ],
-    "anonymous": false
+    "type": "function",
+    "name": "enablePaymentSystem",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "expireOldTokens",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -201,616 +384,19 @@
   },
   {
     "type": "function",
-    "name": "supportsInterface",
+    "name": "failPayment",
     "inputs": [
       {
-        "name": "_interfaceId",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "assignDeliveryAgentToShopkeeper",
-    "inputs": [
-      {
-        "name": "deliveryAgent",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "bulkRegisterConsumers",
-    "inputs": [
-      {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "names",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "mobiles",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "categories",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "assignedShopkeepers",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "deactivateConsumer",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "deactivateDeliveryAgent",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "deactivateShopkeeper",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "getDCVTokenAddress",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "linkConsumerWallet",
-    "inputs": [
-      {
-        "name": "aadhaar",
+        "name": "paymentId",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "pause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "reactivateConsumer",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "reactivateDeliveryAgent",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "reactivateShopkeeper",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "registerConsumer",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "mobile",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "category",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "assignedShopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "registerDeliveryAgent",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "mobile",
+        "name": "reason",
         "type": "string",
         "internalType": "string"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "registerShopkeeper",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "area",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDCVTokenAddress",
-    "inputs": [
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "unpause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "updateDCVTokenAddress",
-    "inputs": [
-      {
-        "name": "newDCVTokenAddress",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "updateRationAmount",
-    "inputs": [
-      {
-        "name": "category",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "ConsumerDeactivated",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ConsumerReactivated",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ConsumerRegistered",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ConsumerWalletLinked",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "wallet",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DCVTokenAddressSet",
-    "inputs": [
-      {
-        "name": "tokenAddress",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryAgentAssigned",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryAgentDeactivated",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryAgentReactivated",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryAgentRegistered",
-    "inputs": [
-      {
-        "name": "agent",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "mobile",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ShopkeeperDeactivated",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ShopkeeperReactivated",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "ShopkeeperRegistered",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "name",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "area",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "SystemPaused",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "SystemUnpaused",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "WalletLinked",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "wallet",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "function",
-    "name": "bulkGenerateTokens",
-    "inputs": [
-      {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimRationByConsumer",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimRationByWallet",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "confirmDeliveryByAgent",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "expireOldTokens",
-    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -859,150 +445,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "markRationDeliveredByAadhaar",
-    "inputs": [
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "BulkTokensGenerated",
-    "inputs": [
-      {
-        "name": "count",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "details",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryConfirmed",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "deliveryAgent",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeliveryMarked",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TokenClaimed",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TokenExpired",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TokenGenerated",
-    "inputs": [
-      {
-        "name": "tokenId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "aadhaar",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "rationAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
   },
   {
     "type": "function",
@@ -1272,6 +714,67 @@
         "name": "activeConsumers",
         "type": "uint256[]",
         "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAssignedDeliveryAgent",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.DeliveryAgentStruct",
+        "components": [
+          {
+            "name": "agentAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "mobile",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "registrationTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "assignedShopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "totalDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isActive",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      },
+      {
+        "name": "hasAgent",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -1558,6 +1061,178 @@
   },
   {
     "type": "function",
+    "name": "getConsumerPaymentHistory",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "payments",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.PaymentRecord[]",
+        "components": [
+          {
+            "name": "paymentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "upiTransactionId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "paymentMethod",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isVerified",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "invoiceHash",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      },
+      {
+        "name": "invoices",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.Invoice[]",
+        "components": [
+          {
+            "name": "invoiceId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "paymentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "consumerName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "shopkeeperName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "rationAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "subsidyAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payableAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "upiTransactionId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumerPayments",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getConsumersByCategory",
     "inputs": [
       {
@@ -1820,6 +1495,45 @@
   },
   {
     "type": "function",
+    "name": "getCurrentMonthPendingTokens",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "consumerNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "rationAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getCurrentYear",
     "inputs": [],
     "outputs": [
@@ -1892,6 +1606,53 @@
             "internalType": "uint256"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDCVTokenAddress",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDeliveredUnclaimedTokens",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "consumerNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "deliveryTimes",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -2025,6 +1786,290 @@
   },
   {
     "type": "function",
+    "name": "getInvoice",
+    "inputs": [
+      {
+        "name": "invoiceId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.Invoice",
+        "components": [
+          {
+            "name": "invoiceId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "paymentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "consumerName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "shopkeeperName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "rationAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "subsidyAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payableAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "upiTransactionId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPaymentAnalytics",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "daysCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "dailyPayments",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "dailyAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "topCategories",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "categoryAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPaymentRecord",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.PaymentRecord",
+        "components": [
+          {
+            "name": "paymentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "upiTransactionId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "paymentMethod",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isVerified",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "invoiceHash",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPendingDeliveriesForShopkeeper",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "pendingTokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "consumerNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "rationAmounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "expiryTimes",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPendingPaymentActions",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "paymentIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "aadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "consumerNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "amounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getRationAmounts",
     "inputs": [],
     "outputs": [
@@ -2037,6 +2082,25 @@
         "name": "amounts",
         "type": "uint256[]",
         "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRationPrice",
+    "inputs": [
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -2088,6 +2152,92 @@
             "internalType": "string"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRecentPaymentTransactions",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "payments",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.PaymentRecord[]",
+        "components": [
+          {
+            "name": "paymentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "upiTransactionId",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "paymentMethod",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isVerified",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "invoiceHash",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      },
+      {
+        "name": "consumerNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "categories",
+        "type": "string[]",
+        "internalType": "string[]"
       }
     ],
     "stateMutability": "view"
@@ -2157,6 +2307,62 @@
             "name": "lastUpdateTime",
             "type": "uint256",
             "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getShopkeeperDeliveryHistory",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "deliveryLogs",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.ActivityLog[]",
+        "components": [
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "actor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "action",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "details",
+            "type": "string",
+            "internalType": "string"
           }
         ]
       }
@@ -2270,6 +2476,180 @@
   },
   {
     "type": "function",
+    "name": "getShopkeeperPaymentDashboard",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "todayPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "todayAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "weeklyPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "weeklyAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "monthlyPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "monthlyAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalEarnings",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getShopkeeperPayments",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getShopkeeperPaymentSummary",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "completedPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "failedPayments",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getShopkeeperPerformanceMetrics",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "totalAssignedConsumers",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "activeConsumers",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentMonthTokensIssued",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentMonthDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pendingDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "overdueDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deliverySuccessRate",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSubsidyPercentage",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getSystemHealthReport",
     "inputs": [],
     "outputs": [
@@ -2340,6 +2720,44 @@
         "name": "totalExpired",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenPayments",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokensForShopkeeper",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -2442,6 +2860,35 @@
   },
   {
     "type": "function",
+    "name": "initiatePayment",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "paymentMethod",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "isValidCategory",
     "inputs": [
       {
@@ -2458,6 +2905,167 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "linkConsumerWallet",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markRationDeliveredByAadhaar",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "pause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reactivateConsumer",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reactivateDeliveryAgent",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reactivateShopkeeper",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerConsumer",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "mobile",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "assignedShopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerDeliveryAgent",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "mobile",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerShopkeeper",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "area",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -2529,5 +3137,671 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setDCVTokenAddress",
+    "inputs": [
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRationPrice",
+    "inputs": [
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "pricePerKg",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSubsidyPercentage",
+    "inputs": [
+      {
+        "name": "percentage",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      {
+        "name": "_interfaceId",
+        "type": "bytes4",
+        "internalType": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateDCVTokenAddress",
+    "inputs": [
+      {
+        "name": "newDCVTokenAddress",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateRationAmount",
+    "inputs": [
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "verifyUpiTransaction",
+    "inputs": [
+      {
+        "name": "upiTransactionId",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "exists",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "BulkTokensGenerated",
+    "inputs": [
+      {
+        "name": "count",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "details",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsumerDeactivated",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsumerReactivated",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsumerRegistered",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsumerWalletLinked",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DCVTokenAddressSet",
+    "inputs": [
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentAssigned",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentDeactivated",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentReactivated",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentRegistered",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "mobile",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryConfirmed",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "deliveryAgent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryMarked",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DiamondCut",
+    "inputs": [
+      {
+        "name": "_diamondCut",
+        "type": "tuple[]",
+        "indexed": false,
+        "internalType": "struct IDiamondCut.FacetCut[]",
+        "components": [
+          {
+            "name": "facetAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "action",
+            "type": "uint8",
+            "internalType": "enum IDiamondCut.FacetCutAction"
+          },
+          {
+            "name": "functionSelectors",
+            "type": "bytes4[]",
+            "internalType": "bytes4[]"
+          }
+        ]
+      },
+      {
+        "name": "_init",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "_calldata",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InvoiceGenerated",
+    "inputs": [
+      {
+        "name": "invoiceId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "invoiceHash",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PaymentCompleted",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "upiTransactionId",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PaymentConfigUpdated",
+    "inputs": [
+      {
+        "name": "category",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "price",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "subsidyPercentage",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PaymentFailed",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PaymentInitiated",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ShopkeeperDeactivated",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ShopkeeperReactivated",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ShopkeeperRegistered",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "area",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SubsidyApplied",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "subsidyAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SystemPaused",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SystemUnpaused",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TokenClaimed",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TokenExpired",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TokenGenerated",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "rationAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WalletLinked",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
   }
 ]
