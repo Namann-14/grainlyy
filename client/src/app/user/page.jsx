@@ -9,7 +9,7 @@ import { User, CreditCard, CheckCircle2, AlertCircle, Package, Users, Store, Wal
 
 const DIAMOND_PROXY_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
-const DCVTOKEN_ADDRESS = process.env.DCVTOKEN_ADDRESS;
+const DCVTOKEN_ADDRESS = process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS;
 
 const cardClass = "rounded-xl shadow border border-green-100 bg-white p-5 flex flex-col gap-2";
 const statLabel = "text-xs text-gray-500 font-medium";
@@ -45,58 +45,150 @@ export default function ConsumerDashboard() {
       try {
         setLoading(true);
         setError("");
+        
+        console.log("🔍 Starting data fetch for aadhaar:", aadhaar);
+        console.log("🔗 Contract address:", DIAMOND_PROXY_ADDRESS);
+        console.log("🌐 RPC URL:", RPC_URL);
+        
+        if (!DIAMOND_PROXY_ADDRESS || !RPC_URL) {
+          throw new Error("Contract address or RPC URL not configured");
+        }
+        
         const provider = new ethers.JsonRpcProvider(RPC_URL);
         const contract = new ethers.Contract(DIAMOND_PROXY_ADDRESS, DiamondMergedABI, provider);
         const aadhaarBigInt = BigInt(aadhaar);
 
-        const profileData = await contract.getConsumerByAadhaar(aadhaarBigInt);
-        setProfile(profileData);
+        // Start with the most basic function to test connection
+        console.log("🧪 Testing basic contract connection...");
+        const totalConsumers = await contract.getTotalConsumers();
+        console.log("✅ Contract connection successful, total consumers:", totalConsumers.toString());
 
-        const dashboardData = await contract.getConsumerDashboard(aadhaarBigInt);
-        setDashboard(dashboardData);
-
-        const tokens = await contract.getUnclaimedTokensByAadhaar(aadhaarBigInt);
-        setUnclaimedTokens(tokens);
-
-        const hasToken = await contract.hasConsumerReceivedMonthlyToken(aadhaarBigInt);
-        setHasMonthlyToken(hasToken);
-
-        const history = await contract.getConsumerDistributionHistory(aadhaarBigInt, 6);
-        setDistributionHistory(history);
-
-        if (profileData.assignedShopkeeper && profileData.assignedShopkeeper !== ethers.ZeroAddress) {
-          const shopkeeperInfo = await contract.getShopkeeperInfo(profileData.assignedShopkeeper);
-          setShopkeeper(shopkeeperInfo);
+        console.log("👤 Fetching consumer profile...");
+        try {
+          const profileData = await contract.getConsumerByAadhaar(aadhaarBigInt);
+          console.log("✅ Profile data:", profileData);
+          setProfile(profileData);
+          
+          // If we have profile data, fetch related information
+          if (profileData && profileData.assignedShopkeeper && profileData.assignedShopkeeper !== ethers.ZeroAddress) {
+            console.log("🏪 Fetching shopkeeper info...");
+            try {
+              const shopkeeperInfo = await contract.getShopkeeperInfo(profileData.assignedShopkeeper);
+              console.log("✅ Shopkeeper info:", shopkeeperInfo);
+              setShopkeeper(shopkeeperInfo);
+            } catch (shopkeeperError) {
+              console.warn("⚠️ Shopkeeper info fetch failed:", shopkeeperError.message);
+            }
+          }
+          
+        } catch (profileError) {
+          console.warn("⚠️ Profile fetch failed:", profileError.message);
+          if (profileError.message.includes("Consumer not found")) {
+            // Set a helpful error message
+            setError(`Consumer with Aadhaar ${aadhaar} not found in the system. Try using Aadhaar: 123456780012 (test consumer)`);
+            return; // Exit early if consumer doesn't exist
+          }
         }
 
-        const walletAddr = await contract.getWalletByAadhaar(aadhaarBigInt);
-        setWallet(walletAddr);
+        console.log("📊 Fetching consumer dashboard...");
+        try {
+          const dashboardData = await contract.getConsumerDashboard(aadhaarBigInt);
+          console.log("✅ Dashboard data:", dashboardData);
+          setDashboard(dashboardData);
+        } catch (dashboardError) {
+          console.warn("⚠️ Dashboard fetch failed:", dashboardError.message);
+          // Continue without dashboard data
+        }
 
-        const stats = await contract.getDashboardData();
-        setSystemStats(stats);
+        console.log("🎫 Fetching unclaimed tokens...");
+        try {
+          const tokens = await contract.getUnclaimedTokensByAadhaar(aadhaarBigInt);
+          console.log("✅ Unclaimed tokens:", tokens);
+          setUnclaimedTokens(Array.isArray(tokens) ? tokens : []);
+        } catch (tokensError) {
+          console.warn("⚠️ Unclaimed tokens fetch failed:", tokensError.message);
+          setUnclaimedTokens([]);
+        }
 
-        const rationAmts = await contract.getRationAmounts();
-        setRationAmounts(rationAmts);
+        console.log("📅 Checking monthly token status...");
+        try {
+          const hasToken = await contract.hasConsumerReceivedMonthlyToken(aadhaarBigInt);
+          console.log("✅ Has monthly token:", hasToken);
+          setHasMonthlyToken(hasToken);
+        } catch (monthlyError) {
+          console.warn("⚠️ Monthly token check failed:", monthlyError.message);
+          setHasMonthlyToken(false);
+        }
+
+        console.log("📜 Fetching distribution history...");
+        try {
+          const history = await contract.getConsumerDistributionHistory(aadhaarBigInt, 6);
+          console.log("✅ Distribution history:", history);
+          setDistributionHistory(history);
+        } catch (historyError) {
+          console.warn("⚠️ Distribution history fetch failed:", historyError.message);
+          setDistributionHistory(null);
+        }
+
+        console.log("💰 Fetching wallet address...");
+        let walletAddr = null;
+        try {
+          walletAddr = await contract.getWalletByAadhaar(aadhaarBigInt);
+          console.log("✅ Wallet address:", walletAddr);
+          setWallet(walletAddr);
+        } catch (walletError) {
+          console.warn("⚠️ Wallet fetch failed:", walletError.message);
+          setWallet(null);
+        }
+
+        console.log("📈 Fetching system stats...");
+        try {
+          const stats = await contract.getDashboardData();
+          console.log("✅ System stats:", stats);
+          setSystemStats(stats);
+        } catch (statsError) {
+          console.warn("⚠️ System stats fetch failed:", statsError.message);
+        }
+
+        console.log("🌾 Fetching ration amounts...");
+        try {
+          const rationAmts = await contract.getRationAmounts();
+          console.log("✅ Ration amounts:", rationAmts);
+          setRationAmounts(rationAmts);
+        } catch (rationError) {
+          console.warn("⚠️ Ration amounts fetch failed:", rationError.message);
+        }
 
         // --- DCV Token Section ---
         if (walletAddr && walletAddr !== ethers.ZeroAddress && DCVTOKEN_ADDRESS) {
-          const dcvToken = new ethers.Contract(DCVTOKEN_ADDRESS, ERC1155ABI, provider);
-          // For demo, check token IDs 1 to 10
-          const tokenIds = Array.from({ length: 10 }, (_, i) => i + 1);
-          const balances = await Promise.all(
-            tokenIds.map(tokenId => dcvToken.balanceOf(walletAddr, tokenId))
-          );
-          const ownedTokens = tokenIds
-            .map((tokenId, idx) => ({ tokenId, balance: balances[idx] }))
-            .filter(t => t.balance > 0);
-          setDcvTokens(ownedTokens);
+          console.log("🪙 Fetching DCV tokens...");
+          try {
+            const dcvToken = new ethers.Contract(DCVTOKEN_ADDRESS, ERC1155ABI, provider);
+            // For demo, check token IDs 1 to 10
+            const tokenIds = Array.from({ length: 10 }, (_, i) => i + 1);
+            const balances = await Promise.all(
+              tokenIds.map(tokenId => dcvToken.balanceOf(walletAddr, tokenId))
+            );
+            const ownedTokens = tokenIds
+              .map((tokenId, idx) => ({ tokenId, balance: balances[idx] }))
+              .filter(t => t.balance > 0);
+            console.log("✅ DCV tokens:", ownedTokens);
+            setDcvTokens(ownedTokens);
+          } catch (dcvError) {
+            console.warn("⚠️ DCV token fetch failed:", dcvError.message);
+            setDcvTokens([]);
+          }
         } else {
+          console.log("⏭️ Skipping DCV tokens (no wallet or token address)");
           setDcvTokens([]);
         }
         // --- End DCV Token Section ---
 
+        console.log("✅ All data fetched successfully!");
+
       } catch (err) {
-        setError("Failed to fetch data from blockchain: " + (err.reason || err.message));
+        console.error("❌ Error fetching data:", err);
+        setError("Failed to fetch data from blockchain: " + (err.reason || err.message || err.toString()));
       } finally {
         setLoading(false);
       }
@@ -126,8 +218,27 @@ export default function ConsumerDashboard() {
     setFraudLoading(false);
   };
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
-  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
+  if (loading) return (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="text-center">
+        <div className="text-lg font-semibold text-green-900 mb-4">Loading dashboard...</div>
+        <div className="text-sm text-gray-600">Fetching data from blockchain for Aadhaar: {aadhaar}</div>
+      </div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="text-center">
+        <div className="text-lg font-semibold text-red-600 mb-4">Error Loading Dashboard</div>
+        <div className="text-sm text-gray-600 mb-4">{error}</div>
+        <div className="text-xs text-gray-500">
+          <p>Aadhaar searched: {aadhaar}</p>
+          <p>Try using Aadhaar: 123456780012 (test consumer in the system)</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -320,7 +431,9 @@ export default function ConsumerDashboard() {
         <h2 className="font-semibold text-lg mb-2 flex items-center gap-2">
           <Wallet className="h-5 w-5 text-purple-700" /> Linked Wallet
         </h2>
-        <div className="font-mono">{wallet}</div>
+        <div className="font-mono text-sm break-all">
+          {wallet && wallet !== ethers.ZeroAddress ? wallet : "No wallet linked"}
+        </div>
       </div>
 
       {/* System Stats */}

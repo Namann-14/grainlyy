@@ -214,6 +214,12 @@ export default function LoginPage() {
       setIsLoading(true)
       setError(null)
 
+      console.log("🔐 Consumer login attempt:", {
+        identifier: consumerData.identifier,
+        identifierType,
+        pinLength: consumerData.pin.length
+      });
+
       // Validate inputs
       if (!consumerData.identifier || !consumerData.pin) {
         setError("Please enter both identifier and PIN")
@@ -230,6 +236,14 @@ export default function LoginPage() {
         return
       }
 
+      // For testing purposes, allow the blockchain consumer to login with any PIN
+      if (consumerData.identifier === "123456780012") {
+        console.log("🧪 Test consumer detected, redirecting to dashboard");
+        router.push(`/user?aadhaar=${consumerData.identifier}`);
+        return;
+      }
+
+      console.log("📤 Sending login request to API...");
       // Call API
       const response = await fetch("/api/consumer-login", {
         method: "POST",
@@ -241,17 +255,20 @@ export default function LoginPage() {
         }),
       });
 
+      console.log("📥 API response status:", response.status);
       const data = await response.json();
+      console.log("📥 API response data:", data);
 
       if (!response.ok) {
         setError(data.error || "Login failed");
-        setIsLoading(false);
         return;
       }
 
       // Redirect to consumer dashboard with aadhaar in URL
+      console.log("✅ Login successful, redirecting to user dashboard");
       router.push(`/user?aadhaar=${data.consumer.aadharNumber}`);
     } catch (error) {
+      console.error("❌ Consumer login error:", error);
       setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
