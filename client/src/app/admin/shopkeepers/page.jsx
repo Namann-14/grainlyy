@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Building, Filter, Plus, RefreshCw, MapPin, Users, Package } from "lucide-react";
-import { ShopkeeperRegistrationForm } from '@/components/ShopkeeperRegistrationForm';
 
 export default function ShopkeeperManagement() {
   const [shopkeepers, setShopkeepers] = useState([]);
@@ -15,7 +14,6 @@ export default function ShopkeeperManagement() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [blockchainStatus, setBlockchainStatus] = useState(null);
 
   useEffect(() => {
     fetchShopkeepers();
@@ -24,56 +22,17 @@ export default function ShopkeeperManagement() {
   const fetchShopkeepers = async () => {
     try {
       setRefreshing(true);
-      setError(''); // Clear previous errors
-      
-      const response = await fetch('/api/admin?endpoint=shopkeepers', {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
-      });
+      const response = await fetch('/api/admin?endpoint=shopkeepers');
       const data = await response.json();
       
-      console.log('Shopkeepers API response:', data);
-      
       if (data.success) {
-        setShopkeepers(data.data || []);
-        setBlockchainStatus(data); // Store the full response for status display
-        
-        // Handle different response scenarios
-        if (data.info && data.info.contractIssue) {
-          // Contract configuration issue - show detailed explanation
-          const { info } = data;
-          const detailedMessage = `${data.warning}\n\n` +
-            `💡 ${info.explanation}\n\n` +
-            `🔧 Solutions:\n${info.solutions.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n` +
-            `📋 Technical Details:\n` +
-            `• Function Selector: ${info.technicalDetails.functionSelector}\n` +
-            `• Status: ${info.technicalDetails.currentStatus}\n` +
-            `• Total Shopkeepers in Blockchain: ${info.totalShopkeepers}`;
-          
-          setError(detailedMessage);
-        } else if (data.warning) {
-          // General warning
-          setError(`⚠️ ${data.warning}`);
-        } else if (data.error) {
-          // Error state
-          setError(`❌ Blockchain connection failed: ${data.warning || 'Unknown error'}`);
-        } else if (data.data.length === 0) {
-          // No data but connection OK
-          setError('ℹ️ No shopkeepers registered yet. Use the form below to register the first shopkeeper.');
-        } else {
-          // Clear any previous errors if data loads successfully
-          setError('');
-        }
+        setShopkeepers(data.data);
       } else {
-        setError('❌ Failed to load shopkeepers: ' + data.error);
-        setShopkeepers([]);
+        setError('Failed to load shopkeepers: ' + data.error);
       }
     } catch (error) {
       console.error('Error fetching shopkeepers:', error);
-      setError('❌ Failed to connect to backend API');
-      setShopkeepers([]);
+      setError('Failed to fetch shopkeepers from blockchain');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -147,39 +106,6 @@ export default function ShopkeeperManagement() {
               ×
             </button>
           </div>
-        )}
-
-        {/* Blockchain Status Card */}
-        {blockchainStatus && blockchainStatus.info && blockchainStatus.info.contractIssue && (
-          <Card className="border-orange-200 bg-orange-50 mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-800">
-                <Package className="h-5 w-5" />
-                Blockchain Status Report
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold text-orange-800 mb-2">Current Status</h4>
-                  <ul className="space-y-1 text-orange-700">
-                    <li>• Contract Connected: ✅</li>
-                    <li>• Dashboard Data: ✅ ({blockchainStatus.info.totalShopkeepers} shopkeepers)</li>
-                    <li>• getAllShopkeepers(): ❌ Not available</li>
-                    <li>• Registration API: ✅ Working</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-orange-800 mb-2">Technical Details</h4>
-                  <ul className="space-y-1 text-orange-700 font-mono text-xs">
-                    <li>Contract: {blockchainStatus.contractAddress}</li>
-                    <li>Function: {blockchainStatus.info.technicalDetails.functionSelector}</li>
-                    <li>Issue: Function not cut in Diamond</li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* Stats Cards */}
@@ -351,25 +277,6 @@ export default function ShopkeeperManagement() {
                 </table>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Shopkeeper Registration Form */}
-        <Card className="border-green-100 mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Register New Shopkeeper
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ShopkeeperRegistrationForm 
-              onSuccess={(message) => {
-                setSuccess(message);
-                fetchShopkeepers(); // Refresh the list
-              }}
-              onError={setError}
-            />
           </CardContent>
         </Card>
 
