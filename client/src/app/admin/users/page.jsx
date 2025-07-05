@@ -70,18 +70,37 @@ export default function ConsumerSignupRequests() {
   const fetchShopkeepers = async () => {
     try {
       setShopkeepersLoading(true);
-      const response = await fetch('/api/admin/shopkeepers');
+      console.log('🏪 Fetching shopkeepers for user assignment...');
+      
+      const response = await fetch('/api/admin?endpoint=shopkeepers');
       const data = await response.json();
       
-      if (data.success && data.shopkeepers) {
-        setShopkeepers(data.shopkeepers);
-        // Set the first shopkeeper as default if available
-        if (data.shopkeepers.length > 0) {
-          setSelectedShopkeeper(data.shopkeepers[0].address);
+      console.log('Shopkeepers API response:', data);
+      
+      if (data.success && data.data) {
+        // Map the data to the expected format
+        const mappedShopkeepers = data.data.map(shopkeeper => ({
+          address: shopkeeper.shopkeeperAddress,
+          name: shopkeeper.name,
+          area: shopkeeper.area,
+          isActive: shopkeeper.isActive
+        }));
+        
+        setShopkeepers(mappedShopkeepers);
+        console.log('✅ Loaded shopkeepers:', mappedShopkeepers);
+        
+        // Set the first active shopkeeper as default if available
+        const activeShopkeepers = mappedShopkeepers.filter(s => s.isActive);
+        if (activeShopkeepers.length > 0) {
+          setSelectedShopkeeper(activeShopkeepers[0].address);
         }
+      } else {
+        console.warn('⚠️ No shopkeepers data received:', data);
+        setShopkeepers([]);
       }
     } catch (error) {
-      console.error('Error fetching shopkeepers:', error);
+      console.error('❌ Error fetching shopkeepers:', error);
+      setShopkeepers([]);
     } finally {
       setShopkeepersLoading(false);
     }
@@ -488,7 +507,19 @@ export default function ConsumerSignupRequests() {
                     <span className="text-sm text-gray-500">Loading shopkeepers...</span>
                   </div>
                 ) : shopkeepers.length === 0 ? (
-                  <div className="text-sm text-red-500">No shopkeepers available. Please register shopkeepers first.</div>
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-sm text-red-600 font-medium">⚠️ No shopkeepers available</div>
+                    <div className="text-sm text-red-500 mt-1">
+                      Please register shopkeepers first to assign consumers. 
+                      <a 
+                        href="/admin/shopkeepers" 
+                        className="text-blue-600 hover:text-blue-800 underline ml-1"
+                        target="_blank"
+                      >
+                        Go to Shopkeeper Management ↗
+                      </a>
+                    </div>
+                  </div>
                 ) : (
                   <select
                     id="shopkeeper"

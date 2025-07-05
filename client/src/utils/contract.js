@@ -1,10 +1,10 @@
 import { ethers } from 'ethers';
-import contractABI from '@/abi.json';
+import contractABI from '../../abis/DiamondMergedABI.json';
 
 export const getContract = (signer) => {
   // Contract address - make sure this is correct!
   // const contractAddress = '0x8FA84E225F59A5d8451A097D78991C9e76692636';
-  const contractAddress = '0x1c61F82aad05c30190C211c1E28f2dE28f1f8Ab8';
+  const contractAddress = '0xD21958aa2130C1E8cFA88dd82b352DCa068B3059';
   
   
   try {

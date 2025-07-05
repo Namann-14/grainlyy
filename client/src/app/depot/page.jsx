@@ -183,36 +183,38 @@ export default function DepotDashboard() {
 
         console.log("Connected with address:", signerAddress);
 
-        // Find depot by wallet address
-        const depotCount = await contract.depotCount();
+        // Get shopkeeper info using the correct functions from DiamondMergedABI
+        try {
+          const shopkeeperInfo = await contract.getShopkeeperInfo(signerAddress);
+          
+          if (shopkeeperInfo && shopkeeperInfo.name) {
+            setDepotId(signerAddress); // Use wallet address as ID
+            setDepotName(shopkeeperInfo.name);
+            setDepotLocation(shopkeeperInfo.area);
 
-        for (let i = 1; i <= Number(depotCount); i++) {
-          try {
-            const depot = await contract.getDepotDetails(i);
+            console.log("✅ Shopkeeper found:", shopkeeperInfo.name, "in area:", shopkeeperInfo.area);
 
-            if (
-              depot.walletAddress.toLowerCase() === signerAddress.toLowerCase()
-            ) {
-              setDepotId(String(depot.id));
-              setDepotName(depot.name);
-              setDepotLocation(depot.location);
+            // Get assigned consumers for this shopkeeper
+            await fetchAssignedUsers(contract, signerAddress);
 
-              // Get assigned users
-              await fetchAssignedUsers(contract, String(depot.id));
+            // Get assigned delivery agents for this shopkeeper
+            await fetchAssignedDeliveryPersons(contract, signerAddress);
 
-              // Get assigned delivery persons
-              await fetchAssignedDeliveryPersons(contract, String(depot.id));
+            // Get deliveries for this shopkeeper
+            await fetchDeliveries(contract, signerAddress);
 
-              // Get deliveries for this depot
-              await fetchDeliveries(contract, String(depot.id));
-
-              // Get ration distributions
-              await fetchRationDistributions(contract, String(depot.id));
-
-              break;
-            }
-          } catch (error) {
-            console.error(`Error checking depot ${i}:`, error);
+            // Get ration distributions for this shopkeeper
+            await fetchRationDistributions(contract, signerAddress);
+          } else {
+            console.log("❌ No shopkeeper found for this wallet");
+            setError("This wallet is not registered as a shopkeeper");
+          }
+        } catch (shopkeeperError) {
+          console.error("Error checking shopkeeper:", shopkeeperError);
+          if (shopkeeperError.reason === "Shopkeeper not found") {
+            setError("This wallet is not registered as a shopkeeper");
+          } else {
+            setError("Failed to verify shopkeeper status");
           }
         }
 
@@ -220,7 +222,7 @@ export default function DepotDashboard() {
       } catch (error) {
         console.error("Error fetching depot data:", error);
         setError(
-          "Failed to load your data from blockchain: " +
+          "Failed to load depot data from blockchain: " +
             (error.message || error.toString())
         );
         setLoading(false);
@@ -249,145 +251,208 @@ export default function DepotDashboard() {
     };
   }, [activeDelivery, activeDelivery?.status]);
 
-  // Fetch assigned users for this depot
-  const fetchAssignedUsers = async (contract, depotId) => {
+  // Fetch assigned consumers for this shopkeeper
+  const fetchAssignedUsers = async (contract, shopkeeperAddress) => {
     try {
-      const userCount = await contract.userCount();
       const usersData = [];
+      
+      // Use the getConsumersByShopkeeper function from DiamondMergedABI
+      const consumers = await contract.getConsumersByShopkeeper(shopkeeperAddress);
+      
+      console.log("Consumers assigned to shopkeeper:", consumers);
 
-      for (let i = 1; i <= Number(userCount); i++) {
+      // Process each consumer
+      for (let i = 0; i < consumers.length; i++) {
         try {
-          const user = await contract.getUserDetails(i);
-
-          if (String(user.assignedDepotId) === depotId) {
-            usersData.push({
-              id: String(user.id),
-              name: user.name,
-              category: String(user.category),
-              walletAddress: user.walletAddress,
-              assignedDepotId: String(user.assignedDepotId),
-              lastRationDate: user.lastRationDate || null,
-            });
-          }
+          const consumer = consumers[i];
+          
+          const userData = {
+            id: consumer.aadhaar.toString(),
+            name: consumer.name,
+            category: consumer.category,
+            walletAddress: consumer.walletAddress,
+            assignedShopkeeper: shopkeeperAddress,
+            isActive: consumer.isActive,
+            mobile: consumer.mobile,
+            aadhaar: consumer.aadhaar.toString(),
+          };
+          
+          usersData.push(userData);
+          console.log("✅ Found assigned consumer:", userData.name);
         } catch (error) {
-          console.error(`Error fetching user ${i}:`, error);
+          console.error(`Error processing consumer ${i}:`, error);
         }
       }
 
+      console.log(`Found ${usersData.length} consumers assigned to shopkeeper ${shopkeeperAddress}`);
       setAssignedUsers(usersData);
     } catch (error) {
-      console.error("Error fetching assigned users:", error);
+      console.error("Error fetching assigned consumers:", error);
+      // Set empty array if no consumers found
+      setAssignedUsers([]);
     }
   };
 
-  // Fetch assigned delivery persons for this depot
-  const fetchAssignedDeliveryPersons = async (contract, depotId) => {
+  // Fetch assigned delivery agents for this shopkeeper
+  const fetchAssignedDeliveryPersons = async (contract, shopkeeperAddress) => {
     try {
-      const deliveryPersonCount = await contract.deliveryPersonCount();
       const deliveryPersonsData = [];
-
-      for (let i = 1; i <= Number(deliveryPersonCount); i++) {
-        try {
-          const person = await contract.getDeliveryPersonDetails(i);
-
-          // Check if this depot is in the person's assigned depots
-          const assignedDepotIds = person.assignedDepotIds.map((id) =>
-            String(id)
-          );
-          if (assignedDepotIds.includes(depotId)) {
-            deliveryPersonsData.push({
-              id: String(person.id),
-              name: person.name,
-              walletAddress: person.walletAddress,
-              phone: person.phone || "",
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching delivery person ${i}:`, error);
+      
+      // Use the getAssignedDeliveryAgent function from DiamondMergedABI
+      try {
+        const assignedAgent = await contract.getAssignedDeliveryAgent(shopkeeperAddress);
+        
+        if (assignedAgent && assignedAgent.agent && assignedAgent.agent !== ethers.ZeroAddress) {
+          const agentInfo = await contract.getDeliveryAgentInfo(assignedAgent.agent);
+          
+          const deliveryPersonData = {
+            id: assignedAgent.agent,
+            name: agentInfo.name,
+            walletAddress: assignedAgent.agent,
+            assignedShopkeeper: shopkeeperAddress,
+            isActive: agentInfo.isActive,
+          };
+          
+          deliveryPersonsData.push(deliveryPersonData);
+          console.log("✅ Found assigned delivery agent:", deliveryPersonData.name);
         }
+      } catch (agentError) {
+        console.log("No delivery agent assigned to this shopkeeper yet");
       }
 
+      console.log(`Found ${deliveryPersonsData.length} delivery agents assigned to shopkeeper ${shopkeeperAddress}`);
       setAssignedDeliveryPersons(deliveryPersonsData);
     } catch (error) {
-      console.error("Error fetching assigned delivery persons:", error);
+      console.error("Error fetching assigned delivery agents:", error);
+      setAssignedDeliveryPersons([]);
     }
   };
 
-  // Fetch deliveries for this depot
-  const fetchDeliveries = async (contract, depotId) => {
+  // Fetch deliveries for this shopkeeper
+  const fetchDeliveries = async (contract, shopkeeperAddress) => {
     try {
-      // In a real application, you would fetch deliveries from the blockchain
-      // Here we'll simulate pending and completed deliveries
       const pendingDeliveriesData = [];
       const completedDeliveriesData = [];
 
-      // Simulate getting deliveries from blockchain
-      // In a real app, you'd have a contract function like getDeliveriesByDepot
-      const deliveryCount = await contract.deliveryPersonCount(); // This is just a placeholder
+      // Use the getPendingDeliveriesForShopkeeper function from DiamondMergedABI
+      try {
+        const pendingDeliveries = await contract.getPendingDeliveriesForShopkeeper(shopkeeperAddress);
+        
+        console.log("Pending deliveries for shopkeeper:", pendingDeliveries);
 
-      for (let i = 1; i <= Number(deliveryCount); i++) {
-        try {
-          // Replace with actual contract call to get deliveries
-          // const delivery = await contract.getDeliveryDetails(i);
-
-          // Simulated delivery data
-          if (i % 2 === 0) {
-            pendingDeliveriesData.push({
-              id: `DEL${i}`,
-              deliveryPersonId: String(i),
-              deliveryPersonName: `Delivery Person ${i}`,
-              status: "scheduled",
-              scheduledDate: new Date(Date.now() + 86400000 * i).toISOString(),
-              users: [],
-            });
-          } else {
-            completedDeliveriesData.push({
-              id: `DEL${i}`,
-              deliveryPersonId: String(i),
-              deliveryPersonName: `Delivery Person ${i}`,
-              status: "completed",
-              completedDate: new Date(Date.now() - 86400000 * i).toISOString(),
-              users: [],
-            });
+        // Process pending deliveries
+        const [tokenIds, aadhaars, names, months, years] = pendingDeliveries;
+        
+        for (let i = 0; i < tokenIds.length; i++) {
+          try {
+            const deliveryData = {
+              id: tokenIds[i].toString(),
+              tokenId: tokenIds[i].toString(),
+              aadhaar: aadhaars[i].toString(),
+              userName: names[i],
+              month: months[i].toString(),
+              year: years[i].toString(),
+              status: "pending",
+              scheduledDate: new Date().toISOString(), // Use current date as placeholder
+            };
+            
+            pendingDeliveriesData.push(deliveryData);
+            console.log("✅ Found pending delivery:", deliveryData);
+          } catch (error) {
+            console.error(`Error processing pending delivery ${i}:`, error);
           }
-        } catch (error) {
-          console.error(`Error fetching delivery ${i}:`, error);
         }
+      } catch (pendingError) {
+        console.log("No pending deliveries found for this shopkeeper");
       }
 
+      // Get shopkeeper delivery history for completed deliveries
+      try {
+        const deliveryHistory = await contract.getShopkeeperDeliveryHistory(shopkeeperAddress, 10); // Get last 10
+        
+        console.log("Delivery history for shopkeeper:", deliveryHistory);
+
+        // Process delivery history
+        const [historyTokenIds, historyAadhaars, historyNames, historyMonths, historyYears, historyTimestamps] = deliveryHistory;
+        
+        for (let i = 0; i < historyTokenIds.length; i++) {
+          try {
+            const deliveryData = {
+              id: historyTokenIds[i].toString(),
+              tokenId: historyTokenIds[i].toString(),
+              aadhaar: historyAadhaars[i].toString(),
+              userName: historyNames[i],
+              month: historyMonths[i].toString(),
+              year: historyYears[i].toString(),
+              status: "completed",
+              completedDate: new Date(Number(historyTimestamps[i]) * 1000).toISOString(),
+            };
+            
+            completedDeliveriesData.push(deliveryData);
+            console.log("✅ Found completed delivery:", deliveryData);
+          } catch (error) {
+            console.error(`Error processing completed delivery ${i}:`, error);
+          }
+        }
+      } catch (historyError) {
+        console.log("No delivery history found for this shopkeeper");
+      }
+
+      console.log(`Found ${pendingDeliveriesData.length} pending and ${completedDeliveriesData.length} completed deliveries`);
       setPendingDeliveries(pendingDeliveriesData);
       setCompletedDeliveries(completedDeliveriesData);
     } catch (error) {
       console.error("Error fetching deliveries:", error);
+      setPendingDeliveries([]);
+      setCompletedDeliveries([]);
     }
   };
 
-  // Fetch ration distributions for this depot
-  const fetchRationDistributions = async (contract, depotId) => {
+  // Fetch ration distributions for this shopkeeper
+  const fetchRationDistributions = async (contract, shopkeeperAddress) => {
     try {
-      // In a real application, you would fetch ration distributions from the blockchain
-      // Here we'll simulate some ration distribution data
       const rationData = [];
 
-      for (let i = 1; i <= 5; i++) {
+      // Get shopkeeper dashboard data which includes distribution summary
+      try {
+        const shopkeeperDashboard = await contract.getShopkeeperDashboard(shopkeeperAddress);
+        
+        console.log("Shopkeeper dashboard data:", shopkeeperDashboard);
+
+        // Extract distribution data from dashboard
+        const [
+          totalConsumers,
+          pendingTokens,
+          deliveredTokens,
+          totalEarnings,
+          monthlyEarnings,
+          monthlyDeliveries,
+          pendingPayments,
+          // Add other fields as needed
+        ] = shopkeeperDashboard;
+
+        // Create summary entry
         rationData.push({
-          id: `RAT${i}`,
-          userId: String(i),
-          userName: `User ${i}`,
-          category: `Category ${(i % 3) + 1}`,
-          date: new Date(Date.now() - 86400000 * i).toISOString(),
-          items: [
-            { name: "Rice", quantity: "5kg" },
-            { name: "Wheat", quantity: "3kg" },
-            { name: "Sugar", quantity: "1kg" },
-            { name: "Oil", quantity: "1L" },
-          ],
+          id: "summary",
+          type: "summary",
+          totalConsumers: totalConsumers.toString(),
+          pendingTokens: pendingTokens.toString(),
+          deliveredTokens: deliveredTokens.toString(),
+          totalEarnings: totalEarnings.toString(),
+          monthlyEarnings: monthlyEarnings.toString(),
+          monthlyDeliveries: monthlyDeliveries.toString(),
+          pendingPayments: pendingPayments.toString(),
         });
+
+      } catch (dashboardError) {
+        console.log("Could not fetch shopkeeper dashboard data");
       }
 
+      console.log(`Found ${rationData.length} ration distribution entries`);
       setRationDistributions(rationData);
     } catch (error) {
       console.error("Error fetching ration distributions:", error);
+      setRationDistributions([]);
     }
   };
 

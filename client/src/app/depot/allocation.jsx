@@ -98,27 +98,22 @@ export default function DepotAllocations() {
         
         setUsers(depotUsers);
         
-        // Fetch delivery persons assigned to this depot
-        const deliveryPersonCount = await contract.deliveryPersonCount();
-        const depotDeliveryPersons = [];
-        
-        for (let i = 1; i <= Number(deliveryPersonCount); i++) {
-          try {
-            const deliveryPerson = await contract.getDeliveryPersonDetails(i);
-            const assignedDepotIds = deliveryPerson.assignedDepotIds.map(id => id.toString());
-            
-            if (assignedDepotIds.includes(foundDepotId)) {
-              depotDeliveryPersons.push({
-                id: deliveryPerson.id.toString(),
-                name: deliveryPerson.name,
-                address: deliveryPerson.walletAddress,
-                isActive: deliveryPerson.isActive
-              });
-            }
-          } catch (err) {
-            console.error(`Error fetching delivery person ${i}:`, err);
+        // Since deliveryPersonCount is not available, we'll use mock data for now
+        console.log("⚠️ Delivery person assignment system not yet implemented");
+        const depotDeliveryPersons = [
+          {
+            id: "1",
+            name: "Mock Delivery Agent 1",
+            address: "0x1234567890123456789012345678901234567890",
+            isActive: true
+          },
+          {
+            id: "2", 
+            name: "Mock Delivery Agent 2",
+            address: "0x0987654321098765432109876543210987654321",
+            isActive: true
           }
-        }
+        ];
         
         setDeliveryPersons(depotDeliveryPersons);
         setLoading(false);

@@ -45,6 +45,7 @@ export default function ConsumerManagement() {
   const fetchConsumers = async () => {
     try {
       setRefreshing(true);
+      setError(''); // Clear previous errors
       
       let url = `/api/admin?endpoint=consumers&page=${currentPage}&limit=20`;
       if (filterCategory !== 'all') {
@@ -55,18 +56,35 @@ export default function ConsumerManagement() {
       const response = await fetch(url);
       const data = await response.json();
       
+      console.log('Consumers API response:', data);
+      
       if (data.success) {
-        setConsumers(data.data);
+        setConsumers(data.data || []);
+        
         if (data.pagination) {
           setPagination(data.pagination);
           setTotalPages(data.pagination.totalPages);
         }
+        
+        // Show warning if there are blockchain connection issues
+        if (data.warning) {
+          setError(`⚠️ ${data.warning}`);
+        } else if (data.error) {
+          setError(`❌ Blockchain connection failed: ${data.warning || 'Unknown error'}`);
+        } else if (data.data.length === 0) {
+          setError('ℹ️ No consumers registered yet');
+        } else {
+          // Clear any previous errors if data loads successfully
+          setError('');
+        }
       } else {
-        setError('Failed to load consumers: ' + data.error);
+        setError('❌ Failed to load consumers: ' + data.error);
+        setConsumers([]);
       }
     } catch (error) {
       console.error('Error fetching consumers:', error);
-      setError('Failed to fetch consumers from blockchain');
+      setError('❌ Failed to connect to backend API');
+      setConsumers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,14 +101,26 @@ export default function ConsumerManagement() {
       const response = await fetch(url);
       const data = await response.json();
       
+      console.log('Consumer search response:', data);
+      
       if (data.success) {
-        setConsumers(data.data);
+        setConsumers(data.data || []);
+        
+        if (data.warning) {
+          setError(`⚠️ ${data.warning}`);
+        } else if (data.data.length === 0) {
+          setError('ℹ️ No consumers found matching your search');
+        } else {
+          setError('');
+        }
       } else {
-        setError('Search failed: ' + data.error);
+        setError('❌ Search failed: ' + data.error);
+        setConsumers([]);
       }
     } catch (error) {
       console.error('Error searching consumers:', error);
-      setError('Search failed');
+      setError('❌ Search failed - connection issue');
+      setConsumers([]);
     } finally {
       setRefreshing(false);
     }

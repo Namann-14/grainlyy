@@ -7,19 +7,42 @@ const DIAMOND_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
 export async function GET() {
   try {
+    console.log('🔗 Fetching shopkeepers from blockchain...');
+    
+    if (!RPC_URL || !DIAMOND_ADDRESS) {
+      throw new Error('Missing environment variables: RPC_URL or DIAMOND_ADDRESS');
+    }
+
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const contract = new ethers.Contract(DIAMOND_ADDRESS, DiamondMergedABI, provider);
 
+    console.log('📋 Calling getAllShopkeepers...');
+    
+    // Get all shopkeeper addresses using getAllShopkeepers
     const shopkeeperAddresses = await contract.getAllShopkeepers();
+    console.log('📋 Found shopkeeper addresses:', shopkeeperAddresses);
 
+    if (!shopkeeperAddresses || shopkeeperAddresses.length === 0) {
+      console.log('⚠️ No shopkeepers found on blockchain');
+      return NextResponse.json({
+        success: true,
+        shopkeepers: [],
+        totalCount: 0,
+        message: 'No shopkeepers registered on blockchain yet'
+      });
+    }
+
+    // Get detailed info for each shopkeeper
     const shopkeepers = await Promise.all(
       shopkeeperAddresses.map(async (address) => {
         try {
+          console.log(`📋 Fetching info for shopkeeper: ${address}`);
           const info = await contract.getShopkeeperInfo(address);
-          // Support both object and array return values
+          
+          // Handle both array and object return formats
           let shopkeeperObj;
           if (Array.isArray(info)) {
-            // Tuple/array: [address, name, area, registrationTime, totalConsumersAssigned, totalTokensIssued, totalDeliveries, isActive]
+            // Tuple/array format: [address, name, area, registrationTime, totalConsumersAssigned, totalTokensIssued, totalDeliveries, isActive]
             shopkeeperObj = {
               address: info[0] || address,
               name: info[1] || 'Unnamed Shopkeeper',
@@ -28,10 +51,10 @@ export async function GET() {
               totalConsumersAssigned: Number(info[4] || 0),
               totalTokensIssued: Number(info[5] || 0),
               totalDeliveries: Number(info[6] || 0),
-              isActive: info[7] !== undefined ? info[7] : true,
+              isActive: Boolean(info[7])
             };
           } else {
-            // Object with named fields
+            // Object format
             shopkeeperObj = {
               address: info.shopkeeperAddress || address,
               name: info.name || 'Unnamed Shopkeeper',
@@ -40,66 +63,54 @@ export async function GET() {
               totalConsumersAssigned: Number(info.totalConsumersAssigned || 0),
               totalTokensIssued: Number(info.totalTokensIssued || 0),
               totalDeliveries: Number(info.totalDeliveries || 0),
-              isActive: info.isActive !== undefined ? info.isActive : true,
+              isActive: Boolean(info.isActive)
             };
           }
+
+          console.log(`✅ Shopkeeper info for ${address}:`, shopkeeperObj);
           return shopkeeperObj;
-        } catch (err) {
+        } catch (error) {
+          console.error(`❌ Failed to get info for shopkeeper ${address}:`, error);
+          // Return minimal info if detailed fetch fails
           return {
-            address,
-            name: `Shopkeeper ${address.slice(0, 8)}...`,
-            area: 'Unknown Area',
+            address: address,
+            name: 'Failed to load',
+            area: 'Failed to load',
+            registrationTime: 0,
             totalConsumersAssigned: 0,
             totalTokensIssued: 0,
             totalDeliveries: 0,
-            registrationTime: 0,
             isActive: false,
+            error: error.message
           };
         }
       })
     );
 
-    // Debug: log all shopkeepers
-    console.log("Shopkeepers from contract:", shopkeepers);
-
-    // Only include active shopkeepers with valid addresses
-    let resultShopkeepers = shopkeepers.filter(
-      s => s.address && s.address !== '0x0000000000000000000000000000000000000000' && s.isActive
+    // Filter out invalid or inactive shopkeepers
+    const validShopkeepers = shopkeepers.filter(
+      s => s.address && 
+           s.address !== '0x0000000000000000000000000000000000000000' && 
+           s.isActive && 
+           !s.error
     );
 
-    // Optionally, add mock shopkeepers if none exist (for demo/dev)
-    if (resultShopkeepers.length < 1) {
-      const mockShopkeepers = [
-        {
-          address: "0x1234567890123456789012345678901234567890",
-          name: "Central Ration Shop",
-          area: "Central District",
-          totalConsumersAssigned: 0,
-          totalTokensIssued: 0,
-          totalDeliveries: 0,
-          registrationTime: 0,
-          isActive: true
-        }
-      ];
-      for (const mock of mockShopkeepers) {
-        if (!resultShopkeepers.find(s => s.address === mock.address)) {
-          resultShopkeepers.push(mock);
-        }
-      }
-    }
+    console.log(`✅ Successfully fetched ${validShopkeepers.length} valid shopkeepers`);
 
     return NextResponse.json({
       success: true,
-      shopkeepers: resultShopkeepers,
-      totalCount: resultShopkeepers.length
+      shopkeepers: validShopkeepers,
+      totalCount: validShopkeepers.length,
+      allAddresses: shopkeeperAddresses
     });
+
   } catch (error) {
+    console.error('❌ Error fetching shopkeepers:', error);
     return NextResponse.json({
       success: false,
       error: error.message,
       shopkeepers: [],
-      totalCount: 0,
-      mock: true
-    }, { status: 200 });
+      totalCount: 0
+    });
   }
 }

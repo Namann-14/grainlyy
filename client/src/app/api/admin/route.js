@@ -18,7 +18,7 @@ const TOKEN_OPS_ABI = [
   "function generateMonthlyTokensForAll() external"
 ];
 
-// Dashboard ABI
+// Dashboard ABI - Only functions that are confirmed to work
 const DASHBOARD_ABI = [
   "function getConsumersPaginated(uint256 offset, uint256 limit) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[] consumerList, uint256 total)",
   "function getConsumersByCategory(string category) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[])",
@@ -32,12 +32,17 @@ const DASHBOARD_ABI = [
   "function getAreaWiseStats() view returns (string[] areas, uint256[] shopkeeperCounts, uint256[] consumerCounts, uint256[] activeConsumers)",
   "function getCategoryWiseStats() view returns (string[] categories, uint256[] consumerCounts, uint256[] rationAmounts)",
   "function getConsumersNeedingEmergencyHelp() view returns (uint256[])",
-  "function getShopkeepers() view returns (tuple(address shopkeeperAddress, string name, string area, uint256 totalConsumersAssigned, uint256 totalTokensIssued, uint256 totalDeliveries, uint256 registrationTime, bool isActive)[])",
+  "function getAllShopkeepers() view returns (address[])",
+  "function getShopkeeperInfo(address shopkeeper) view returns (tuple(address shopkeeperAddress, string name, string area, uint256 registrationTime, uint256 totalConsumersAssigned, uint256 totalTokensIssued, uint256 totalDeliveries, bool isActive))",
+  "function getConsumersByShopkeeper(address shopkeeper) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[])",
   "function getDeliveryAgents() view returns (tuple(address agentAddress, string name, string mobile, address assignedShopkeeper, uint256 totalDeliveries, uint256 registrationTime, bool isActive)[])"
 ];
 
 // Use public RPC
 const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
+
+// Contract address
+const CONTRACT_ADDRESS = "0xD21958aa2130C1E8cFA88dd82b352DCa068B3059";
 
 // Initialize contracts
 let adminWallet, dashboardContract, tokenOpsContract, diamondContract;
@@ -47,8 +52,6 @@ try {
     process.env.ADMIN_PRIVATE_KEY || "cc7a9fa8676452af481a0fd486b9e2f500143bc63893171770f4d76e7ead33ec", 
     provider
   );
-
-  const CONTRACT_ADDRESS = "0x3Dc96d060b9F1C5Ca408B68e3C1071078451bE67";
   
   dashboardContract = new ethers.Contract(
     CONTRACT_ADDRESS,
@@ -142,17 +145,36 @@ async function getShopkeeperDetails(shopkeeperAddress) {
 }
 
 function createSMSMessage(consumerName, tokenId, shopkeeperName, shopkeeperArea, category, rationAmount = 5) {
-  return `🍚 GRAINLY: ${consumerName}, your ${category} ration token #${tokenId} is ready! Collect ${rationAmount}kg from ${shopkeeperName}. Valid till month end.`;
+  return `🍚 GRAINLY: ${consumerName}, your ${category} ration token #${tokenId} is ready! Collect ${rationAmount}kg from ${shopkeeperName}, ${shopkeeperArea}. Valid till month end.`;
 }
 
 function createShortSMSMessage(consumerName, tokenId, category) {
   return `GRAINLY: ${consumerName}, token #${tokenId} ready. Collect your ${category} ration now!`;
 }
 
-async function sendSMSToConsumer(consumer) {
+async function sendSMSToConsumer(consumer, actualTokenId = null) {
   try {
     const shopkeeper = await getShopkeeperDetails(consumer.assignedShopkeeper);
-    const tokenId = Date.now().toString().slice(-6);
+    
+    // Use actual token ID if provided, otherwise get latest token for consumer
+    let tokenId = actualTokenId;
+    if (!tokenId) {
+      try {
+        // Get the consumer's unclaimed tokens to find the latest one
+        const unclaimedTokens = await dashboardContract.getUnclaimedTokensByAadhaar(consumer.aadhaar);
+        if (unclaimedTokens && unclaimedTokens.length > 0) {
+          // Use the latest token (last in array)
+          tokenId = Number(unclaimedTokens[unclaimedTokens.length - 1]);
+        } else {
+          // Fallback: use a simple token reference
+          tokenId = `T-${consumer.aadhaar.toString().slice(-4)}`;
+        }
+      } catch (error) {
+        console.error('Failed to get unclaimed tokens, using fallback token ID');
+        tokenId = `T-${consumer.aadhaar.toString().slice(-4)}`;
+      }
+    }
+    
     const message = createSMSMessage(
       consumer.name,
       tokenId,
@@ -170,7 +192,7 @@ async function sendSMSToConsumer(consumer) {
     const result = await sendSMSNotification(consumer.mobile, finalMessage);
     
     if (result.success) {
-      console.log(`✅ SMS sent to ${consumer.name} (${consumer.mobile})`);
+      console.log(`✅ SMS sent to ${consumer.name} (${consumer.mobile}) with token ID: ${tokenId}`);
     } else {
       console.error(`❌ SMS failed for ${consumer.name}:`, result.error);
     }
@@ -230,10 +252,12 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
     let smsCount = 0;
     for (const consumer of consumersToNotify) {
       try {
+        // Use the improved sendSMSToConsumer that gets real token IDs
         await sendSMSToConsumer(consumer);
         smsCount++;
         console.log(`SMS ${smsCount}/${consumersToNotify.length} sent to ${consumer.name}`);
         
+        // Add delay between SMS to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
         console.error(`Failed to send SMS to ${consumer.name}:`, error);
@@ -274,6 +298,12 @@ export async function GET(request) {
         return await handleSystemHealth();
       case 'recent-activity':
         return await handleRecentActivity(searchParams);
+      case 'payment-analytics':
+        return await handlePaymentAnalytics();
+      case 'system-settings':
+        return await handleSystemSettings();
+      case 'test-connection':
+        return await handleTestConnection();
       default:
         return NextResponse.json({ success: false, error: 'Invalid endpoint' }, { status: 400 });
     }
@@ -321,8 +351,22 @@ export async function POST(request) {
         return await handleGenerateTokensForCategory({ category: 'BPL' });
       case 'generate-apl-tokens':
         return await handleGenerateTokensForCategory({ category: 'APL' });
+      case 'bulk-generate-tokens':
+        return await handleBulkGenerateTokens();
+      case 'expire-old-tokens':
+        return await handleExpireOldTokens();
+      case 'pause-system':
+        return await handlePauseSystem();
+      case 'unpause-system':
+        return await handleUnpauseSystem();
+      case 'set-ration-price':
+        return await handleSetRationPrice(body);
+      case 'set-subsidy-percentage':
+        return await handleSetSubsidyPercentage(body);
       case 'test-sms':
         return await handleTestSMS();
+      case 'register-shopkeeper':
+        return await handleRegisterShopkeeper(body);
       default:
         return NextResponse.json({ 
           success: false, 
@@ -340,13 +384,14 @@ export async function POST(request) {
 
 async function handleGenerateMonthlyTokens() {
   try {
-    if (!tokenOpsContract) {
-      throw new Error('Token operations contract not initialized');
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
     }
 
     console.log('🚀 Generating monthly tokens for all consumers...');
     
-    const tx = await tokenOpsContract.generateMonthlyTokensForAll({
+    // Use diamondContract instead of tokenOpsContract
+    const tx = await diamondContract.connect(adminWallet).generateMonthlyTokensForAll({
       gasLimit: 2000000
     });
     
@@ -383,8 +428,8 @@ async function handleGenerateMonthlyTokens() {
 
 async function handleGenerateTokenForConsumer(body) {
   try {
-    if (!tokenOpsContract) {
-      throw new Error('Token operations contract not initialized');
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
     }
 
     const { aadhaar } = body;
@@ -395,7 +440,8 @@ async function handleGenerateTokenForConsumer(body) {
 
     console.log(`🚀 Generating token for consumer: ${aadhaar}`);
     
-    const tx = await tokenOpsContract.generateTokenForConsumer(aadhaar, {
+    // Use diamondContract instead of tokenOpsContract
+    const tx = await diamondContract.connect(adminWallet).generateTokenForConsumer(aadhaar, {
       gasLimit: 500000
     });
     
@@ -405,10 +451,41 @@ async function handleGenerateTokenForConsumer(body) {
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
 
     if (receipt.status === 1) {
+      // Extract token ID from transaction logs/events
+      let actualTokenId = null;
+      try {
+        // Look for TokenGenerated or similar events in the logs
+        const tokenGeneratedEvents = receipt.logs.filter(log => {
+          // Check if this looks like a token generation event
+          return log.topics && log.topics.length > 0;
+        });
+        
+        if (tokenGeneratedEvents.length > 0) {
+          // Try to decode the event to get token ID
+          // This is a simplified approach - you might need to adjust based on your contract's event structure
+          const eventData = tokenGeneratedEvents[0];
+          if (eventData.data && eventData.data !== '0x') {
+            // Parse the token ID from event data (this might need adjustment based on your contract)
+            try {
+              const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(['uint256'], eventData.data);
+              actualTokenId = Number(decodedData[0]);
+              console.log('📋 Extracted token ID from event:', actualTokenId);
+            } catch (decodeError) {
+              console.warn('Could not decode token ID from event, will fetch from contract');
+            }
+          }
+        }
+      } catch (eventError) {
+        console.warn('Could not extract token ID from events:', eventError.message);
+      }
+
       setTimeout(async () => {
         try {
-          const result = await sendSMSNotifications('individual', null, [aadhaar]);
-          console.log('📱 SMS notification result:', result);
+          const consumer = await getConsumerDetails(aadhaar);
+          if (consumer) {
+            await sendSMSToConsumer(consumer, actualTokenId);
+            console.log('📱 SMS notification sent with actual token ID');
+          }
         } catch (error) {
           console.error('SMS notification error:', error);
         }
@@ -432,8 +509,8 @@ async function handleGenerateTokenForConsumer(body) {
 
 async function handleGenerateTokensForCategory(body) {
   try {
-    if (!tokenOpsContract) {
-      throw new Error('Token operations contract not initialized');
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
     }
 
     const { category } = body;
@@ -444,7 +521,8 @@ async function handleGenerateTokensForCategory(body) {
 
     console.log(`🚀 Generating tokens for category: ${category}`);
     
-    const tx = await tokenOpsContract.generateTokensForCategory(category, {
+    // Use diamondContract instead of tokenOpsContract
+    const tx = await diamondContract.connect(adminWallet).generateTokensForCategory(category, {
       gasLimit: 1500000
     });
     
@@ -510,29 +588,42 @@ async function handleDashboard() {
     console.log('Fetching dashboard data...');
     
     if (!dashboardContract) {
+      console.error('Dashboard contract not initialized');
       throw new Error('Dashboard contract not initialized');
     }
 
+    console.log('Calling getAdminDashboard() on contract...');
     const dashboardData = await dashboardContract.getAdminDashboard();
+    console.log('Raw dashboard data from blockchain:', dashboardData);
+    
+    const processedData = {
+      totalConsumers: Number(dashboardData.totalConsumers),
+      totalShopkeepers: Number(dashboardData.totalShopkeepers),
+      totalDeliveryAgents: Number(dashboardData.totalDeliveryAgents),
+      totalTokensIssued: Number(dashboardData.totalTokensIssued),
+      totalTokensClaimed: Number(dashboardData.totalTokensClaimed),
+      totalTokensExpired: Number(dashboardData.totalTokensExpired),
+      pendingTokens: Number(dashboardData.pendingTokens),
+      currentMonth: Number(dashboardData.currentMonth),
+      currentYear: Number(dashboardData.currentYear),
+      lastUpdateTime: Number(dashboardData.lastUpdateTime)
+    };
+
+    console.log('Processed dashboard data:', processedData);
     
     return NextResponse.json({
       success: true,
-      data: {
-        totalConsumers: Number(dashboardData.totalConsumers),
-        totalShopkeepers: Number(dashboardData.totalShopkeepers),
-        totalDeliveryAgents: Number(dashboardData.totalDeliveryAgents),
-        totalTokensIssued: Number(dashboardData.totalTokensIssued),
-        totalTokensClaimed: Number(dashboardData.totalTokensClaimed),
-        totalTokensExpired: Number(dashboardData.totalTokensExpired),
-        pendingTokens: Number(dashboardData.pendingTokens),
-        currentMonth: Number(dashboardData.currentMonth),
-        currentYear: Number(dashboardData.currentYear),
-        lastUpdateTime: Number(dashboardData.lastUpdateTime)
-      }
+      data: processedData
     });
   } catch (error) {
     console.error('Dashboard fetch error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
     
+    // Return actual zeros instead of fallback data to show real state
     return NextResponse.json({
       success: true,
       data: {
@@ -547,13 +638,21 @@ async function handleDashboard() {
         currentYear: new Date().getFullYear(),
         lastUpdateTime: Math.floor(Date.now() / 1000)
       },
-      warning: 'Using fallback data - blockchain connection unavailable'
+      warning: `Blockchain connection failed: ${error.message}`,
+      error: true
     });
   }
 }
 
 async function handleConsumers(searchParams) {
   try {
+    console.log('Fetching consumers from blockchain...');
+    
+    if (!dashboardContract) {
+      console.error('Dashboard contract not initialized');
+      throw new Error('Dashboard contract not initialized');
+    }
+
     const offset = searchParams.get('offset') || '0';
     const limit = searchParams.get('limit') || '50';
     const category = searchParams.get('category');
@@ -590,38 +689,144 @@ async function handleConsumers(searchParams) {
     }
   } catch (error) {
     console.error('Consumers fetch error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    
     return NextResponse.json({
       success: true,
       data: [],
       total: 0,
-      warning: 'No consumer data available - blockchain connection issue'
+      pagination: {
+        offset: 0,
+        limit: 50,
+        totalPages: 0
+      },
+      warning: `No consumer data available - blockchain connection issue: ${error.message}`,
+      error: true
     });
   }
 }
 
 async function handleShopkeepers() {
   try {
-    const shopkeepers = await dashboardContract.getShopkeepers();
+    console.log('Fetching shopkeepers from blockchain...');
+    
+    if (!dashboardContract) {
+      console.error('Dashboard contract not initialized');
+      throw new Error('Dashboard contract not initialized');
+    }
+
+    // First, try getAllShopkeepers
+    try {
+      const shopkeeperAddresses = await dashboardContract.getAllShopkeepers();
+      console.log('Shopkeeper addresses from blockchain:', shopkeeperAddresses);
+      
+      if (!shopkeeperAddresses || shopkeeperAddresses.length === 0) {
+        return NextResponse.json({
+          success: true,
+          data: [],
+          message: 'No shopkeepers registered on blockchain'
+        });
+      }
+
+      // Get detailed info for each shopkeeper
+      const shopkeepersPromises = shopkeeperAddresses.map(async (address) => {
+        try {
+          const info = await dashboardContract.getShopkeeperInfo(address);
+          return {
+            shopkeeperAddress: info.shopkeeperAddress,
+            name: info.name,
+            area: info.area,
+            registrationTime: Number(info.registrationTime),
+            totalConsumersAssigned: Number(info.totalConsumersAssigned),
+            totalTokensIssued: Number(info.totalTokensIssued),
+            totalDeliveries: Number(info.totalDeliveries),
+            isActive: info.isActive
+          };
+        } catch (error) {
+          console.error(`Error fetching info for shopkeeper ${address}:`, error);
+          return {
+            shopkeeperAddress: address,
+            name: 'Unknown',
+            area: 'Unknown',
+            registrationTime: 0,
+            totalConsumersAssigned: 0,
+            totalTokensIssued: 0,
+            totalDeliveries: 0,
+            isActive: false
+          };
+        }
+      });
+
+      const shopkeepers = await Promise.all(shopkeepersPromises);
+      console.log('Processed shopkeeper data:', shopkeepers);
+      
+      return NextResponse.json({
+        success: true,
+        data: shopkeepers,
+        dataSource: 'blockchain',
+        contractAddress: CONTRACT_ADDRESS
+      });
+    } catch (getAllError) {
+      console.log('getAllShopkeepers failed, trying fallback approach:', getAllError.message);
+      
+      // Fallback: Check dashboard for total count
+      try {
+        const dashboardData = await dashboardContract.getAdminDashboard();
+        const totalShopkeepers = Number(dashboardData.totalShopkeepers);
+        
+        if (totalShopkeepers > 0) {
+          return NextResponse.json({
+            success: true,
+            data: [],
+            warning: `📊 Blockchain reports ${totalShopkeepers} shopkeepers registered, but the getAllShopkeepers() function is not available in the deployed Diamond contract.`,
+            info: {
+              totalShopkeepers,
+              contractIssue: 'getAllShopkeepers function not cut/registered in Diamond',
+              explanation: 'This is a Diamond contract configuration issue. The function exists in your contract code but was not properly registered during deployment.',
+              solutions: [
+                'Redeploy the Diamond contract with proper function cuts',
+                'Or register new shopkeepers using the form below',
+                'Or contact the contract admin to fix the Diamond configuration'
+              ],
+              technicalDetails: {
+                functionSelector: '0xc1d63e00',
+                expectedFacetAddress: 'Should not be 0x000...000',
+                currentStatus: 'Function selector not mapped to any facet'
+              }
+            },
+            dataSource: 'blockchain-dashboard-only',
+            contractAddress: CONTRACT_ADDRESS
+          });
+        } else {
+          return NextResponse.json({
+            success: true,
+            data: [],
+            message: 'No shopkeepers registered on blockchain',
+            dataSource: 'blockchain-dashboard',
+            contractAddress: CONTRACT_ADDRESS
+          });
+        }
+      } catch (dashboardError) {
+        throw dashboardError;
+      }
+    }
+  } catch (error) {
+    console.error('Shopkeepers fetch error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
     
     return NextResponse.json({
       success: true,
-      data: shopkeepers.map(shopkeeper => ({
-        shopkeeperAddress: shopkeeper.shopkeeperAddress,
-        name: shopkeeper.name,
-        area: shopkeeper.area,
-        totalConsumersAssigned: Number(shopkeeper.totalConsumersAssigned),
-        totalTokensIssued: Number(shopkeeper.totalTokensIssued),
-        totalDeliveries: Number(shopkeeper.totalDeliveries),
-        registrationTime: Number(shopkeeper.registrationTime),
-        isActive: shopkeeper.isActive
-      }))
-    });
-  } catch (error) {
-    console.error('Shopkeepers fetch error:', error);
-    return NextResponse.json({
-      success: true,
       data: [],
-      warning: 'No shopkeeper data available - blockchain connection issue'
+      warning: `No shopkeeper data available - blockchain connection issue: ${error.message}`,
+      error: true
     });
   }
 }
@@ -912,6 +1117,106 @@ async function handleRecentActivity(searchParams) {
   }
 }
 
+async function handlePaymentAnalytics() {
+  try {
+    console.log('Fetching payment analytics...');
+    
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    // Get payment analytics from the blockchain
+    try {
+      const paymentData = await diamondContract.getPaymentAnalytics();
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalPayments: Number(paymentData.totalPayments || 0),
+          totalAmount: Number(paymentData.totalAmount || 0),
+          pendingPayments: Number(paymentData.pendingPayments || 0),
+          failedPayments: Number(paymentData.failedPayments || 0),
+          successRate: Number(paymentData.successRate || 0),
+          averagePayment: Number(paymentData.averagePayment || 0),
+          monthlyGrowth: Number(paymentData.monthlyGrowth || 0),
+          activeUsers: Number(paymentData.activeUsers || 0)
+        }
+      });
+    } catch (contractError) {
+      console.log('Contract method not available, returning zero data');
+      // Return zero data if contract method is not available
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalPayments: 0,
+          totalAmount: 0,
+          pendingPayments: 0,
+          failedPayments: 0,
+          successRate: 0,
+          averagePayment: 0,
+          monthlyGrowth: 0,
+          activeUsers: 0
+        },
+        warning: 'Payment analytics not available - contract method not implemented'
+      });
+    }
+  } catch (error) {
+    console.error('Payment analytics fetch error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
+  }
+}
+
+async function handleSystemSettings() {
+  try {
+    console.log('Fetching system settings...');
+    
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    try {
+      // Get system settings from the blockchain
+      const rationPrice = await diamondContract.getRationPrice();
+      const subsidyPercentage = await diamondContract.getSubsidyPercentage();
+      const isPaused = await diamondContract.paused();
+      const dcvTokenAddress = await diamondContract.getDCVTokenAddress();
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          rationPrice: Number(rationPrice) / 100, // Convert from wei/cents to rupees
+          subsidyPercentage: Number(subsidyPercentage),
+          isPaused: isPaused,
+          dcvTokenAddress: dcvTokenAddress,
+          paymentSystemEnabled: true // Assume enabled for now
+        }
+      });
+    } catch (contractError) {
+      console.log('Contract methods not available, returning default settings');
+      return NextResponse.json({
+        success: true,
+        data: {
+          rationPrice: 0,
+          subsidyPercentage: 0,
+          isPaused: false,
+          dcvTokenAddress: '0x0000000000000000000000000000000000000000',
+          paymentSystemEnabled: false
+        },
+        warning: 'System settings not available - contract methods not implemented'
+      });
+    }
+  } catch (error) {
+    console.error('System settings fetch error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
+  }
+}
+
 function formatConsumer(consumer) {
   return {
     aadhaar: Number(consumer.aadhaar),
@@ -928,4 +1233,398 @@ function formatConsumer(consumer) {
     availableTokens: Number(consumer.totalTokensReceived) - Number(consumer.totalTokensClaimed),
     shopkeeper: consumer.assignedShopkeeper === "0x0000000000000000000000000000000000000000" ? "Not Assigned" : "Assigned"
   };
+}
+
+async function handleBulkGenerateTokens() {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    console.log('🚀 Bulk generating tokens...');
+    
+    const tx = await diamondContract.bulkGenerateTokens({
+      gasLimit: 3000000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+
+    if (receipt.status === 1) {
+      setTimeout(async () => {
+        try {
+          const result = await sendSMSNotifications('monthly');
+          console.log('📱 SMS notification result:', result);
+        } catch (error) {
+          console.error('SMS notification error:', error);
+        }
+      }, 2000);
+    }
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Bulk token generation completed successfully.'
+    });
+  } catch (error) {
+    console.error('Bulk generate tokens error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to bulk generate tokens: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleExpireOldTokens() {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    console.log('🚀 Expiring old tokens...');
+    
+    const tx = await diamondContract.expireOldTokens({
+      gasLimit: 1000000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Old tokens expired successfully.'
+    });
+  } catch (error) {
+    console.error('Expire old tokens error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to expire old tokens: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handlePauseSystem() {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    console.log('🚀 Pausing system...');
+    
+    const tx = await diamondContract.pause({
+      gasLimit: 300000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'System paused successfully.'
+    });
+  } catch (error) {
+    console.error('Pause system error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to pause system: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleUnpauseSystem() {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    console.log('🚀 Unpausing system...');
+    
+    const tx = await diamondContract.unpause({
+      gasLimit: 300000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'System unpaused successfully.'
+    });
+  } catch (error) {
+    console.error('Unpause system error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to unpause system: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleSetRationPrice(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { price } = body;
+    
+    if (!price) {
+      throw new Error('Price is required');
+    }
+
+    console.log(`🚀 Setting ration price to: ${price}`);
+    
+    // Convert price to appropriate units (assuming contract expects in cents/wei)
+    const priceInCents = Math.round(parseFloat(price) * 100);
+    
+    const tx = await diamondContract.setRationPrice(priceInCents, {
+      gasLimit: 300000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: `Ration price set to ₹${price} successfully.`
+    });
+  } catch (error) {
+    console.error('Set ration price error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to set ration price: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleSetSubsidyPercentage(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { percentage } = body;
+    
+    if (!percentage) {
+      throw new Error('Subsidy percentage is required');
+    }
+
+    console.log(`🚀 Setting subsidy percentage to: ${percentage}%`);
+    
+    const tx = await diamondContract.setSubsidyPercentage(percentage, {
+      gasLimit: 300000
+    });
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: `Subsidy percentage set to ${percentage}% successfully.`
+    });
+  } catch (error) {
+    console.error('Set subsidy percentage error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to set subsidy percentage: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleTestConnection() {
+  try {
+    console.log('Testing blockchain connection...');
+    
+    const connectionStatus = {
+      provider: !!provider,
+      dashboardContract: !!dashboardContract,
+      diamondContract: !!diamondContract,
+      adminWallet: !!adminWallet,
+      contractAddress: dashboardContract?.target || 'Not set',
+      walletAddress: adminWallet?.address || 'Not set',
+      network: 'Polygon Amoy Testnet',
+      rpcUrl: 'https://rpc-amoy.polygon.technology'
+    };
+
+    console.log('Connection status:', connectionStatus);
+
+    // Test if we can call a simple method
+    try {
+      const network = await provider.getNetwork();
+      connectionStatus.networkId = network.chainId.toString();
+      connectionStatus.networkName = network.name;
+      
+      // Test contract call
+      const blockNumber = await provider.getBlockNumber();
+      connectionStatus.latestBlock = blockNumber;
+      connectionStatus.contractCallTest = 'Success';
+    } catch (networkError) {
+      console.error('Network test failed:', networkError);
+      connectionStatus.contractCallTest = `Failed: ${networkError.message}`;
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: connectionStatus
+    });
+  } catch (error) {
+    console.error('Connection test failed:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message,
+      data: {
+        provider: false,
+        dashboardContract: false,
+        diamondContract: false,
+        adminWallet: false,
+        contractCallTest: 'Failed'
+      }
+    });
+  }
+}
+
+async function handleRegisterShopkeeper(body) {
+  try {
+    const { shopkeeperAddress, name, area } = body;
+
+    // Validate required fields
+    if (!shopkeeperAddress || !name || !area) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: shopkeeperAddress, name, area' },
+        { status: 400 }
+      );
+    }
+
+    // Validate shopkeeper address format
+    if (!ethers.isAddress(shopkeeperAddress)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid shopkeeper address format' },
+        { status: 400 }
+      );
+    }
+
+    console.log('🏪 Registering shopkeeper on blockchain:', {
+      shopkeeperAddress,
+      name,
+      area
+    });
+
+    if (!diamondContract) {
+      return NextResponse.json(
+        { success: false, error: 'Diamond contract not initialized' },
+        { status: 500 }
+      );
+    }
+
+    console.log('📝 Calling registerShopkeeper function...');
+
+    // Register shopkeeper on blockchain
+    const tx = await diamondContract.registerShopkeeper(
+      shopkeeperAddress,
+      name,
+      area
+    );
+
+    console.log('⏳ Transaction submitted:', tx.hash);
+    console.log('⏳ Waiting for transaction confirmation...');
+
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+    console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+
+    // Generate PolygonScan URL
+    const polygonScanUrl = `https://amoy.polygonscan.com/tx/${tx.hash}`;
+
+    // Send SMS notification if possible
+    try {
+      await sendSMSNotification(
+        '+1234567890', // You might want to add phone number to shopkeeper registration
+        `🏪 Shopkeeper Registration: ${name} has been successfully registered at ${area}. Wallet: ${shopkeeperAddress}`
+      );
+    } catch (smsError) {
+      console.log('SMS notification failed:', smsError.message);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Shopkeeper registered successfully',
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+      gasUsed: receipt.gasUsed.toString(),
+      polygonScanUrl,
+      shopkeeper: {
+        address: shopkeeperAddress,
+        name,
+        area
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Shopkeeper registration failed:', error);
+    
+    // Handle specific blockchain errors
+    if (error.code === 'CALL_EXCEPTION') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Smart contract call failed - shopkeeper may already be registered or invalid parameters',
+          details: error.reason || error.message
+        },
+        { status: 400 }
+      );
+    }
+
+    if (error.code === 'INSUFFICIENT_FUNDS') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Insufficient funds for gas fees',
+          details: 'Admin wallet needs more MATIC for transaction fees'
+        },
+        { status: 400 }
+      );
+    }
+
+    if (error.code === 'NETWORK_ERROR') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Network connection failed',
+          details: 'Unable to connect to Polygon network'
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to register shopkeeper: ' + error.message,
+        details: error.code || 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
 }

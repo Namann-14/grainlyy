@@ -211,49 +211,32 @@ export default function DeliveryPersonDashboard() {
 
         console.log("Connected with address:", signerAddress);
 
-        // Find delivery person by wallet address
-        const deliveryPersonCount = await contract.deliveryPersonCount();
+        // Find delivery person by wallet address using getDeliveryAgentInfo
+        try {
+          const deliveryAgentInfo = await contract.getDeliveryAgentInfo(signerAddress);
+          
+          if (deliveryAgentInfo.agentAddress && deliveryAgentInfo.agentAddress !== ethers.ZeroAddress) {
+            setDeliveryPersonId(signerAddress); // Use wallet address as ID
+            setDeliveryPersonName(deliveryAgentInfo.name);
+            
+            // For now, set empty assigned depots since we don't have the depot assignment system
+            setAssignedDepots([]);
+            
+            console.log("✅ Delivery agent found:", deliveryAgentInfo.name);
 
-        for (let i = 1; i <= Number(deliveryPersonCount); i++) {
-          try {
-            const person = await contract.getDeliveryPersonDetails(i);
-
-            if (
-              person.walletAddress.toLowerCase() === signerAddress.toLowerCase()
-            ) {
-              setDeliveryPersonId(String(person.id));
-              setDeliveryPersonName(person.name);
-
-              // Get assigned depots
-              const depotPromises = [];
-              for (let j = 0; j < person.assignedDepotIds.length; j++) {
-                const depotId = String(person.assignedDepotIds[j]);
-                if (depotId !== "0") {
-                  depotPromises.push(contract.getDepotDetails(depotId));
-                }
-              }
-
-              const depotResults = await Promise.all(depotPromises);
-              const depotData = depotResults.map((depot) => ({
-                id: String(depot.id),
-                name: depot.name,
-                location: depot.location,
-                walletAddress: depot.walletAddress,
-              }));
-
-              setAssignedDepots(depotData);
-
-              // After setting assigned depots, then fetch deliveries
-              console.log(
-                `Fetching deliveries for delivery person ID: ${String(
-                  person.id
-                )}`
-              );
-              await fetchDeliveries(contract, String(person.id));
-              break;
-            }
-          } catch (error) {
-            console.error(`Error checking delivery person ${i}:`, error);
+            // Fetch deliveries for this delivery agent
+            console.log(`Fetching deliveries for delivery agent: ${signerAddress}`);
+            await fetchDeliveries(contract, signerAddress);
+          } else {
+            console.log("❌ No delivery agent found for this wallet");
+            setError("This wallet is not registered as a delivery agent");
+          }
+        } catch (agentError) {
+          console.error("Error checking delivery agent:", agentError);
+          if (agentError.reason === "Agent not found") {
+            setError("This wallet is not registered as a delivery agent");
+          } else {
+            setError("Failed to verify delivery agent status");
           }
         }
 

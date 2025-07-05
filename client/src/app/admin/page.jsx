@@ -8,7 +8,9 @@ import {
   ArrowUpRight, CheckCircle2, Clock, Package, 
   Truck, Users, Wallet, Building, UserCheck,
   AlertTriangle, TrendingUp, MapPin, Calendar,
-  Zap, Activity, Database, RefreshCw
+  Zap, Activity, Database, RefreshCw, DollarSign,
+  CreditCard, Settings, Pause, Play, Shield,
+  FileText, BarChart3, PieChart, Download
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +47,8 @@ export default function AdminDashboard() {
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [systemHealth, setSystemHealth] = useState(null);
+  const [paymentAnalytics, setPaymentAnalytics] = useState(null);
+  const [systemSettings, setSystemSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -54,11 +58,50 @@ export default function AdminDashboard() {
   const [generatingTokens, setGeneratingTokens] = useState({
     monthly: false,
     bpl: false,
-    apl: false
+    apl: false,
+    bulk: false,
+    expiring: false
+  });
+
+  // System management loading states
+  const [systemActions, setSystemActions] = useState({
+    pausing: false,
+    unpausing: false,
+    settingPrice: false,
+    settingSubsidy: false
   });
 
   // Active tab state
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Price and subsidy management states
+  const [priceSettings, setPriceSettings] = useState({
+    rationPrice: '',
+    subsidyPercentage: ''
+  });
+
+  // Test blockchain connection
+  const testConnection = async () => {
+    try {
+      setRefreshing(true);
+      const response = await fetch('/api/admin?endpoint=test-connection');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Blockchain connection test successful!<br/>
+          Contract Address: ${data.contractAddress}<br/>
+          Network: ${data.network}<br/>
+          Admin Wallet: ${data.adminWallet}<br/>
+          Block Number: ${data.blockNumber || 'N/A'}`);
+      } else {
+        setError(`❌ Blockchain connection test failed: ${data.error}`);
+      }
+    } catch (error) {
+      setError(`❌ Connection test failed: ${error.message}`);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Transaction monitoring
   const addTransactionToMonitor = (txData) => {
@@ -68,27 +111,62 @@ export default function AdminDashboard() {
 
   // Load dashboard data on component mount
   useEffect(() => {
+    console.log('🔄 Loading admin dashboard data...');
+    
+    // Clear any existing data first to avoid showing stale data
+    setDashboardData(null);
+    setPaymentAnalytics(null);
+    setSystemSettings(null);
+    setRecentActivity([]);
+    setSystemHealth(null);
+    
+    // Fetch fresh data
     fetchDashboardData();
     fetchPendingRegistrations();
     fetchRecentActivity();
     fetchSystemHealth();
+    fetchPaymentAnalytics();
+    fetchSystemSettings();
   }, []);
 
   // Fetch main dashboard data
   const fetchDashboardData = async () => {
     try {
       setRefreshing(true);
-      const response = await fetch('/api/admin?endpoint=dashboard');
+      
+      // Add cache-busting timestamp to prevent browser caching
+      const timestamp = Date.now();
+      const response = await fetch(`/api/admin?endpoint=dashboard&_t=${timestamp}`, {
+        method: 'GET',
+        cache: 'no-store', // Prevent caching
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       const data = await response.json();
+      
+      console.log('📊 Dashboard response:', data);
       
       if (data.success) {
         setDashboardData(data.data);
+        
+        // Show warning if there are blockchain connection issues
+        if (data.warning) {
+          setError(`⚠️ ${data.warning}`);
+        } else if (data.error) {
+          setError(`❌ Blockchain connection failed: ${data.warning || 'Unknown error'}`);
+        } else {
+          // Clear any previous errors if data loads successfully
+          setError('');
+        }
       } else {
-        setError('Failed to load dashboard data: ' + data.error);
+        setError('❌ Failed to load dashboard data: ' + data.error);
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to connect to blockchain');
+      console.error('❌ Error fetching dashboard data:', error);
+      setError('❌ Failed to connect to backend API');
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -134,6 +212,81 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching system health:', error);
+    }
+  };
+
+  // Fetch payment analytics data
+  const fetchPaymentAnalytics = async () => {
+    try {
+      console.log('🔄 Fetching payment analytics...');
+      
+      // Add cache-busting timestamp to prevent browser caching
+      const timestamp = Date.now();
+      const response = await fetch(`/api/admin?endpoint=payment-analytics&_t=${timestamp}`, {
+        method: 'GET',
+        cache: 'no-store', // Prevent caching
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      const data = await response.json();
+      
+      console.log('💰 Payment analytics response:', data);
+      
+      if (data.success) {
+        setPaymentAnalytics(data.data);
+        
+        // Show warning if there are blockchain connection issues
+        if (data.warning) {
+          console.log('⚠️ Payment analytics warning:', data.warning);
+        }
+      } else {
+        console.error('❌ Failed to fetch payment analytics:', data.error);
+        // Set to zeros to show no data available
+        setPaymentAnalytics({
+          totalPayments: 0,
+          totalAmount: 0,
+          pendingPayments: 0,
+          failedPayments: 0,
+          successRate: 0,
+          averagePayment: 0,
+          monthlyGrowth: 0,
+          activeUsers: 0
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching payment analytics:', error);
+      // Set to zeros to show no data available
+      setPaymentAnalytics({
+        totalPayments: 0,
+        totalAmount: 0,
+        pendingPayments: 0,
+        failedPayments: 0,
+        successRate: 0,
+        averagePayment: 0,
+        monthlyGrowth: 0,
+        activeUsers: 0
+      });
+    }
+  };
+
+  // Fetch system settings
+  const fetchSystemSettings = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=system-settings');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSystemSettings(data.data);
+        setPriceSettings({
+          rationPrice: data.data.rationPrice || '',
+          subsidyPercentage: data.data.subsidyPercentage || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching system settings:', error);
     }
   };
 
@@ -256,6 +409,240 @@ export default function AdminDashboard() {
     }
   };
 
+  // Bulk generate tokens
+  const generateBulkTokens = async () => {
+    try {
+      setGeneratingTokens(prev => ({ ...prev, bulk: true }));
+      
+      const response = await fetch('/api/admin?endpoint=bulk-generate-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Bulk Token Generation',
+          details: 'Bulk tokens for all eligible consumers',
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ Bulk token generation started! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchDashboardData();
+        }, 30000);
+      } else {
+        setError(`❌ Failed to generate bulk tokens: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error generating bulk tokens:', error);
+      setError('Failed to generate bulk tokens');
+    } finally {
+      setGeneratingTokens(prev => ({ ...prev, bulk: false }));
+    }
+  };
+
+  // Expire old tokens
+  const expireOldTokens = async () => {
+    try {
+      setGeneratingTokens(prev => ({ ...prev, expiring: true }));
+      
+      const response = await fetch('/api/admin?endpoint=expire-old-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Token Expiration',
+          details: 'Expired old tokens',
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ Token expiration completed! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchDashboardData();
+        }, 30000);
+      } else {
+        setError(`❌ Failed to expire tokens: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error expiring tokens:', error);
+      setError('Failed to expire old tokens');
+    } finally {
+      setGeneratingTokens(prev => ({ ...prev, expiring: false }));
+    }
+  };
+
+  // Pause system
+  const pauseSystem = async () => {
+    try {
+      setSystemActions(prev => ({ ...prev, pausing: true }));
+      
+      const response = await fetch('/api/admin?endpoint=pause-system', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'System Pause',
+          details: 'System has been paused',
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ System paused successfully! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchSystemSettings();
+        }, 10000);
+      } else {
+        setError(`❌ Failed to pause system: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error pausing system:', error);
+      setError('Failed to pause system');
+    } finally {
+      setSystemActions(prev => ({ ...prev, pausing: false }));
+    }
+  };
+
+  // Unpause system
+  const unpauseSystem = async () => {
+    try {
+      setSystemActions(prev => ({ ...prev, unpausing: true }));
+      
+      const response = await fetch('/api/admin?endpoint=unpause-system', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'System Unpause',
+          details: 'System has been unpaused',
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ System unpaused successfully! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchSystemSettings();
+        }, 10000);
+      } else {
+        setError(`❌ Failed to unpause system: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error unpausing system:', error);
+      setError('Failed to unpause system');
+    } finally {
+      setSystemActions(prev => ({ ...prev, unpausing: false }));
+    }
+  };
+
+  // Set ration price
+  const setRationPrice = async () => {
+    try {
+      setSystemActions(prev => ({ ...prev, settingPrice: true }));
+      
+      const response = await fetch('/api/admin?endpoint=set-ration-price', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ price: priceSettings.rationPrice })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Price Update',
+          details: `Ration price set to ₹${priceSettings.rationPrice}`,
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ Ration price updated to ₹${priceSettings.rationPrice}! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchSystemSettings();
+        }, 10000);
+      } else {
+        setError(`❌ Failed to set ration price: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error setting ration price:', error);
+      setError('Failed to set ration price');
+    } finally {
+      setSystemActions(prev => ({ ...prev, settingPrice: false }));
+    }
+  };
+
+  // Set subsidy percentage
+  const setSubsidyPercentage = async () => {
+    try {
+      setSystemActions(prev => ({ ...prev, settingSubsidy: true }));
+      
+      const response = await fetch('/api/admin?endpoint=set-subsidy-percentage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ percentage: priceSettings.subsidyPercentage })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Subsidy Update',
+          details: `Subsidy percentage set to ${priceSettings.subsidyPercentage}%`,
+          polygonScanUrl: data.polygonScanUrl
+        });
+
+        setSuccess(`✅ Subsidy percentage updated to ${priceSettings.subsidyPercentage}%! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        
+        setTimeout(() => {
+          fetchSystemSettings();
+        }, 10000);
+      } else {
+        setError(`❌ Failed to set subsidy percentage: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error setting subsidy percentage:', error);
+      setError('Failed to set subsidy percentage');
+    } finally {
+      setSystemActions(prev => ({ ...prev, settingSubsidy: false }));
+    }
+  };
+
   // Format date for display
   const formatDate = (timestamp) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-IN', {
@@ -294,11 +681,11 @@ export default function AdminDashboard() {
         color: "bg-purple-50 text-purple-700",
       },
       {
-        title: "Delivery Agents",
-        value: dashboardData.totalDeliveryAgents?.toString() || "0",
-        change: "Active agents",
-        icon: Truck,
-        color: "bg-orange-50 text-orange-700",
+        title: "Total Payments",
+        value: paymentAnalytics?.totalPayments?.toString() || "0",
+        change: `₹${paymentAnalytics?.totalAmount || 0} collected`,
+        icon: DollarSign,
+        color: "bg-amber-50 text-amber-700",
       },
     ];
   };
@@ -328,16 +715,74 @@ export default function AdminDashboard() {
                 Indian Public Distribution System - Blockchain Management
               </p>
             </div>
-            <button
-              onClick={fetchDashboardData}
-              disabled={refreshing}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.open('/api/admin?endpoint=test-connection', '_blank')}
+                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm"
+                title="Test blockchain connection"
+              >
+                Test Connection
+              </button>
+              <button
+                onClick={async () => {
+                  setRefreshing(true);
+                  setError('');
+                  setSuccess('');
+                  
+                  // Clear all existing data first
+                  setDashboardData(null);
+                  setPaymentAnalytics(null);
+                  setSystemSettings(null);
+                  setSystemHealth(null);
+                  setRecentActivity([]);
+                  setPendingRegistrations([]);
+                  
+                  // Fetch fresh data
+                  await Promise.all([
+                    fetchDashboardData(),
+                    fetchPaymentAnalytics(),
+                    fetchSystemSettings(),
+                    fetchSystemHealth(),
+                    fetchRecentActivity(),
+                    fetchPendingRegistrations()
+                  ]);
+                  
+                  setRefreshing(false);
+                }}
+                disabled={refreshing}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Force Refresh All
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Blockchain Status Banner */}
+        {(error && error.includes('Blockchain')) || (dashboardData && error) ? (
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <div>
+                <strong>Blockchain Status:</strong> {error || 'Connection Issues'}
+                <br />
+                <small>Showing zero values because no real blockchain data is available. Test your connection above.</small>
+              </div>
+            </div>
+          </div>
+        ) : dashboardData && !error ? (
+          <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded mb-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              <div>
+                <strong>Blockchain Status:</strong> Connected and showing real data
+                <br />
+                <small>All dashboard statistics are from the live blockchain contract.</small>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Error/Success Messages */}
         {error && (
@@ -365,11 +810,13 @@ export default function AdminDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="tokens">Tokens</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
@@ -397,6 +844,21 @@ export default function AdminDashboard() {
                         {stat.change}
                         <ArrowUpRight className="ml-1 h-3 w-3" />
                       </p>
+                      {/* Data source indicator */}
+                      {error && error.includes('Blockchain') && (
+                        <div className="mt-2">
+                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                            No Blockchain Data
+                          </Badge>
+                        </div>
+                      )}
+                      {!error && dashboardData && (
+                        <div className="mt-2">
+                          <Badge className="bg-green-100 text-green-800 text-xs">
+                            Live Blockchain Data
+                          </Badge>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -417,9 +879,9 @@ export default function AdminDashboard() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Blockchain Status</span>
-                      <Badge className="bg-green-100 text-green-800">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                        Online
+                      <Badge className={error ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                        <div className={`w-2 h-2 rounded-full mr-2 ${error ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                        {error ? 'Disconnected' : 'Connected'}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
@@ -535,7 +997,7 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Contract Address:</span>
                     <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                      0xB58Ec...9c80
+                      0xD21958aa...68B3059
                     </code>
                   </div>
                   <div className="flex justify-between items-center">
@@ -546,9 +1008,20 @@ export default function AdminDashboard() {
                     <span className="text-gray-600">Contract Type:</span>
                     <span className="text-xs">Diamond Proxy (EIP-2535)</span>
                   </div>
-                  <div className="mt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Connection Status:</span>
+                    <Badge className={error ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                      {error ? 'Disconnected' : 'Connected'}
+                    </Badge>
+                  </div>
+                  {error && (
+                    <div className="p-2 bg-red-50 text-red-800 rounded text-xs">
+                      <strong>Issue:</strong> {error}
+                    </div>
+                  )}
+                  <div className="mt-4 grid grid-cols-1 gap-2">
                     <a 
-                      href="https://amoy.polygonscan.com/address/0x46a92d404A83304249e1A51695994DF7Fc51Dc35" 
+                      href="https://amoy.polygonscan.com/address/0xD21958aa2130C1E8cFA88dd82b352DCa068B3059" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm"
@@ -556,6 +1029,13 @@ export default function AdminDashboard() {
                       View on PolygonScan
                       <ArrowUpRight className="ml-2 h-4 w-4" />
                     </a>
+                    <button
+                      onClick={() => window.open('/api/admin?endpoint=test-connection', '_blank')}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors text-sm"
+                    >
+                      Test Connection
+                      <Database className="ml-2 h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </CardContent>
@@ -761,6 +1241,27 @@ export default function AdminDashboard() {
                       {generatingTokens.apl ? 'Generating...' : 'Generate APL Tokens'}
                     </button>
                   </div>
+                  
+                  {/* Advanced Token Operations */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={generateBulkTokens}
+                      disabled={generatingTokens.bulk}
+                      className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Package className="h-4 w-4" />
+                      {generatingTokens.bulk ? 'Processing...' : 'Bulk Generate Tokens'}
+                    </button>
+                    <button
+                      onClick={expireOldTokens}
+                      disabled={generatingTokens.expiring}
+                      className="px-4 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Clock className="h-4 w-4" />
+                      {generatingTokens.expiring ? 'Processing...' : 'Expire Old Tokens'}
+                    </button>
+                  </div>
+                  
                   <button
                     onClick={() => router.push('/admin/consumers')}
                     className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
@@ -773,46 +1274,344 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          {/* Payments Tab */}
+          <TabsContent value="payments" className="space-y-6">
+            <Card className="border-green-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Payment Management
+                </CardTitle>
+                <CardDescription>Manage payments, pricing, and subsidies</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Payment Statistics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-600">Total Payments</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {paymentAnalytics?.totalPayments || 0}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-600">Amount Collected</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      ₹{paymentAnalytics?.totalAmount || 0}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <p className="text-sm text-purple-600">Pending Payments</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                      {paymentAnalytics?.pendingPayments || 0}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-amber-50 rounded-lg">
+                    <p className="text-sm text-amber-600">Failed Payments</p>
+                    <p className="text-2xl font-bold text-amber-700">
+                      {paymentAnalytics?.failedPayments || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Price and Subsidy Management */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Price Management</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Ration Price (per kg)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={priceSettings.rationPrice}
+                            onChange={(e) => setPriceSettings(prev => ({ ...prev, rationPrice: e.target.value }))}
+                            placeholder="Enter price in ₹"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                          />
+                          <button
+                            onClick={setRationPrice}
+                            disabled={systemActions.settingPrice || !priceSettings.rationPrice}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors"
+                          >
+                            {systemActions.settingPrice ? 'Setting...' : 'Set Price'}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Current: ₹{systemSettings?.rationPrice || 'Not set'}/kg</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Subsidy Percentage</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            value={priceSettings.subsidyPercentage}
+                            onChange={(e) => setPriceSettings(prev => ({ ...prev, subsidyPercentage: e.target.value }))}
+                            placeholder="Enter percentage"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                          />
+                          <button
+                            onClick={setSubsidyPercentage}
+                            disabled={systemActions.settingSubsidy || !priceSettings.subsidyPercentage}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md transition-colors"
+                          >
+                            {systemActions.settingSubsidy ? 'Setting...' : 'Set Subsidy'}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Current: {systemSettings?.subsidyPercentage || 'Not set'}%</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Payment Actions</h3>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => router.push('/admin/payments')}
+                        className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Payment History
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('analytics')}
+                        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Payment Analytics
+                      </button>
+                      <button
+                        onClick={fetchPaymentAnalytics}
+                        className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Refresh Payment Data
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* System Management Tab */}
+          <TabsContent value="system" className="space-y-6">
+            <Card className="border-green-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  System Management
+                </CardTitle>
+                <CardDescription>Manage system settings and operations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* System Control */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">System Control</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">System Status</p>
+                          <p className="text-sm text-gray-600">
+                            {systemSettings?.isPaused ? 'Paused' : 'Active'}
+                          </p>
+                        </div>
+                        <Badge className={systemSettings?.isPaused ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+                          <div className={`w-2 h-2 rounded-full mr-2 ${systemSettings?.isPaused ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                          {systemSettings?.isPaused ? 'Paused' : 'Running'}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3">
+                        <button
+                          onClick={pauseSystem}
+                          disabled={systemActions.pausing || systemSettings?.isPaused}
+                          className="px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Pause className="h-4 w-4" />
+                          {systemActions.pausing ? 'Pausing...' : 'Pause System'}
+                        </button>
+                        <button
+                          onClick={unpauseSystem}
+                          disabled={systemActions.unpausing || !systemSettings?.isPaused}
+                          className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Play className="h-4 w-4" />
+                          {systemActions.unpausing ? 'Unpausing...' : 'Resume System'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* System Information */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">System Information</h3>
+                    <div className="space-y-3">
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-600">DCV Token Address</p>
+                        <p className="text-xs font-mono break-all">
+                          {systemSettings?.dcvTokenAddress || 'Not set'}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-lg">
+                        <p className="text-sm text-purple-600">Payment System Status</p>
+                        <p className="text-xs">
+                          {systemSettings?.paymentSystemEnabled ? 'Enabled' : 'Disabled'}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-amber-50 rounded-lg">
+                        <p className="text-sm text-amber-600">Total Registered Users</p>
+                        <p className="text-lg font-bold text-amber-700">
+                          {(dashboardData?.totalConsumers || 0) + (dashboardData?.totalShopkeepers || 0) + (dashboardData?.totalDeliveryAgents || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional System Actions */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button
+                    onClick={() => router.push('/admin/health-report')}
+                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Activity className="h-4 w-4" />
+                    System Health Report
+                  </button>
+                  <button
+                    onClick={fetchSystemSettings}
+                    className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh Settings
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/emergency-cases')}
+                    className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    Emergency Cases
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <Card className="border-green-100">
               <CardHeader>
-                <CardTitle>System Analytics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  System Analytics
+                </CardTitle>
                 <CardDescription>Comprehensive system analytics and reports</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-4">
                     <h3 className="font-semibold">Distribution Analytics</h3>
                     <button
                       onClick={() => router.push('/admin/area-stats')}
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
                     >
+                      <MapPin className="h-4 w-4" />
                       Area-wise Statistics
                     </button>
                     <button
                       onClick={() => router.push('/admin/category-stats')}
-                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
                     >
+                      <PieChart className="h-4 w-4" />
                       Category-wise Statistics
+                    </button>
+                    <button
+                      onClick={() => router.push('/admin/deliveries')}
+                      className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Delivery Analytics
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Payment Analytics</h3>
+                    <button
+                      onClick={fetchPaymentAnalytics}
+                      className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <DollarSign className="h-4 w-4" />
+                      Payment Summary
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('payments')}
+                      className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Payment Management
+                    </button>
+                    <button
+                      onClick={() => router.push('/admin/shopkeepers')}
+                      className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Building className="h-4 w-4" />
+                      Shopkeeper Performance
                     </button>
                   </div>
                   <div className="space-y-4">
                     <h3 className="font-semibold">System Reports</h3>
                     <button
                       onClick={() => router.push('/admin/emergency-cases')}
-                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
                     >
+                      <AlertTriangle className="h-4 w-4" />
                       Emergency Cases
                     </button>
                     <button
                       onClick={() => router.push('/admin/health-report')}
-                      className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors"
+                      className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
                     >
+                      <Activity className="h-4 w-4" />
                       System Health Report
+                    </button>
+                    <button
+                      onClick={() => window.open('/api/admin/export-data', '_blank')}
+                      className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export Data
                     </button>
                   </div>
                 </div>
+
+                {/* Quick Analytics Overview */}
+                {paymentAnalytics && (
+                  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-600">Success Rate</p>
+                      <p className="text-2xl font-bold text-blue-700">
+                        {paymentAnalytics.successRate || 0}%
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-sm text-green-600">Avg. Payment</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        ₹{paymentAnalytics.averagePayment || 0}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-sm text-purple-600">Monthly Growth</p>
+                      <p className="text-2xl font-bold text-purple-700">
+                        {paymentAnalytics.monthlyGrowth || 0}%
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-amber-50 rounded-lg">
+                      <p className="text-sm text-amber-600">Active Users</p>
+                      <p className="text-2xl font-bold text-amber-700">
+                        {paymentAnalytics.activeUsers || 0}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
