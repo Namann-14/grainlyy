@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,10 +46,70 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import { useMetaMask } from "@/components/MetaMaskProvider";
 
 export default function DealerLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { connected, account } = useMetaMask();
   const [notifications, setNotifications] = React.useState(3);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  // Mark component as mounted on client side
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Handle authentication checks only on client-side after mounting
+  React.useEffect(() => {
+    if (isMounted) {
+      const checkAuth = async () => {
+        // Check if user data exists in localStorage first
+        const currentUser = localStorage.getItem("currentUser");
+        if (currentUser) {
+          try {
+            const userData = JSON.parse(currentUser);
+            if (userData.type === "delivery") {
+              return; // User is authenticated as delivery partner, stay on page
+            }
+          } catch (error) {
+            console.log("Error parsing user data:", error);
+          }
+        }
+
+        // If no stored delivery partner data, redirect to login
+        if (!currentUser) {
+          router.push("/login");
+          return;
+        }
+
+        // If user data exists but not for delivery partner, redirect to login
+        if (currentUser) {
+          try {
+            const userData = JSON.parse(currentUser);
+            if (userData.type !== "delivery") {
+              router.push("/login");
+              return;
+            }
+          } catch (error) {
+            router.push("/login");
+            return;
+          }
+        }
+      };
+
+      // Add a small delay to allow for initialization
+      const timeoutId = setTimeout(checkAuth, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isMounted, router]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    router.push("/login");
+  };
 
   return (
     <SidebarProvider>
@@ -212,7 +272,7 @@ export default function DealerLayout({ children }) {
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -343,7 +403,7 @@ export default function DealerLayout({ children }) {
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuItem>Support</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

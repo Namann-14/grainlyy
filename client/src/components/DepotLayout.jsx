@@ -64,10 +64,32 @@ export default function DepotLayout({ children }) {
 
   // Handle redirections only on client-side after mounting
   useEffect(() => {
-    if (isMounted && !connected) {
-      router.push("/");
+    if (isMounted) {
+      // Check if user data exists in localStorage first
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        try {
+          const userData = JSON.parse(currentUser);
+          if (userData.type === 'shopkeeper') {
+            return; // User is authenticated as shopkeeper, stay on page
+          }
+        } catch (error) {
+          console.log('Error parsing user data:', error);
+        }
+      }
+
+      // If no wallet connection and no stored shopkeeper data, redirect to login
+      if (!connected && !currentUser) {
+        router.push("/login");
+      }
     }
   }, [isMounted, connected, router]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    router.push('/login');
+  };
 
   // Render the layout regardless of connection status during server-side rendering
   return (
@@ -222,7 +244,7 @@ export default function DepotLayout({ children }) {
                     <span>Profile Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -347,7 +369,7 @@ export default function DepotLayout({ children }) {
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuItem>Support</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

@@ -46,14 +46,52 @@ import Image from "next/image";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
-  const { connected } = useMetaMask();
+  const { connected, account } = useMetaMask();
   const router = useRouter();
 
   useEffect(() => {
-    if (!connected) {
-      router.push("/");
-    }
-  }, [connected, router]);
+    // Give some time for MetaMask to connect, then check authentication
+    const checkAuth = async () => {
+      // Check if user data exists in localStorage first
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        try {
+          const userData = JSON.parse(currentUser);
+          if (userData.type === 'admin') {
+            return; // User is authenticated as admin, stay on page
+          }
+        } catch (error) {
+          console.log('Error parsing user data:', error);
+        }
+      }
+
+      // If no wallet connection and no stored admin data, redirect to login
+      if (!connected && !currentUser) {
+        router.push("/login");
+        return;
+      }
+
+      // If wallet is connected but not the admin wallet, redirect to login
+      if (connected && account) {
+        const ADMIN_ADDRESS = "0x37470c74Cc2Cb55AB1CC23b16a05F2DC657E25aa".toLowerCase();
+        if (account.toLowerCase() !== ADMIN_ADDRESS) {
+          router.push("/login");
+          return;
+        }
+      }
+    };
+
+    // Add a small delay to allow MetaMask to initialize
+    const timeoutId = setTimeout(checkAuth, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [connected, account, router]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    router.push('/login');
+  };
 
   return (
     <SidebarProvider>
@@ -181,7 +219,7 @@ export default function AdminLayout({ children }) {
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -245,7 +283,7 @@ export default function AdminLayout({ children }) {
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuItem>Support</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
