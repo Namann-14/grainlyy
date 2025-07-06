@@ -865,6 +865,22 @@ export default function AdminDashboard() {
               ))}
             </motion.div>
 
+            {/* Simple card for raina */}
+            <Card className="border-gray-200 bg-gray-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Configuration</span>
+                  <select className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <option>div for raina</option>
+                    <option>Option A</option>
+                    <option>Option B</option>
+                    <option>Option C</option>
+                    <option>Settings</option>
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* System Health and Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* System Health */}
