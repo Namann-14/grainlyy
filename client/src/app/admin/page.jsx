@@ -179,14 +179,25 @@ export default function AdminDashboard() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch('/api/admin?endpoint=dashboard-stats');
+      const response = await fetch('/api/admin?endpoint=dashboard');
       const data = await response.json();
       
       if (data.success) {
         setDashboardData(prev => ({
           ...prev,
-          ...data.data
+          totalConsumers: data.data.totalConsumers || 0,
+          totalShopkeepers: data.data.totalShopkeepers || 0,
+          totalDeliveryAgents: data.data.totalDeliveryAgents || 0,
+          totalTokensIssued: data.data.totalTokensIssued || 0,
+          totalTokensClaimed: data.data.totalTokensClaimed || 0,
+          pendingTokens: data.data.pendingTokens || 0,
+          currentMonth: data.data.currentMonth || new Date().getMonth() + 1,
+          currentYear: data.data.currentYear || new Date().getFullYear()
         }));
+        
+        if (data.warning) {
+          console.warn('Dashboard warning:', data.warning);
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -232,7 +243,7 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     try {
       // Fetch consumers
-      const consumersResponse = await fetch('/api/admin?endpoint=get-consumers');
+      const consumersResponse = await fetch('/api/admin?endpoint=get-consumers&limit=100');
       if (consumersResponse.ok) {
         const consumersData = await consumersResponse.json();
         if (consumersData.success) {
@@ -240,8 +251,8 @@ export default function AdminDashboard() {
           
           // Group by category
           const grouped = {
-            BPL: consumersData.data.filter(c => c.category === 'BPL'),
-            APL: consumersData.data.filter(c => c.category === 'APL'),
+            BPL: consumersData.data.filter(c => c.category === 'BPL' || c.category === 0),
+            APL: consumersData.data.filter(c => c.category === 'APL' || c.category === 1),
             AAY: consumersData.data.filter(c => c.category === 'AAY'),
             PHH: consumersData.data.filter(c => c.category === 'PHH')
           };
@@ -653,8 +664,8 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          deliveryAgent: assignAgentForm.deliveryAgent,
-          shopkeeper: assignAgentForm.shopkeeper
+          deliveryAgentAddress: assignAgentForm.deliveryAgent,
+          shopkeeperAddress: assignAgentForm.shopkeeper
         })
       });
       
@@ -1026,7 +1037,7 @@ export default function AdminDashboard() {
                 <CardDescription>Common administrative tasks</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <Button
                     onClick={generateMonthlyTokensForAll}
                     disabled={actionLoading.generateMonthlyTokens}
@@ -1047,6 +1058,15 @@ export default function AdminDashboard() {
                   >
                     <Link2 className="h-5 w-5 mb-2" />
                     Assign Delivery Agent
+                  </Button>
+
+                  <Button
+                    onClick={() => router.push('/admin/consumer-requests')}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <UserPlus className="h-5 w-5 mb-2" />
+                    Consumer Requests
                   </Button>
 
                   <Button
@@ -1616,9 +1636,12 @@ export default function AdminDashboard() {
                     <SelectValue placeholder="Select delivery agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {allDeliveryAgents.map((agent) => (
-                      <SelectItem key={agent.agentAddress} value={agent.agentAddress}>
-                        {agent.name} ({formatAddress(agent.agentAddress)})
+                    {allDeliveryAgents.map((agent, index) => (
+                      <SelectItem 
+                        key={agent.agentAddress || agent.address || `agent-${index}`} 
+                        value={agent.agentAddress || agent.address}
+                      >
+                        {agent.name} ({formatAddress(agent.agentAddress || agent.address)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1635,9 +1658,12 @@ export default function AdminDashboard() {
                     <SelectValue placeholder="Select shopkeeper" />
                   </SelectTrigger>
                   <SelectContent>
-                    {allShopkeepers.map((shopkeeper) => (
-                      <SelectItem key={shopkeeper.address} value={shopkeeper.address}>
-                        {shopkeeper.name} ({formatAddress(shopkeeper.address)})
+                    {allShopkeepers.map((shopkeeper, index) => (
+                      <SelectItem 
+                        key={shopkeeper.address || shopkeeper.shopkeeperAddress || `shopkeeper-${index}`} 
+                        value={shopkeeper.address || shopkeeper.shopkeeperAddress}
+                      >
+                        {shopkeeper.name} ({formatAddress(shopkeeper.address || shopkeeper.shopkeeperAddress)})
                       </SelectItem>
                     ))}
                   </SelectContent>

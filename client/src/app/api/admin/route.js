@@ -281,12 +281,16 @@ export async function GET(request) {
 
     switch (endpoint) {
       case 'dashboard':
+      case 'dashboard-stats':
         return await handleDashboard();
       case 'consumers':
+      case 'get-consumers':
         return await handleConsumers(searchParams);
       case 'shopkeepers':
+      case 'get-shopkeepers':
         return await handleShopkeepers();
       case 'delivery-agents':
+      case 'get-delivery-agents':
         return await handleDeliveryAgents();
       case 'area-stats':
         return await handleAreaStats();
@@ -304,6 +308,8 @@ export async function GET(request) {
         return await handleSystemSettings();
       case 'test-connection':
         return await handleTestConnection();
+      case 'system-status':
+        return await handleSystemStatus();
       default:
         return NextResponse.json({ success: false, error: 'Invalid endpoint' }, { status: 400 });
     }
@@ -619,6 +625,19 @@ async function handleDashboard() {
 
     console.log('Processed dashboard data:', processedData);
     
+    // Verify the data by cross-checking with individual functions
+    try {
+      const totalConsumersCheck = await dashboardContract.getTotalConsumers();
+      const actualConsumers = Number(totalConsumersCheck);
+      
+      if (actualConsumers === 0 && processedData.totalConsumers > 0) {
+        console.log('⚠️ Dashboard shows consumers but getTotalConsumers returns 0 - using conservative data');
+        processedData.totalConsumers = 0;
+      }
+    } catch (checkError) {
+      console.log('Could not verify consumer count:', checkError.message);
+    }
+    
     return NextResponse.json({
       success: true,
       data: processedData
@@ -661,46 +680,122 @@ async function handleConsumers(searchParams) {
       throw new Error('Dashboard contract not initialized');
     }
 
-    const offset = searchParams.get('offset') || '0';
-    const limit = searchParams.get('limit') || '50';
+    const offset = parseInt(searchParams.get('offset') || searchParams.get('page') || '0');
+    const limit = parseInt(searchParams.get('limit') || '50');
     const category = searchParams.get('category');
     const search = searchParams.get('search');
 
-    let consumers;
+    console.log(`Fetching consumers: offset=${offset}, limit=${limit}, category=${category}, search=${search}`);
+
+    let consumers = [];
+    let total = 0;
     
     if (search) {
-      consumers = await dashboardContract.searchConsumersByName(search);
-      return NextResponse.json({
-        success: true,
-        data: consumers.map(formatConsumer),
-        total: consumers.length
-      });
+      console.log('Searching consumers by name:', search);
+      try {
+        const searchResults = await dashboardContract.searchConsumersByName(search);
+        console.log('Search results:', searchResults);
+        consumers = searchResults.map(formatConsumer);
+        total = consumers.length;
+      } catch (searchError) {
+        console.error('Search function failed:', searchError);
+        // Fallback: get all consumers and filter locally
+        const result = await dashboardContract.getConsumersPaginated(0, 1000);
+        const allConsumers = result.consumerList.map(formatConsumer);
+        consumers = allConsumers.filter(c => 
+          c.name.toLowerCase().includes(search.toLowerCase()) ||
+          c.aadhaar.toString().includes(search)
+        );
+        total = consumers.length;
+      }
     } else if (category && category !== 'all') {
-      consumers = await dashboardContract.getConsumersByCategory(category);
-      return NextResponse.json({
-        success: true,
-        data: consumers.map(formatConsumer),
-        total: consumers.length
-      });
+      console.log('Fetching consumers by category:', category);
+      try {
+        const categoryConsumers = await dashboardContract.getConsumersByCategory(category);
+        console.log('Category consumers:', categoryConsumers);
+        consumers = categoryConsumers.map(formatConsumer);
+        total = consumers.length;
+      } catch (categoryError) {
+        console.error('Category function failed:', categoryError);
+        // Fallback: get all consumers and filter by category
+        const result = await dashboardContract.getConsumersPaginated(0, 1000);
+        const allConsumers = result.consumerList.map(formatConsumer);
+        consumers = allConsumers.filter(c => c.category === category);
+        total = consumers.length;
+      }
     } else {
-      const result = await dashboardContract.getConsumersPaginated(offset, limit);
-      return NextResponse.json({
-        success: true,
-        data: result.consumerList.map(formatConsumer),
-        total: Number(result.total),
-        pagination: {
-          offset: Number(offset),
-          limit: Number(limit),
-          totalPages: Math.ceil(Number(result.total) / Number(limit))
+      console.log('Fetching paginated consumers...');
+      try {
+        const result = await dashboardContract.getConsumersPaginated(offset, limit);
+        console.log('Paginated result:', result);
+        consumers = result.consumerList ? result.consumerList.map(formatConsumer) : [];
+        total = Number(result.total || 0);
+        
+        console.log(`Found ${consumers.length} consumers, total: ${total}`);
+      } catch (paginationError) {
+        console.error('Pagination function failed:', paginationError);
+        
+        // Final fallback: try to get total consumers count
+        try {
+          const totalConsumers = await dashboardContract.getTotalConsumers();
+          total = Number(totalConsumers);
+          console.log(`Total consumers from blockchain: ${total}`);
+          
+          if (total > 0) {
+            return NextResponse.json({
+              success: true,
+              data: [],
+              total: total,
+              pagination: {
+                offset: Number(offset),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / Number(limit))
+              },
+              warning: `Found ${total} consumers on blockchain, but getConsumersPaginated function is not available in the deployed contract. This might be a Diamond contract configuration issue.`,
+              info: {
+                suggestion: 'Try registering new consumers or check if the Diamond contract facets are properly deployed.',
+                contractFunction: 'getConsumersPaginated',
+                totalFound: total
+              }
+            });
+          }
+        } catch (totalError) {
+          console.error('Even getTotalConsumers failed:', totalError);
         }
-      });
+        
+        // Return empty result with error info
+        consumers = [];
+        total = 0;
+      }
     }
+
+    const response = {
+      success: true,
+      data: consumers,
+      total: total,
+      pagination: {
+        offset: Number(offset),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit))
+      },
+      dataSource: 'blockchain',
+      contractAddress: CONTRACT_ADDRESS,
+      timestamp: new Date().toISOString()
+    };
+
+    if (consumers.length === 0 && total === 0) {
+      response.warning = 'No consumers found on blockchain. This could mean no consumers are registered yet, or there might be a contract configuration issue.';
+    }
+
+    return NextResponse.json(response);
+    
   } catch (error) {
     console.error('Consumers fetch error:', error);
     console.error('Error details:', {
       name: error.name,
       message: error.message,
-      code: error.code
+      code: error.code,
+      stack: error.stack
     });
     
     return NextResponse.json({
@@ -712,8 +807,13 @@ async function handleConsumers(searchParams) {
         limit: 50,
         totalPages: 0
       },
-      warning: `No consumer data available - blockchain connection issue: ${error.message}`,
-      error: true
+      warning: `Blockchain connection issue: ${error.message}. This might be because no consumers are registered yet, or there's a contract deployment issue.`,
+      error: true,
+      errorDetails: {
+        message: error.message,
+        code: error.code,
+        suggestion: 'Try registering a consumer first through the consumer signup page, or check if the contract is properly deployed.'
+      }
     });
   }
 }
@@ -776,7 +876,12 @@ async function handleShopkeepers() {
         success: true,
         data: shopkeepers,
         dataSource: 'blockchain',
-        contractAddress: CONTRACT_ADDRESS
+        contractAddress: CONTRACT_ADDRESS,
+        validation: {
+          totalFound: shopkeepers.length,
+          activeCount: shopkeepers.filter(s => s.isActive).length,
+          validAddresses: shopkeepers.filter(s => s.shopkeeperAddress && s.shopkeeperAddress !== '0x0000000000000000000000000000000000000000').length
+        }
       });
     } catch (getAllError) {
       console.log('getAllShopkeepers failed, trying fallback approach:', getAllError.message);
@@ -1651,9 +1756,63 @@ async function handleAssignDeliveryAgent(body) {
 
     console.log(`🚀 Assigning delivery agent ${deliveryAgentAddress} to shopkeeper ${shopkeeperAddress}`);
     
+    // Pre-flight checks to diagnose the issue
+    try {
+      console.log('🔍 Performing pre-flight checks...');
+      
+      // Check if delivery agent exists and is registered
+      try {
+        const agentInfo = await diamondContract.getDeliveryAgentInfo(deliveryAgentAddress);
+        console.log('✅ Delivery agent info:', {
+          address: agentInfo.agentAddress,
+          name: agentInfo.name,
+          isActive: agentInfo.isActive
+        });
+        
+        if (!agentInfo.isActive) {
+          throw new Error(`Delivery agent ${deliveryAgentAddress} is not active`);
+        }
+      } catch (agentError) {
+        console.error('❌ Delivery agent check failed:', agentError);
+        throw new Error(`Delivery agent ${deliveryAgentAddress} not found or not registered: ${agentError.message}`);
+      }
+      
+      // Check if shopkeeper exists and is registered  
+      try {
+        const shopkeeperInfo = await diamondContract.getShopkeeperInfo(shopkeeperAddress);
+        console.log('✅ Shopkeeper info:', {
+          address: shopkeeperInfo.shopkeeperAddress,
+          name: shopkeeperInfo.name,
+          isActive: shopkeeperInfo.isActive
+        });
+        
+        if (!shopkeeperInfo.isActive) {
+          throw new Error(`Shopkeeper ${shopkeeperAddress} is not active`);
+        }
+      } catch (shopkeeperError) {
+        console.error('❌ Shopkeeper check failed:', shopkeeperError);
+        throw new Error(`Shopkeeper ${shopkeeperAddress} not found or not registered: ${shopkeeperError.message}`);
+      }
+      
+      // Check if agent is already assigned
+      try {
+        const currentAssignment = await diamondContract.getAssignedDeliveryAgent(shopkeeperAddress);
+        if (currentAssignment && currentAssignment[0] && currentAssignment[0] !== '0x0000000000000000000000000000000000000000') {
+          console.log('⚠️ Shopkeeper already has an assigned agent:', currentAssignment[0]);
+          // This might not be an error - could be reassignment
+        }
+      } catch (assignmentError) {
+        console.log('ℹ️ Could not check current assignment:', assignmentError.message);
+      }
+      
+      console.log('✅ Pre-flight checks passed, proceeding with assignment...');
+    } catch (preflightError) {
+      throw preflightError;
+    }
+    
     const tx = await diamondContract.connect(adminWallet).assignDeliveryAgentToShopkeeper(
-      shopkeeperAddress, 
-      deliveryAgentAddress,
+      deliveryAgentAddress, // First parameter: delivery agent address
+      shopkeeperAddress,    // Second parameter: shopkeeper address
       {
         gasLimit: 500000
       }
@@ -1663,6 +1822,10 @@ async function handleAssignDeliveryAgent(body) {
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    if (receipt.status === 0) {
+      throw new Error('Transaction reverted - check contract logic and requirements');
+    }
     
     return NextResponse.json({
       success: true,
@@ -1800,6 +1963,145 @@ async function handleUpdateConsumerCategory(body) {
     return NextResponse.json({
       success: false,
       error: `Failed to update consumer category: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleSystemStatus() {
+  try {
+    console.log('🔍 Performing comprehensive system status check...');
+    
+    const status = {
+      contract: {
+        address: CONTRACT_ADDRESS,
+        network: 'Polygon Amoy Testnet',
+        connected: !!dashboardContract
+      },
+      functions: {
+        available: [],
+        unavailable: [],
+        testResults: {}
+      },
+      data: {
+        dashboard: null,
+        actualCounts: {}
+      }
+    };
+
+    if (!dashboardContract) {
+      throw new Error('Contract not initialized');
+    }
+
+    // Test major functions
+    const functionsToTest = [
+      'getAdminDashboard',
+      'getTotalConsumers', 
+      'getAllShopkeepers',
+      'getDeliveryAgents',
+      'getConsumersPaginated'
+    ];
+
+    for (const funcName of functionsToTest) {
+      try {
+        console.log(`Testing ${funcName}...`);
+        let result;
+        
+        switch (funcName) {
+          case 'getAdminDashboard':
+            result = await dashboardContract.getAdminDashboard();
+            status.data.dashboard = {
+              totalConsumers: Number(result.totalConsumers),
+              totalShopkeepers: Number(result.totalShopkeepers),
+              totalDeliveryAgents: Number(result.totalDeliveryAgents)
+            };
+            break;
+          case 'getTotalConsumers':
+            result = await dashboardContract.getTotalConsumers();
+            status.data.actualCounts.consumers = Number(result);
+            break;
+          case 'getAllShopkeepers':
+            result = await dashboardContract.getAllShopkeepers();
+            status.data.actualCounts.shopkeepers = result ? result.length : 0;
+            break;
+          case 'getDeliveryAgents':
+            result = await dashboardContract.getDeliveryAgents();
+            status.data.actualCounts.deliveryAgents = result ? result.length : 0;
+            break;
+          case 'getConsumersPaginated':
+            result = await dashboardContract.getConsumersPaginated(0, 10);
+            status.data.actualCounts.consumersFromPagination = result.consumerList ? result.consumerList.length : 0;
+            break;
+        }
+        
+        status.functions.available.push(funcName);
+        status.functions.testResults[funcName] = 'SUCCESS';
+        console.log(`✅ ${funcName} - SUCCESS`);
+      } catch (error) {
+        status.functions.unavailable.push(funcName);
+        status.functions.testResults[funcName] = `ERROR: ${error.message}`;
+        console.log(`❌ ${funcName} - ERROR: ${error.message}`);
+      }
+    }
+
+    // Data integrity analysis
+    const dashboard = status.data.dashboard;
+    const actual = status.data.actualCounts;
+    
+    status.analysis = {
+      dataIntegrityIssues: [],
+      recommendations: []
+    };
+
+    if (dashboard && actual.consumers !== undefined && dashboard.totalConsumers !== actual.consumers) {
+      status.analysis.dataIntegrityIssues.push({
+        issue: 'Consumer count mismatch',
+        dashboardValue: dashboard.totalConsumers,
+        actualValue: actual.consumers,
+        severity: 'HIGH'
+      });
+    }
+
+    if (dashboard && actual.shopkeepers !== undefined && dashboard.totalShopkeepers !== actual.shopkeepers) {
+      status.analysis.dataIntegrityIssues.push({
+        issue: 'Shopkeeper count mismatch', 
+        dashboardValue: dashboard.totalShopkeepers,
+        actualValue: actual.shopkeepers,
+        severity: 'HIGH'
+      });
+    }
+
+    if (dashboard && actual.deliveryAgents !== undefined && dashboard.totalDeliveryAgents !== actual.deliveryAgents) {
+      status.analysis.dataIntegrityIssues.push({
+        issue: 'Delivery agent count mismatch',
+        dashboardValue: dashboard.totalDeliveryAgents,
+        actualValue: actual.deliveryAgents, 
+        severity: 'HIGH'
+      });
+    }
+
+    // Generate recommendations
+    if (status.analysis.dataIntegrityIssues.length > 0) {
+      status.analysis.recommendations.push('The contract appears to have test/hardcoded data that doesn\'t match actual registrations');
+      status.analysis.recommendations.push('Consider using actual registration counts instead of dashboard totals');
+      status.analysis.recommendations.push('This is common in development contracts with pre-seeded data');
+    }
+
+    if (status.functions.unavailable.length > 0) {
+      status.analysis.recommendations.push('Some Diamond facets may not be properly cut/registered');
+      status.analysis.recommendations.push('Check Diamond contract deployment and facet registration');
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('System status check failed:', error);
+    return NextResponse.json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }

@@ -67,27 +67,6 @@ export async function GET() {
       s => s.address && s.address !== '0x0000000000000000000000000000000000000000' && s.isActive
     );
 
-    // Optionally, add mock shopkeepers if none exist (for demo/dev)
-    if (resultShopkeepers.length < 1) {
-      const mockShopkeepers = [
-        {
-          address: "0x1234567890123456789012345678901234567890",
-          name: "Central Ration Shop",
-          area: "Central District",
-          totalConsumersAssigned: 0,
-          totalTokensIssued: 0,
-          totalDeliveries: 0,
-          registrationTime: 0,
-          isActive: true
-        }
-      ];
-      for (const mock of mockShopkeepers) {
-        if (!resultShopkeepers.find(s => s.address === mock.address)) {
-          resultShopkeepers.push(mock);
-        }
-      }
-    }
-
     return NextResponse.json({
       success: true,
       shopkeepers: resultShopkeepers,

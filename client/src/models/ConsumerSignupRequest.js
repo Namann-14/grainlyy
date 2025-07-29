@@ -50,6 +50,15 @@ const ConsumerSignupRequestSchema = new mongoose.Schema({
   },
   reviewedBy: {
     type: String // Admin ID or name
+  },
+  processedAt: {
+    type: Date
+  },
+  txHash: {
+    type: String
+  },
+  rejectionReason: {
+    type: String
   }
 }, {
   timestamps: true

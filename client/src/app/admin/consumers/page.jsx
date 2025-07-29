@@ -47,7 +47,10 @@ export default function ConsumerManagement() {
       setRefreshing(true);
       setError(''); // Clear previous errors
       
-      let url = `/api/admin?endpoint=consumers&page=${currentPage}&limit=20`;
+      // Calculate offset from current page (page is 1-indexed, offset is 0-indexed)
+      const offset = (currentPage - 1) * 20;
+      
+      let url = `/api/admin?endpoint=get-consumers&offset=${offset}&limit=20`;
       if (filterCategory !== 'all') {
         url += `&category=${filterCategory}`;
       }
@@ -66,16 +69,19 @@ export default function ConsumerManagement() {
           setTotalPages(data.pagination.totalPages);
         }
         
-        // Show warning if there are blockchain connection issues
+        // Show different messages based on the response
         if (data.warning) {
           setError(`⚠️ ${data.warning}`);
-        } else if (data.error) {
-          setError(`❌ Blockchain connection failed: ${data.warning || 'Unknown error'}`);
+        } else if (data.errorDetails) {
+          setError(`❌ ${data.errorDetails.message}. ${data.errorDetails.suggestion}`);
+        } else if (data.data.length === 0 && data.total === 0) {
+          setError('ℹ️ No consumers registered yet. Try registering a consumer first through the signup page.');
         } else if (data.data.length === 0) {
-          setError('ℹ️ No consumers registered yet');
+          setError('ℹ️ No consumers found for the current filter/page');
         } else {
           // Clear any previous errors if data loads successfully
           setError('');
+          setSuccess(`✅ Loaded ${data.data.length} consumers from blockchain (Total: ${data.total})`);
         }
       } else {
         setError('❌ Failed to load consumers: ' + data.error);
@@ -83,7 +89,7 @@ export default function ConsumerManagement() {
       }
     } catch (error) {
       console.error('Error fetching consumers:', error);
-      setError('❌ Failed to connect to backend API');
+      setError('❌ Failed to connect to backend API: ' + error.message);
       setConsumers([]);
     } finally {
       setLoading(false);
@@ -95,7 +101,7 @@ export default function ConsumerManagement() {
     try {
       setRefreshing(true);
       
-      const url = `/api/admin?endpoint=consumers&search=${encodeURIComponent(searchTerm)}`;
+      const url = `/api/admin?endpoint=get-consumers&search=${encodeURIComponent(searchTerm)}`;
       console.log('Searching consumers:', url);
       
       const response = await fetch(url);
@@ -112,6 +118,7 @@ export default function ConsumerManagement() {
           setError('ℹ️ No consumers found matching your search');
         } else {
           setError('');
+          setSuccess(`✅ Found ${data.data.length} consumers matching "${searchTerm}"`);
         }
       } else {
         setError('❌ Search failed: ' + data.error);

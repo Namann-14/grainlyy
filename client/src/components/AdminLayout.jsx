@@ -135,6 +135,22 @@ export default function AdminLayout({ children }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/admin/consumer-requests"}>
+                      <Link href="/admin/consumer-requests">
+                        <Package className="h-4 w-4 text-green-700" />
+                        <span>Consumer Requests</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/admin/test-data"}>
+                      <Link href="/admin/test-data">
+                        <Settings className="h-4 w-4 text-green-700" />
+                        <span>Test Data</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === "/depots"}
