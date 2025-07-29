@@ -620,14 +620,14 @@ export default function ConsumerManagement() {
 
         {/* Footer Info */}
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Data fetched directly from blockchain • Contract: 0x46a92d404A83304249e1A51695994DF7Fc51Dc35</p>
+          <p>Data fetched directly from blockchain • Contract: {process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xD21958aa2130C1E8cFA88dd82b352DCa068B3059'}</p>
           <p>Last updated: {new Date().toLocaleString('en-IN')}</p>
           {pagination.total && (
             <p>Showing {filteredConsumers.length} of {pagination.total} consumers</p>
           )}
           <p className="mt-2">
             <a 
-              href="https://amoy.polygonscan.com/address/0x46a92d404A83304249e1A51695994DF7Fc51Dc35" 
+              href={`https://amoy.polygonscan.com/address/${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xD21958aa2130C1E8cFA88dd82b352DCa068B3059'}`} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 underline flex items-center justify-center gap-1"

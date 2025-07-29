@@ -367,6 +367,14 @@ export async function POST(request) {
         return await handleTestSMS();
       case 'register-shopkeeper':
         return await handleRegisterShopkeeper(body);
+      case 'assign-delivery-agent':
+        return await handleAssignDeliveryAgent(body);
+      case 'remove-delivery-agent':
+        return await handleRemoveDeliveryAgent(body);
+      case 'transfer-consumer':
+        return await handleTransferConsumer(body);
+      case 'update-consumer-category':
+        return await handleUpdateConsumerCategory(body);
       default:
         return NextResponse.json({ 
           success: false, 
@@ -1626,5 +1634,172 @@ async function handleRegisterShopkeeper(body) {
       },
       { status: 500 }
     );
+  }
+}
+
+async function handleAssignDeliveryAgent(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { shopkeeperAddress, deliveryAgentAddress } = body;
+    
+    if (!shopkeeperAddress || !deliveryAgentAddress) {
+      throw new Error('Shopkeeper address and delivery agent address are required');
+    }
+
+    console.log(`🚀 Assigning delivery agent ${deliveryAgentAddress} to shopkeeper ${shopkeeperAddress}`);
+    
+    const tx = await diamondContract.connect(adminWallet).assignDeliveryAgentToShopkeeper(
+      shopkeeperAddress, 
+      deliveryAgentAddress,
+      {
+        gasLimit: 500000
+      }
+    );
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Delivery agent assigned successfully.'
+    });
+  } catch (error) {
+    console.error('Assign delivery agent error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to assign delivery agent: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleRemoveDeliveryAgent(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { shopkeeperAddress } = body;
+    
+    if (!shopkeeperAddress) {
+      throw new Error('Shopkeeper address is required');
+    }
+
+    console.log(`🚀 Removing delivery agent from shopkeeper ${shopkeeperAddress}`);
+    
+    const tx = await diamondContract.connect(adminWallet).removeDeliveryAgentFromShopkeeper(
+      shopkeeperAddress,
+      {
+        gasLimit: 500000
+      }
+    );
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Delivery agent removed successfully.'
+    });
+  } catch (error) {
+    console.error('Remove delivery agent error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to remove delivery agent: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleTransferConsumer(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { aadhaar, newShopkeeperAddress } = body;
+    
+    if (!aadhaar || !newShopkeeperAddress) {
+      throw new Error('Aadhaar and new shopkeeper address are required');
+    }
+
+    console.log(`🚀 Transferring consumer ${aadhaar} to shopkeeper ${newShopkeeperAddress}`);
+    
+    const tx = await diamondContract.connect(adminWallet).transferConsumerToShopkeeper(
+      aadhaar, 
+      newShopkeeperAddress,
+      {
+        gasLimit: 500000
+      }
+    );
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Consumer transferred successfully.'
+    });
+  } catch (error) {
+    console.error('Transfer consumer error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to transfer consumer: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleUpdateConsumerCategory(body) {
+  try {
+    if (!diamondContract) {
+      throw new Error('Diamond contract not initialized');
+    }
+
+    const { aadhaar, newCategory } = body;
+    
+    if (!aadhaar || !newCategory) {
+      throw new Error('Aadhaar and new category are required');
+    }
+
+    console.log(`🚀 Updating consumer ${aadhaar} category to ${newCategory}`);
+    
+    const tx = await diamondContract.connect(adminWallet).updateConsumerCategory(
+      aadhaar, 
+      newCategory,
+      {
+        gasLimit: 500000
+      }
+    );
+    
+    console.log('✅ Transaction sent:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    
+    return NextResponse.json({
+      success: true,
+      txHash: tx.hash,
+      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+      message: 'Consumer category updated successfully.'
+    });
+  } catch (error) {
+    console.error('Update consumer category error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to update consumer category: ${error.message}`
+    }, { status: 500 });
   }
 }

@@ -1,9 +1,9 @@
 import { ethers } from 'ethers';
 import contractABI from '../../abis/DiamondMergedABI.json';
 
-// Contract configuration
-const CONTRACT_ADDRESS = '0xA4E672155301A47EdDfDC8CE317D37352c5308E6';
-const POLYGON_RPC_URL = 'https://polygon-rpc.com/';
+// Contract configuration - using environment variables
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xD21958aa2130C1E8cFA88dd82b352DCa068B3059';
+const POLYGON_RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://polygon-amoy.g.alchemy.com/v2/xMcrrdg5q8Pdtqa6itPOK';
 
 // Get contract instance
 export const getContract = (signer) => {

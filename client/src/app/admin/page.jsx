@@ -12,50 +12,23 @@ import {
   CreditCard, Settings, Pause, Play, Shield,
   FileText, BarChart3, PieChart, Download,
   Bell, X, Check, Eye, UserX, UserPlus,
-  Navigation, Star, Award, Target, Gauge
+  Navigation, Star, Award, Target, Gauge,
+  Link2, Copy, ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SendRationDialog } from "@/components/admin/SendRationDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AdminContractAPI, parseTransactionError } from '@/utils/blockchainUtils';
-import { ethers } from 'ethers';
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 15,
-    },
-  },
-};
 
 export default function AdminDashboard() {
   const router = useRouter();
   
-  // Blockchain Integration
-  const [adminContract, setAdminContract] = useState(null);
-  const [signer, setSigner] = useState(null);
-  const [adminWalletAddress, setAdminWalletAddress] = useState('');
+  // Backend Connection States - No MetaMask needed
   const [isConnected, setIsConnected] = useState(false);
+  const [adminWalletAddress] = useState('0x37470c74Cc2Cb55AB1CC23b16a05F2DC657E25aa'); // From env
   
   // Core Dashboard States
   const [dashboardData, setDashboardData] = useState({
@@ -64,27 +37,31 @@ export default function AdminDashboard() {
     totalDeliveryAgents: 0,
     activeDeliveries: 0,
     tokensDistributed: 0,
-    systemStatus: 'Active'
+    systemStatus: 'Active',
+    rationPrice: 0,
+    subsidyPercentage: 0,
+    currentMonth: 0,
+    currentYear: 0
   });
   
   const [systemAnalytics, setSystemAnalytics] = useState(null);
-  const [systemHealth, setSystemHealth] = useState(null);
   const [paymentAnalytics, setPaymentAnalytics] = useState(null);
-  
-  // Pending Approvals States
-  const [pendingConsumers, setPendingConsumers] = useState([]);
-  const [pendingShopkeepers, setPendingShopkeepers] = useState([]);
-  const [pendingAgents, setPendingAgents] = useState([]);
+  const [areaStats, setAreaStats] = useState(null);
+  const [categoryStats, setCategoryStats] = useState(null);
   
   // User Management States
+  const [allConsumers, setAllConsumers] = useState([]);
   const [consumersByCategory, setConsumersByCategory] = useState({
     BPL: [],
     APL: [],
-    AAY: []
+    AAY: [],
+    PHH: []
   });
   const [allShopkeepers, setAllShopkeepers] = useState([]);
   const [allDeliveryAgents, setAllDeliveryAgents] = useState([]);
   const [activeDeliveries, setActiveDeliveries] = useState([]);
+  const [emergencyCases, setEmergencyCases] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   
   // UI States
   const [loading, setLoading] = useState(true);
@@ -94,1359 +71,1653 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   
   // Loading States for Actions
-  const [generatingTokens, setGeneratingTokens] = useState({
-    monthly: false,
-    bpl: false,
-    apl: false,
-    aay: false,
-    bulk: false,
-    individual: {}
-  });
-  
-  const [systemActions, setSystemActions] = useState({
-    pausing: false,
-    unpausing: false,
+  const [actionLoading, setActionLoading] = useState({
+    generateMonthlyTokens: false,
+    generateCategoryTokens: false,
+    expireOldTokens: false,
+    pauseSystem: false,
+    unpauseSystem: false,
     settingPrice: false,
-    settingSubsidy: false
+    settingSubsidy: false,
+    bulkGenerateTokens: false,
+    assigningAgent: false,
+    updatingSystem: false
   });
   
-  const [userActions, setUserActions] = useState({
-    deactivating: {},
-    reactivating: {},
-    approving: {},
-    rejecting: {}
-  });
-  
-  // Settings States
+  // Form States
   const [priceSettings, setPriceSettings] = useState({
     rationPrice: '',
     subsidyPercentage: ''
   });
+  
+  const [assignAgentForm, setAssignAgentForm] = useState({
+    deliveryAgent: '',
+    shopkeeper: '',
+    showDialog: false
+  });
+  
+  const [bulkTokenForm, setBulkTokenForm] = useState({
+    aadhaars: '',
+    showDialog: false
+  });
 
-  // ========== BLOCKCHAIN INITIALIZATION ==========
+  // New form states for additional features
+  const [emergencyForm, setEmergencyForm] = useState({
+    orderId: '',
+    reason: '',
+    showDialog: false
+  });
+
+  const [notificationForm, setNotificationForm] = useState({
+    role: '',
+    message: '',
+    priority: 'normal',
+    showDialog: false
+  });
+
+  // ========== BACKEND API INITIALIZATION ==========
   
   useEffect(() => {
-    initializeBlockchain();
+    initializeBackendConnection();
   }, []);
 
-  useEffect(() => {
-    if (adminContract && isConnected) {
-      fetchAllDashboardData();
-    }
-  }, [adminContract, isConnected]);
-
-  const initializeBlockchain = async () => {
+  const initializeBackendConnection = async () => {
     try {
-      if (typeof window.ethereum !== 'undefined') {
-        // Request account access
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signerInstance = await provider.getSigner();
-        const address = await signerInstance.getAddress();
-        
-        setSigner(signerInstance);
-        setAdminWalletAddress(address);
-        
-        // Initialize contract API
-        const contractAPI = new AdminContractAPI(signerInstance);
-        setAdminContract(contractAPI);
+      setLoading(true);
+      
+      // Test backend connection
+      const response = await fetch('/api/admin?endpoint=test-connection');
+      const data = await response.json();
+      
+      if (data.success) {
         setIsConnected(true);
+        setSuccess('✅ Backend wallet connected successfully!');
+        console.log('Backend connection established:', data.data);
         
-        setSuccess('✅ Successfully connected to blockchain!');
+        // Fetch all dashboard data
+        await fetchAllDashboardData();
       } else {
-        setError('❌ Please install MetaMask to use this dashboard');
+        setError('❌ Failed to connect to backend wallet: ' + data.error);
       }
     } catch (error) {
-      console.error('Error initializing blockchain:', error);
-      setError('❌ Failed to connect to blockchain: ' + parseTransactionError(error));
-    }
-  };
-
-  // ========== BLOCKCHAIN FUNCTIONS ==========
-  
-  // Test blockchain connection
-  const testConnection = async () => {
-    try {
-      setRefreshing(true);
-      if (!adminContract) {
-        setError('❌ Contract not initialized');
-        return;
-      }
-      
-      const totalConsumers = await adminContract.getTotalConsumers();
-      const totalShopkeepers = await adminContract.getTotalShopkeepers();
-      const isPaused = await adminContract.isPaused();
-      
-      if (totalConsumers.success && totalShopkeepers.success && isPaused.success) {
-        setSuccess(`✅ Blockchain connection test successful!<br/>
-          Total Consumers: ${totalConsumers.data}<br/>
-          Total Shopkeepers: ${totalShopkeepers.data}<br/>
-          System Status: ${isPaused.data ? 'Paused' : 'Active'}<br/>
-          Admin Wallet: ${adminWalletAddress}`);
-      } else {
-        setError('❌ Blockchain connection test failed');
-      }
-    } catch (error) {
-      setError(`❌ Connection test failed: ${parseTransactionError(error)}`);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Transaction monitoring helper
-  const addTransactionToMonitor = (txData) => {
-    const event = new CustomEvent('addTransaction', { detail: txData });
-    window.dispatchEvent(event);
-  };
-
-  // ========== DATA FETCHING FUNCTIONS ==========
-  
-  // Fetch all dashboard data
-  const fetchAllDashboardData = async () => {
-    if (!adminContract) return;
-    
-    setLoading(true);
-    try {
-      await Promise.all([
-        fetchSystemOverview(),
-        fetchUserManagementData(),
-        fetchDeliveryData(),
-        fetchAnalyticsData(),
-        fetchPendingApprovals()
-      ]);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data: ' + parseTransactionError(error));
+      console.error('Backend connection error:', error);
+      setError('❌ Backend connection failed: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 1. System Overview Data
-  const fetchSystemOverview = async () => {
+  // ========== DATA FETCHING FUNCTIONS ==========
+  
+  const fetchAllDashboardData = async () => {
     try {
-      const [
-        totalConsumersRes,
-        totalShopkeepersRes,
-        totalAgentsRes,
-        systemAnalyticsRes,
-        isPausedRes,
-        rationPriceRes,
-        subsidyRes
-      ] = await Promise.all([
-        adminContract.getTotalConsumers(),
-        adminContract.getTotalShopkeepers(),
-        adminContract.getTotalDeliveryAgents(),
-        adminContract.getSystemAnalytics(),
-        adminContract.isPaused(),
-        adminContract.getRationPrice(),
-        adminContract.getSubsidyPercentage()
-      ]);
-
-      setDashboardData({
-        totalConsumers: totalConsumersRes.success ? totalConsumersRes.data : 0,
-        totalShopkeepers: totalShopkeepersRes.success ? totalShopkeepersRes.data : 0,
-        totalDeliveryAgents: totalAgentsRes.success ? totalAgentsRes.data : 0,
-        systemStatus: isPausedRes.success ? (isPausedRes.data ? 'Paused' : 'Active') : 'Unknown',
-        rationPrice: rationPriceRes.success ? rationPriceRes.data : '0',
-        subsidyPercentage: subsidyRes.success ? subsidyRes.data : 0
-      });
-
-      if (systemAnalyticsRes.success) {
-        setSystemAnalytics(systemAnalyticsRes.data);
-      }
-
-      setPriceSettings({
-        rationPrice: rationPriceRes.success ? rationPriceRes.data : '',
-        subsidyPercentage: subsidyRes.success ? subsidyRes.data.toString() : ''
-      });
+      setRefreshing(true);
+      setError('');
       
+      // Fetch all data in parallel
+      const promises = [
+        fetchDashboardStats(),
+        fetchPaymentAnalytics(), 
+        fetchSystemSettings(),
+        fetchUsers(),
+        fetchActiveDeliveries(),
+        fetchAreaStats(),
+        fetchCategoryStats(),
+        fetchEmergencyCases(),
+        fetchNotifications()
+      ];
+      
+      await Promise.allSettled(promises);
+      setSuccess('✅ Dashboard data refreshed successfully!');
     } catch (error) {
-      console.error('Error fetching system overview:', error);
+      console.error('Error fetching dashboard data:', error);
+      setError('❌ Failed to fetch dashboard data: ' + error.message);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  // 2. User Management Data
-  const fetchUserManagementData = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      const [
-        bplConsumersRes,
-        aplConsumersRes,
-        aayConsumersRes,
-        shopkeepersRes,
-        agentsRes
-      ] = await Promise.all([
-        adminContract.getConsumersByCategory('BPL'),
-        adminContract.getConsumersByCategory('APL'),
-        adminContract.getConsumersByCategory('AAY'),
-        adminContract.getAllShopkeepers(),
-        adminContract.getAllDeliveryAgents()
-      ]);
-
-      setConsumersByCategory({
-        BPL: bplConsumersRes.success ? bplConsumersRes.data : [],
-        APL: aplConsumersRes.success ? aplConsumersRes.data : [],
-        AAY: aayConsumersRes.success ? aayConsumersRes.data : []
-      });
-
-      if (shopkeepersRes.success) setAllShopkeepers(shopkeepersRes.data);
-      if (agentsRes.success) setAllDeliveryAgents(agentsRes.data);
-      
-    } catch (error) {
-      console.error('Error fetching user management data:', error);
-    }
-  };
-
-  // 3. Delivery Data
-  const fetchDeliveryData = async () => {
-    try {
-      const activeDeliveriesRes = await adminContract.getActiveDeliveries();
-      
-      if (activeDeliveriesRes.success) {
-        setActiveDeliveries(activeDeliveriesRes.data);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching delivery data:', error);
-    }
-  };
-
-  // 4. Analytics Data
-  const fetchAnalyticsData = async () => {
-    try {
-      const [
-        paymentAnalyticsRes,
-        systemHealthRes
-      ] = await Promise.all([
-        adminContract.getPaymentAnalytics(),
-        adminContract.getSystemHealthReport()
-      ]);
-
-      if (paymentAnalyticsRes.success) setPaymentAnalytics(paymentAnalyticsRes.data);
-      if (systemHealthRes.success) setSystemHealth(systemHealthRes.data);
-      
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-    }
-  };
-
-  // 5. Pending Approvals (from API/Database)
-  const fetchPendingApprovals = async () => {
-    try {
-      const response = await fetch('/api/admin?endpoint=get-pending-approvals');
+      const response = await fetch('/api/admin?endpoint=dashboard-stats');
       const data = await response.json();
       
       if (data.success) {
-        setPendingConsumers(data.data.consumers || []);
-        setPendingShopkeepers(data.data.shopkeepers || []);
-        setPendingAgents(data.data.agents || []);
+        setDashboardData(prev => ({
+          ...prev,
+          ...data.data
+        }));
       }
     } catch (error) {
-      console.error('Error fetching pending approvals:', error);
+      console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  // ========== USER REGISTRATION FUNCTIONS ==========
-  
-  // Approve Consumer Registration
-  const approveConsumer = async (consumer) => {
+  const fetchPaymentAnalytics = async () => {
     try {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [consumer.aadhaar]: true }
-      }));
-
-      const result = await adminContract.registerConsumer(
-        consumer.aadhaar,
-        consumer.name,
-        consumer.mobile,
-        consumer.category,
-        consumer.assignedShopkeeper
-      );
+      const response = await fetch('/api/admin?endpoint=payment-analytics');
+      const data = await response.json();
       
-      if (result.success) {
-        addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Consumer Registration',
-          details: `Registered consumer: ${consumer.name}`,
-          polygonScanUrl: result.polygonScanUrl
-        });
-
-        setSuccess(`✅ Consumer ${consumer.name} approved and registered on blockchain!`);
-        
-        // Remove from pending list
-        setPendingConsumers(prev => prev.filter(c => c.aadhaar !== consumer.aadhaar));
-        
-        // Refresh data
-        fetchUserManagementData();
-        fetchSystemOverview();
-      } else {
-        setError(`❌ Failed to approve consumer: ${result.error}`);
+      if (data.success) {
+        setPaymentAnalytics(data.data);
       }
     } catch (error) {
-      console.error('Error approving consumer:', error);
-      setError('Failed to approve consumer: ' + parseTransactionError(error));
-    } finally {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [consumer.aadhaar]: false }
-      }));
+      console.error('Error fetching payment analytics:', error);
     }
   };
 
-  // Approve Shopkeeper Registration
-  const approveShopkeeper = async (shopkeeper) => {
+  const fetchSystemSettings = async () => {
     try {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [shopkeeper.address]: true }
-      }));
-
-      const result = await adminContract.registerShopkeeper(
-        shopkeeper.address,
-        shopkeeper.name,
-        shopkeeper.area
-      );
+      const response = await fetch('/api/admin?endpoint=system-settings');
+      const data = await response.json();
       
-      if (result.success) {
-        addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Shopkeeper Registration',
-          details: `Registered shopkeeper: ${shopkeeper.name}`,
-          polygonScanUrl: result.polygonScanUrl
+      if (data.success) {
+        setDashboardData(prev => ({
+          ...prev,
+          rationPrice: data.data.rationPrice || 0,
+          subsidyPercentage: data.data.subsidyPercentage || 0,
+          systemStatus: data.data.isPaused ? 'Paused' : 'Active'
+        }));
+        
+        setPriceSettings({
+          rationPrice: data.data.rationPrice?.toString() || '',
+          subsidyPercentage: data.data.subsidyPercentage?.toString() || ''
         });
-
-        setSuccess(`✅ Shopkeeper ${shopkeeper.name} approved and registered on blockchain!`);
-        
-        // Remove from pending list
-        setPendingShopkeepers(prev => prev.filter(s => s.address !== shopkeeper.address));
-        
-        // Refresh data
-        fetchUserManagementData();
-        fetchSystemOverview();
-      } else {
-        setError(`❌ Failed to approve shopkeeper: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error approving shopkeeper:', error);
-      setError('Failed to approve shopkeeper: ' + parseTransactionError(error));
-    } finally {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [shopkeeper.address]: false }
-      }));
+      console.error('Error fetching system settings:', error);
     }
   };
 
-  // Approve Delivery Agent Registration
-  const approveDeliveryAgent = async (agent) => {
+  const fetchUsers = async () => {
     try {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [agent.address]: true }
-      }));
+      // Fetch consumers
+      const consumersResponse = await fetch('/api/admin?endpoint=get-consumers');
+      if (consumersResponse.ok) {
+        const consumersData = await consumersResponse.json();
+        if (consumersData.success) {
+          setAllConsumers(consumersData.data);
+          
+          // Group by category
+          const grouped = {
+            BPL: consumersData.data.filter(c => c.category === 'BPL'),
+            APL: consumersData.data.filter(c => c.category === 'APL'),
+            AAY: consumersData.data.filter(c => c.category === 'AAY'),
+            PHH: consumersData.data.filter(c => c.category === 'PHH')
+          };
+          setConsumersByCategory(grouped);
+        }
+      }
 
-      const result = await adminContract.registerDeliveryAgent(
-        agent.address,
-        agent.name,
-        agent.mobile
-      );
-      
-      if (result.success) {
-        addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Delivery Agent Registration',
-          details: `Registered delivery agent: ${agent.name}`,
-          polygonScanUrl: result.polygonScanUrl
-        });
+      // Fetch shopkeepers
+      const shopkeepersResponse = await fetch('/api/admin?endpoint=get-shopkeepers');
+      if (shopkeepersResponse.ok) {
+        const shopkeepersData = await shopkeepersResponse.json();
+        if (shopkeepersData.success) {
+          setAllShopkeepers(shopkeepersData.data);
+        }
+      }
 
-        setSuccess(`✅ Delivery Agent ${agent.name} approved and registered on blockchain!`);
-        
-        // Remove from pending list
-        setPendingAgents(prev => prev.filter(a => a.address !== agent.address));
-        
-        // Refresh data
-        fetchUserManagementData();
-        fetchSystemOverview();
-      } else {
-        setError(`❌ Failed to approve delivery agent: ${result.error}`);
+      // Fetch delivery agents
+      const agentsResponse = await fetch('/api/admin?endpoint=get-delivery-agents');
+      if (agentsResponse.ok) {
+        const agentsData = await agentsResponse.json();
+        if (agentsData.success) {
+          setAllDeliveryAgents(agentsData.data);
+        }
       }
     } catch (error) {
-      console.error('Error approving delivery agent:', error);
-      setError('Failed to approve delivery agent: ' + parseTransactionError(error));
-    } finally {
-      setUserActions(prev => ({
-        ...prev,
-        approving: { ...prev.approving, [agent.address]: false }
-      }));
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchActiveDeliveries = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=get-active-deliveries');
+      const data = await response.json();
+      
+      if (data.success) {
+        setActiveDeliveries(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching active deliveries:', error);
+    }
+  };
+
+  const fetchAreaStats = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=area-stats');
+      const data = await response.json();
+      
+      if (data.success) {
+        setAreaStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching area stats:', error);
+    }
+  };
+
+  const fetchCategoryStats = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=category-stats');
+      const data = await response.json();
+      
+      if (data.success) {
+        setCategoryStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching category stats:', error);
+    }
+  };
+
+  const fetchEmergencyCases = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=emergency-cases');
+      const data = await response.json();
+      
+      if (data.success) {
+        setEmergencyCases(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching emergency cases:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=get-notifications');
+      const data = await response.json();
+      
+      if (data.success) {
+        setNotifications(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
     }
   };
 
   // ========== TOKEN MANAGEMENT FUNCTIONS ==========
   
-  // Generate Token for Individual Consumer
-  const generateTokenForConsumer = async (aadhaar) => {
+  const generateMonthlyTokensForAll = async () => {
     try {
-      setGeneratingTokens(prev => ({
-        ...prev,
-        individual: { ...prev.individual, [aadhaar]: true }
-      }));
-
-      const result = await adminContract.generateTokenForConsumer(aadhaar);
+      setActionLoading(prev => ({ ...prev, generateMonthlyTokens: true }));
+      setError('');
       
-      if (result.success) {
+      const response = await fetch('/api/admin?endpoint=generate-monthly-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Monthly tokens generation started! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Individual Token Generation',
-          details: `Token generated for consumer: ${aadhaar}`,
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Monthly Token Generation',
+          details: 'Generated monthly tokens for all consumers',
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess(`✅ Token generated for consumer ${aadhaar}!`);
-        fetchUserManagementData();
+        
+        // Refresh data after some time
+        setTimeout(() => fetchAllDashboardData(), 30000);
       } else {
-        setError(`❌ Failed to generate token: ${result.error}`);
+        setError('❌ Failed to generate monthly tokens: ' + data.error);
       }
     } catch (error) {
-      console.error('Error generating token:', error);
-      setError('Failed to generate token: ' + parseTransactionError(error));
+      setError('❌ Error generating monthly tokens: ' + error.message);
     } finally {
-      setGeneratingTokens(prev => ({
-        ...prev,
-        individual: { ...prev.individual, [aadhaar]: false }
-      }));
+      setActionLoading(prev => ({ ...prev, generateMonthlyTokens: false }));
     }
   };
 
-  // Generate Tokens for Category
-  const generateTokensForCategory = async (category) => {
+  const generateCategoryTokens = async (category) => {
     try {
-      setGeneratingTokens(prev => ({
-        ...prev,
-        [category.toLowerCase()]: true
-      }));
-
-      const result = await adminContract.generateTokensForCategory(category);
+      setActionLoading(prev => ({ ...prev, generateCategoryTokens: true }));
+      setError('');
       
-      if (result.success) {
+      const response = await fetch('/api/admin?endpoint=generate-category-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Tokens generation started for ${category} category! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
+          hash: data.txHash,
           type: 'Category Token Generation',
-          details: `Tokens generated for category: ${category}`,
-          polygonScanUrl: result.polygonScanUrl
+          details: `Generated tokens for ${category} category`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess(`✅ Tokens generated for all ${category} consumers!`);
-        fetchUserManagementData();
       } else {
-        setError(`❌ Failed to generate tokens for ${category}: ${result.error}`);
+        setError('❌ Failed to generate category tokens: ' + data.error);
       }
     } catch (error) {
-      console.error('Error generating tokens for category:', error);
-      setError('Failed to generate tokens: ' + parseTransactionError(error));
+      setError('❌ Error generating category tokens: ' + error.message);
     } finally {
-      setGeneratingTokens(prev => ({
-        ...prev,
-        [category.toLowerCase()]: false
-      }));
+      setActionLoading(prev => ({ ...prev, generateCategoryTokens: false }));
+    }
+  };
+
+  const bulkGenerateTokens = async () => {
+    try {
+      setActionLoading(prev => ({ ...prev, bulkGenerateTokens: true }));
+      setError('');
+      
+      // Parse comma-separated Aadhaar numbers
+      const aadhaars = bulkTokenForm.aadhaars.split(',').map(a => a.trim()).filter(a => a);
+      
+      if (aadhaars.length === 0) {
+        setError('❌ Please enter at least one Aadhaar number');
+        return;
+      }
+      
+      const response = await fetch('/api/admin?endpoint=bulk-generate-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aadhaars })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Bulk token generation started for ${aadhaars.length} consumers! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
+        setBulkTokenForm({ aadhaars: '', showDialog: false });
+        
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Bulk Token Generation',
+          details: `Generated tokens for ${aadhaars.length} consumers`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
+        });
+      } else {
+        setError('❌ Failed to bulk generate tokens: ' + data.error);
+      }
+    } catch (error) {
+      setError('❌ Error bulk generating tokens: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, bulkGenerateTokens: false }));
+    }
+  };
+
+  const expireOldTokens = async () => {
+    try {
+      setActionLoading(prev => ({ ...prev, expireOldTokens: true }));
+      setError('');
+      
+      const response = await fetch('/api/admin?endpoint=expire-old-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Old tokens expiration started! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Expire Old Tokens',
+          details: 'Expired old/unused tokens',
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
+        });
+      } else {
+        setError('❌ Failed to expire old tokens: ' + data.error);
+      }
+    } catch (error) {
+      setError('❌ Error expiring old tokens: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, expireOldTokens: false }));
     }
   };
 
   // ========== SYSTEM MANAGEMENT FUNCTIONS ==========
   
-  // Pause System
   const pauseSystem = async () => {
     try {
-      setSystemActions(prev => ({ ...prev, pausing: true }));
-
-      const result = await adminContract.pauseSystem();
+      setActionLoading(prev => ({ ...prev, pauseSystem: true }));
+      setError('');
       
-      if (result.success) {
+      const response = await fetch('/api/admin?endpoint=pause-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ System paused successfully! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'System Pause',
-          details: 'System has been paused',
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Pause System',
+          details: 'System paused for maintenance',
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess('✅ System paused successfully!');
-        fetchSystemOverview();
+        
+        // Update system status
+        setDashboardData(prev => ({ ...prev, systemStatus: 'Paused' }));
       } else {
-        setError(`❌ Failed to pause system: ${result.error}`);
+        setError('❌ Failed to pause system: ' + data.error);
       }
     } catch (error) {
-      console.error('Error pausing system:', error);
-      setError('Failed to pause system: ' + parseTransactionError(error));
+      setError('❌ Error pausing system: ' + error.message);
     } finally {
-      setSystemActions(prev => ({ ...prev, pausing: false }));
+      setActionLoading(prev => ({ ...prev, pauseSystem: false }));
     }
   };
 
-  // Unpause System
   const unpauseSystem = async () => {
     try {
-      setSystemActions(prev => ({ ...prev, unpausing: true }));
-
-      const result = await adminContract.unpauseSystem();
+      setActionLoading(prev => ({ ...prev, unpauseSystem: true }));
+      setError('');
       
-      if (result.success) {
+      const response = await fetch('/api/admin?endpoint=unpause-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ System resumed successfully! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'System Unpause',
-          details: 'System has been unpaused',
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Unpause System',
+          details: 'System resumed operations',
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess('✅ System unpaused successfully!');
-        fetchSystemOverview();
+        
+        // Update system status
+        setDashboardData(prev => ({ ...prev, systemStatus: 'Active' }));
       } else {
-        setError(`❌ Failed to unpause system: ${result.error}`);
+        setError('❌ Failed to resume system: ' + data.error);
       }
     } catch (error) {
-      console.error('Error unpausing system:', error);
-      setError('Failed to unpause system: ' + parseTransactionError(error));
+      setError('❌ Error resuming system: ' + error.message);
     } finally {
-      setSystemActions(prev => ({ ...prev, unpausing: false }));
+      setActionLoading(prev => ({ ...prev, unpauseSystem: false }));
     }
   };
 
-  // Set Ration Price
-  const setRationPrice = async (priceInEther) => {
+  const setRationPrice = async () => {
     try {
-      setSystemActions(prev => ({ ...prev, settingPrice: true }));
-
-      const priceInWei = ethers.parseEther(priceInEther);
-      const result = await adminContract.setRationPrice(priceInWei);
+      setActionLoading(prev => ({ ...prev, settingPrice: true }));
+      setError('');
       
-      if (result.success) {
+      if (!priceSettings.rationPrice || isNaN(priceSettings.rationPrice)) {
+        setError('❌ Please enter a valid ration price');
+        return;
+      }
+      
+      const response = await fetch('/api/admin?endpoint=set-ration-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ price: priceSettings.rationPrice })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Ration price updated to ₹${priceSettings.rationPrice}! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Price Update',
-          details: `Ration price set to ${priceInEther} MATIC`,
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Set Ration Price',
+          details: `Updated ration price to ₹${priceSettings.rationPrice}`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess(`✅ Ration price set to ${priceInEther} MATIC!`);
-        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to set ration price: ${result.error}`);
+        setError('❌ Failed to set ration price: ' + data.error);
       }
     } catch (error) {
-      console.error('Error setting ration price:', error);
-      setError('Failed to set ration price: ' + parseTransactionError(error));
+      setError('❌ Error setting ration price: ' + error.message);
     } finally {
-      setSystemActions(prev => ({ ...prev, settingPrice: false }));
+      setActionLoading(prev => ({ ...prev, settingPrice: false }));
     }
   };
 
-  // Set Subsidy Percentage
-  const setSubsidyPercentage = async (percentage) => {
+  const setSubsidyPercentage = async () => {
     try {
-      setSystemActions(prev => ({ ...prev, settingSubsidy: true }));
-
-      const result = await adminContract.setSubsidyPercentage(percentage);
+      setActionLoading(prev => ({ ...prev, settingSubsidy: true }));
+      setError('');
       
-      if (result.success) {
+      if (!priceSettings.subsidyPercentage || isNaN(priceSettings.subsidyPercentage)) {
+        setError('❌ Please enter a valid subsidy percentage');
+        return;
+      }
+      
+      const response = await fetch('/api/admin?endpoint=set-subsidy-percentage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ percentage: priceSettings.subsidyPercentage })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Subsidy percentage updated to ${priceSettings.subsidyPercentage}%! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Subsidy Update',
-          details: `Subsidy percentage set to ${percentage}%`,
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Set Subsidy Percentage',
+          details: `Updated subsidy to ${priceSettings.subsidyPercentage}%`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess(`✅ Subsidy percentage set to ${percentage}%!`);
-        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to set subsidy percentage: ${result.error}`);
+        setError('❌ Failed to set subsidy percentage: ' + data.error);
       }
     } catch (error) {
-      console.error('Error setting subsidy percentage:', error);
-      setError('Failed to set subsidy percentage: ' + parseTransactionError(error));
+      setError('❌ Error setting subsidy percentage: ' + error.message);
     } finally {
-      setSystemActions(prev => ({ ...prev, settingSubsidy: false }));
+      setActionLoading(prev => ({ ...prev, settingSubsidy: false }));
     }
   };
 
-  // ========== USER MANAGEMENT FUNCTIONS ==========
+  // ========== DELIVERY MANAGEMENT FUNCTIONS ==========
   
-  // Deactivate Consumer
-  const deactivateConsumer = async (aadhaar) => {
+  const assignDeliveryAgentToShopkeeper = async () => {
     try {
-      setUserActions(prev => ({
-        ...prev,
-        deactivating: { ...prev.deactivating, [aadhaar]: true }
-      }));
-
-      const result = await adminContract.deactivateConsumer(aadhaar);
+      setActionLoading(prev => ({ ...prev, assigningAgent: true }));
+      setError('');
       
-      if (result.success) {
+      if (!assignAgentForm.deliveryAgent || !assignAgentForm.shopkeeper) {
+        setError('❌ Please select both delivery agent and shopkeeper');
+        return;
+      }
+      
+      const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliveryAgent: assignAgentForm.deliveryAgent,
+          shopkeeper: assignAgentForm.shopkeeper
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Delivery agent assigned successfully! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        
+        setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', showDialog: false });
+        
         addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Consumer Deactivation',
-          details: `Consumer ${aadhaar} deactivated`,
-          polygonScanUrl: result.polygonScanUrl
+          hash: data.txHash,
+          type: 'Assign Delivery Agent',
+          details: `Assigned delivery agent to shopkeeper`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
         });
-
-        setSuccess(`✅ Consumer ${aadhaar} deactivated successfully!`);
-        fetchUserManagementData();
+        
+        // Refresh data
+        setTimeout(() => fetchUsers(), 10000);
       } else {
-        setError(`❌ Failed to deactivate consumer: ${result.error}`);
+        setError('❌ Failed to assign delivery agent: ' + data.error);
       }
     } catch (error) {
-      console.error('Error deactivating consumer:', error);
-      setError('Failed to deactivate consumer: ' + parseTransactionError(error));
+      setError('❌ Error assigning delivery agent: ' + error.message);
     } finally {
-      setUserActions(prev => ({
-        ...prev,
-        deactivating: { ...prev.deactivating, [aadhaar]: false }
-      }));
-    }
-  };
-
-  // Reactivate Consumer
-  const reactivateConsumer = async (aadhaar) => {
-    try {
-      setUserActions(prev => ({
-        ...prev,
-        reactivating: { ...prev.reactivating, [aadhaar]: true }
-      }));
-
-      const result = await adminContract.reactivateConsumer(aadhaar);
-      
-      if (result.success) {
-        addTransactionToMonitor({
-          hash: result.txHash,
-          type: 'Consumer Reactivation',
-          details: `Consumer ${aadhaar} reactivated`,
-          polygonScanUrl: result.polygonScanUrl
-        });
-
-        setSuccess(`✅ Consumer ${aadhaar} reactivated successfully!`);
-        fetchUserManagementData();
-      } else {
-        setError(`❌ Failed to reactivate consumer: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error reactivating consumer:', error);
-      setError('Failed to reactivate consumer: ' + parseTransactionError(error));
-    } finally {
-      setUserActions(prev => ({
-        ...prev,
-        reactivating: { ...prev.reactivating, [aadhaar]: false }
-      }));
+      setActionLoading(prev => ({ ...prev, assigningAgent: false }));
     }
   };
 
   // ========== UTILITY FUNCTIONS ==========
   
-  const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString();
+  const addTransactionToMonitor = (txData) => {
+    const event = new CustomEvent('addTransaction', { detail: txData });
+    window.dispatchEvent(event);
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800';
-      case 'Paused': return 'bg-red-100 text-red-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSuccess('✅ Copied to clipboard!');
+    } catch (error) {
+      setError('❌ Failed to copy to clipboard');
     }
   };
 
-  // ========== RENDER ==========
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
+
+  const formatAddress = (address) => {
+    if (!address) return 'N/A';
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  // ========== ADDITIONAL ADMIN FUNCTIONS ==========
   
-  if (loading && !isConnected) {
+  const generateTokenForConsumer = async (aadhaar) => {
+    try {
+      setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+      setError('');
+      
+      const response = await fetch('/api/admin?endpoint=generate-token-consumer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aadhaar })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ Token generated successfully for consumer ${aadhaar}!`);
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Generate Token',
+          details: `Generated token for consumer ${aadhaar}`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
+        });
+      } else {
+        setError('❌ Failed to generate token: ' + data.error);
+      }
+    } catch (error) {
+      setError('❌ Error generating token: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+    }
+  };
+
+  const deactivateUser = async (userType, identifier) => {
+    try {
+      setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+      setError('');
+      
+      const response = await fetch('/api/admin?endpoint=deactivate-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userType, identifier })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ ${userType} deactivated successfully!`);
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Deactivate User',
+          details: `Deactivated ${userType}`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
+        });
+        
+        // Refresh users
+        fetchUsers();
+      } else {
+        setError('❌ Failed to deactivate user: ' + data.error);
+      }
+    } catch (error) {
+      setError('❌ Error deactivating user: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+    }
+  };
+
+  const reactivateUser = async (userType, identifier) => {
+    try {
+      setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+      setError('');
+      
+      const response = await fetch('/api/admin?endpoint=reactivate-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userType, identifier })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(`✅ ${userType} reactivated successfully!`);
+        addTransactionToMonitor({
+          hash: data.txHash,
+          type: 'Reactivate User',
+          details: `Reactivated ${userType}`,
+          status: 'pending',
+          polygonScanUrl: data.polygonScanUrl
+        });
+        
+        // Refresh users
+        fetchUsers();
+      } else {
+        setError('❌ Failed to reactivate user: ' + data.error);
+      }
+    } catch (error) {
+      setError('❌ Error reactivating user: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+    }
+  };
+
+  if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Connecting to blockchain...</p>
+            <p className="text-gray-600">Connecting to backend wallet...</p>
           </div>
         </div>
       </AdminLayout>
     );
   }
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <TransactionMonitor />
-        
+      <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-600">Blockchain-powered ration distribution system</p>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                PDS Admin Dashboard
+              </h1>
+              <p className="text-gray-600">
+                Indian Public Distribution System - Blockchain Powered
+              </p>
+              <div className="flex items-center mt-2 space-x-4">
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-sm text-gray-600">
+                    {isConnected ? 'Backend Connected' : 'Backend Disconnected'}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <Wallet className="h-4 w-4 mr-1 text-gray-500" />
+                  <span className="text-sm text-gray-600 font-mono">
+                    {formatAddress(adminWalletAddress)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(adminWalletAddress)}
+                    className="ml-1 h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <Badge className={`${getStatusBadgeColor(dashboardData.systemStatus)}`}>
-                  {dashboardData.systemStatus}
-                </Badge>
-                <Button 
-                  onClick={testConnection}
-                  disabled={refreshing}
-                  size="sm"
-                  variant="outline"
-                >
-                  {refreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                  Test Connection
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => fetchAllDashboardData()}
+                disabled={refreshing}
+                variant="outline"
+              >
+                {refreshing ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Refresh
+              </Button>
+              <a
+                href={`https://amoy.polygonscan.com/address/${process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Contract
                 </Button>
-                <Button 
-                  onClick={fetchAllDashboardData}
-                  disabled={loading}
-                  size="sm"
-                >
-                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  Refresh
-                </Button>
-              </div>
+              </a>
             </div>
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Status Messages */}
         {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-              <div dangerouslySetInnerHTML={{ __html: error }} />
-              <Button
-                onClick={() => setError('')}
-                size="sm"
-                variant="ghost"
-                className="ml-auto"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 max-w-7xl">
+            <div className="flex">
+              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+              <div className="text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
             </div>
           </div>
         )}
 
         {success && (
-          <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-              <div dangerouslySetInnerHTML={{ __html: success }} />
-              <Button
-                onClick={() => setSuccess('')}
-                size="sm"
-                variant="ghost"
-                className="ml-auto"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+          <div className="bg-green-50 border border-green-200 rounded-md p-4 max-w-7xl">
+            <div className="flex">
+              <CheckCircle2 className="h-5 w-5 text-green-400 mr-2" />
+              <div className="text-green-700" dangerouslySetInnerHTML={{ __html: success }} />
             </div>
           </div>
         )}
 
         {/* Main Content */}
-        <div className="p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="approvals">Pending Approvals</TabsTrigger>
-              <TabsTrigger value="users">User Management</TabsTrigger>
-              <TabsTrigger value="tokens">Token Management</TabsTrigger>
-              <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
-              <TabsTrigger value="settings">System Settings</TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-7xl mx-auto">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tokens">Token Management</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="deliveries">Delivery Management</TabsTrigger>
+            <TabsTrigger value="payments">Payment Analytics</TabsTrigger>
+            <TabsTrigger value="settings">System Settings</TabsTrigger>
+          </TabsList>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-              >
-                <motion.div variants={itemVariants}>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Consumers</CardTitle>
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{dashboardData.totalConsumers}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Registered on blockchain
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Shopkeepers</CardTitle>
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{dashboardData.totalShopkeepers}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Active shopkeepers
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Delivery Agents</CardTitle>
-                      <Truck className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{dashboardData.totalDeliveryAgents}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Active agents
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Active Deliveries</CardTitle>
-                      <Package className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{activeDeliveries.length}</div>
-                      <p className="text-xs text-muted-foreground">
-                        In progress
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Consumers</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.totalConsumers.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Registered beneficiaries
+                    </p>
+                  </CardContent>
+                </Card>
               </motion.div>
 
-              {/* Quick Actions */}
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Shopkeepers</CardTitle>
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.totalShopkeepers.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Active distribution points
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Delivery Agents</CardTitle>
+                    <Truck className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardData.totalDeliveryAgents.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Active delivery personnel
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">System Status</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Badge 
+                        variant={dashboardData.systemStatus === 'Active' ? 'default' : 'destructive'}
+                        className="text-sm"
+                      >
+                        {dashboardData.systemStatus}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Current operational status
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Zap className="h-5 w-5 mr-2" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Common administrative tasks</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button
+                    onClick={generateMonthlyTokensForAll}
+                    disabled={actionLoading.generateMonthlyTokens}
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.generateMonthlyTokens ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Package className="h-5 w-5 mb-2" />
+                    )}
+                    Generate Monthly Tokens
+                  </Button>
+
+                  <Button
+                    onClick={() => setAssignAgentForm({ ...assignAgentForm, showDialog: true })}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <Link2 className="h-5 w-5 mb-2" />
+                    Assign Delivery Agent
+                  </Button>
+
+                  <Button
+                    onClick={expireOldTokens}
+                    disabled={actionLoading.expireOldTokens}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.expireOldTokens ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Clock className="h-5 w-5 mb-2" />
+                    )}
+                    Expire Old Tokens
+                  </Button>
+
+                  <Button
+                    onClick={() => setActiveTab('settings')}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    <Settings className="h-5 w-5 mb-2" />
+                    System Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Category Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Common administrative tasks</CardDescription>
+                  <CardTitle>Consumer Categories</CardTitle>
+                  <CardDescription>Distribution by ration card type</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button
-                      onClick={() => generateTokensForCategory('BPL')}
-                      disabled={generatingTokens.bpl}
-                      className="h-20 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.bpl ? (
-                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-5 w-5 mb-2" />
-                      )}
-                      Generate BPL Tokens
-                    </Button>
+                  <div className="space-y-4">
+                    {Object.entries(consumersByCategory).map(([category, consumers]) => (
+                      <div key={category} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 rounded-full mr-3 bg-blue-500" />
+                          <span className="font-medium">{category}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">{consumers.length}</span>
+                          <Button
+                            onClick={() => generateCategoryTokens(category)}
+                            disabled={actionLoading.generateCategoryTokens}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {actionLoading.generateCategoryTokens ? (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            ) : (
+                              'Generate Tokens'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                    <Button
-                      onClick={() => generateTokensForCategory('APL')}
-                      disabled={generatingTokens.apl}
-                      className="h-20 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.apl ? (
-                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-5 w-5 mb-2" />
-                      )}
-                      Generate APL Tokens
-                    </Button>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Deliveries</CardTitle>
+                  <CardDescription>Current delivery operations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{activeDeliveries.length}</div>
+                  <p className="text-sm text-gray-600 mb-4">Deliveries in progress</p>
+                  <Button
+                    onClick={() => setActiveTab('deliveries')}
+                    variant="outline"
+                    size="sm"
+                  >
+                    View All Deliveries
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-                    <Button
-                      onClick={() => generateTokensForCategory('AAY')}
-                      disabled={generatingTokens.aay}
-                      className="h-20 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.aay ? (
-                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-5 w-5 mb-2" />
-                      )}
-                      Generate AAY Tokens
-                    </Button>
+          {/* Token Management Tab */}
+          <TabsContent value="tokens" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Monthly Token Generation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monthly Token Generation</CardTitle>
+                  <CardDescription>Generate tokens for all eligible consumers</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button
+                    onClick={generateMonthlyTokensForAll}
+                    disabled={actionLoading.generateMonthlyTokens}
+                    className="w-full"
+                  >
+                    {actionLoading.generateMonthlyTokens ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Package className="h-4 w-4 mr-2" />
+                    )}
+                    Generate Monthly Tokens
+                  </Button>
+                  <p className="text-xs text-gray-600">
+                    This will generate tokens for all consumers who haven't received tokens this month
+                  </p>
+                </CardContent>
+              </Card>
 
+              {/* Category-wise Generation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Category-wise Generation</CardTitle>
+                  <CardDescription>Generate tokens by ration card category</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {['BPL', 'APL', 'AAY', 'PHH'].map((category) => (
                     <Button
-                      onClick={() => setActiveTab('settings')}
+                      key={category}
+                      onClick={() => generateCategoryTokens(category)}
+                      disabled={actionLoading.generateCategoryTokens}
                       variant="outline"
-                      className="h-20 flex flex-col items-center justify-center"
+                      className="w-full justify-start"
                     >
-                      <Settings className="h-5 w-5 mb-2" />
-                      System Settings
+                      {actionLoading.generateCategoryTokens ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Users className="h-4 w-4 mr-2" />
+                      )}
+                      {category} Category ({consumersByCategory[category]?.length || 0})
                     </Button>
-                  </div>
+                  ))}
                 </CardContent>
               </Card>
-            </TabsContent>
 
-            {/* Pending Approvals Tab */}
-            <TabsContent value="approvals" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Pending Consumers */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Users className="h-5 w-5 mr-2" />
-                      Pending Consumers ({pendingConsumers.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {pendingConsumers.map((consumer) => (
-                        <div key={consumer.aadhaar} className="p-4 border rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-medium">{consumer.name}</h4>
-                              <p className="text-sm text-gray-600">Aadhaar: {consumer.aadhaar}</p>
-                              <p className="text-sm text-gray-600">Category: {consumer.category}</p>
-                            </div>
-                            <Badge variant="outline">{consumer.category}</Badge>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              onClick={() => approveConsumer(consumer)}
-                              disabled={userActions.approving[consumer.aadhaar]}
-                            >
-                              {userActions.approving[consumer.aadhaar] ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={userActions.rejecting[consumer.aadhaar]}
-                            >
-                              <X className="h-4 w-4" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {pendingConsumers.length === 0 && (
-                        <p className="text-center text-gray-500 py-4">No pending consumer approvals</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Pending Shopkeepers */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Building className="h-5 w-5 mr-2" />
-                      Pending Shopkeepers ({pendingShopkeepers.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {pendingShopkeepers.map((shopkeeper) => (
-                        <div key={shopkeeper.address} className="p-4 border rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-medium">{shopkeeper.name}</h4>
-                              <p className="text-sm text-gray-600">Address: {shopkeeper.address}</p>
-                              <p className="text-sm text-gray-600">Area: {shopkeeper.area}</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              onClick={() => approveShopkeeper(shopkeeper)}
-                              disabled={userActions.approving[shopkeeper.address]}
-                            >
-                              {userActions.approving[shopkeeper.address] ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={userActions.rejecting[shopkeeper.address]}
-                            >
-                              <X className="h-4 w-4" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {pendingShopkeepers.length === 0 && (
-                        <p className="text-center text-gray-500 py-4">No pending shopkeeper approvals</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Pending Delivery Agents */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Truck className="h-5 w-5 mr-2" />
-                      Pending Agents ({pendingAgents.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {pendingAgents.map((agent) => (
-                        <div key={agent.address} className="p-4 border rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-medium">{agent.name}</h4>
-                              <p className="text-sm text-gray-600">Address: {agent.address}</p>
-                              <p className="text-sm text-gray-600">Mobile: {agent.mobile}</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              onClick={() => approveDeliveryAgent(agent)}
-                              disabled={userActions.approving[agent.address]}
-                            >
-                              {userActions.approving[agent.address] ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Check className="h-4 w-4" />
-                              )}
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={userActions.rejecting[agent.address]}
-                            >
-                              <X className="h-4 w-4" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      {pendingAgents.length === 0 && (
-                        <p className="text-center text-gray-500 py-4">No pending agent approvals</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* User Management Tab */}
-            <TabsContent value="users" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* BPL Consumers */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>BPL Consumers ({consumersByCategory.BPL.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {consumersByCategory.BPL.map((consumer, index) => (
-                        <div key={index} className="p-3 border rounded flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{consumer.name || consumer[1]}</p>
-                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
-                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
-                          >
-                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              'Generate Token'
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* APL Consumers */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>APL Consumers ({consumersByCategory.APL.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {consumersByCategory.APL.map((consumer, index) => (
-                        <div key={index} className="p-3 border rounded flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{consumer.name || consumer[1]}</p>
-                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
-                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
-                          >
-                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              'Generate Token'
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* AAY Consumers */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>AAY Consumers ({consumersByCategory.AAY.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {consumersByCategory.AAY.map((consumer, index) => (
-                        <div key={index} className="p-3 border rounded flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{consumer.name || consumer[1]}</p>
-                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
-                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
-                          >
-                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              'Generate Token'
-                            )}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Token Management Tab */}
-            <TabsContent value="tokens" className="space-y-6">
+              {/* Bulk Operations */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Token Management</CardTitle>
-                  <CardDescription>Generate and manage ration tokens</CardDescription>
+                  <CardTitle>Bulk Operations</CardTitle>
+                  <CardDescription>Advanced token management</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button
-                      onClick={() => generateTokensForCategory('BPL')}
-                      disabled={generatingTokens.bpl}
-                      className="h-24 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.bpl ? (
-                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-6 w-6 mb-2" />
-                      )}
-                      <span>Generate BPL Tokens</span>
-                      <span className="text-xs">({consumersByCategory.BPL.length} consumers)</span>
-                    </Button>
-
-                    <Button
-                      onClick={() => generateTokensForCategory('APL')}
-                      disabled={generatingTokens.apl}
-                      className="h-24 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.apl ? (
-                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-6 w-6 mb-2" />
-                      )}
-                      <span>Generate APL Tokens</span>
-                      <span className="text-xs">({consumersByCategory.APL.length} consumers)</span>
-                    </Button>
-
-                    <Button
-                      onClick={() => generateTokensForCategory('AAY')}
-                      disabled={generatingTokens.aay}
-                      className="h-24 flex flex-col items-center justify-center"
-                    >
-                      {generatingTokens.aay ? (
-                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
-                      ) : (
-                        <Package className="h-6 w-6 mb-2" />
-                      )}
-                      <span>Generate AAY Tokens</span>
-                      <span className="text-xs">({consumersByCategory.AAY.length} consumers)</span>
-                    </Button>
-                  </div>
+                <CardContent className="space-y-4">
+                  <Button
+                    onClick={() => setBulkTokenForm({ ...bulkTokenForm, showDialog: true })}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    Bulk Generate Tokens
+                  </Button>
+                  
+                  <Button
+                    onClick={expireOldTokens}
+                    disabled={actionLoading.expireOldTokens}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {actionLoading.expireOldTokens ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Clock className="h-4 w-4 mr-2" />
+                    )}
+                    Expire Old Tokens
+                  </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-            {/* Deliveries Tab */}
-            <TabsContent value="deliveries" className="space-y-6">
+          {/* User Management Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Consumers */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Consumers</span>
+                    <Badge>{allConsumers.length}</Badge>
+                  </CardTitle>
+                  <CardDescription>Registered beneficiaries</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {Object.entries(consumersByCategory).map(([category, consumers]) => (
+                      <div key={category} className="flex justify-between text-sm">
+                        <span>{category}:</span>
+                        <span className="font-medium">{consumers.length}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    onClick={() => router.push('/admin/consumers')}
+                    variant="outline"
+                    className="w-full mt-4"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Consumers
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Shopkeepers */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Shopkeepers</span>
+                    <Badge>{allShopkeepers.length}</Badge>
+                  </CardTitle>
+                  <CardDescription>Distribution points</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Active:</span>
+                      <span className="font-medium text-green-600">
+                        {allShopkeepers.filter(s => s.isActive).length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Inactive:</span>
+                      <span className="font-medium text-red-600">
+                        {allShopkeepers.filter(s => !s.isActive).length}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => router.push('/admin/shopkeepers')}
+                    variant="outline"
+                    className="w-full mt-4"
+                  >
+                    <Building className="h-4 w-4 mr-2" />
+                    Manage Shopkeepers
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Delivery Agents */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Delivery Agents</span>
+                    <Badge>{allDeliveryAgents.length}</Badge>
+                  </CardTitle>
+                  <CardDescription>Delivery personnel</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Active:</span>
+                      <span className="font-medium text-green-600">
+                        {allDeliveryAgents.filter(a => a.isActive).length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Inactive:</span>
+                      <span className="font-medium text-red-600">
+                        {allDeliveryAgents.filter(a => !a.isActive).length}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => router.push('/admin/delivery-agents')}
+                    variant="outline"
+                    className="w-full mt-4"
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Manage Agents
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Delivery Management Tab */}
+          <TabsContent value="deliveries" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Assign Delivery Agent */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assign Delivery Agent</CardTitle>
+                  <CardDescription>Assign delivery agents to shopkeepers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => setAssignAgentForm({ ...assignAgentForm, showDialog: true })}
+                    className="w-full"
+                  >
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Assign Agent to Shopkeeper
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Active Deliveries */}
               <Card>
                 <CardHeader>
                   <CardTitle>Active Deliveries</CardTitle>
                   <CardDescription>Monitor ongoing deliveries</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {activeDeliveries.length > 0 ? (
-                      activeDeliveries.map((delivery, index) => (
-                        <div key={index} className="p-4 border rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">Delivery #{delivery.id || index + 1}</h4>
-                              <p className="text-sm text-gray-600">
-                                Consumer: {delivery.consumerAadhaar || delivery[0]}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Agent: {delivery.agentAddress || delivery[1]}
-                              </p>
-                            </div>
-                            <Badge variant="outline">
-                              {delivery.status || 'In Progress'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-center text-gray-500 py-8">No active deliveries</p>
-                    )}
+                  <div className="text-3xl font-bold mb-4">{activeDeliveries.length}</div>
+                  <p className="text-sm text-gray-600 mb-4">Deliveries in progress</p>
+                  <Button
+                    onClick={() => router.push('/admin/deliveries')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View All Deliveries
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Payment Analytics Tab */}
+          <TabsContent value="payments" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {paymentAnalytics && (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Total Payments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">{paymentAnalytics.totalPayments || 0}</div>
+                      <p className="text-sm text-gray-600">Completed transactions</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Total Amount</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">
+                        {formatCurrency(paymentAnalytics.totalAmount || 0)}
+                      </div>
+                      <p className="text-sm text-gray-600">Total processed</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Pending Payments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold">{paymentAnalytics.pendingPayments || 0}</div>
+                      <p className="text-sm text-gray-600">Awaiting processing</p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Management</CardTitle>
+                <CardDescription>Access detailed payment analytics and management</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => router.push('/admin/payments')}
+                  className="w-full"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  View Payment Dashboard
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* System Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Price Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Price Settings</CardTitle>
+                  <CardDescription>Configure ration pricing and subsidies</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Ration Price (₹ per kg)</label>
+                    <Input
+                      type="number"
+                      value={priceSettings.rationPrice}
+                      onChange={(e) => setPriceSettings(prev => ({ ...prev, rationPrice: e.target.value }))}
+                      placeholder="Enter price"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium">Subsidy Percentage (%)</label>
+                    <Input
+                      type="number"
+                      value={priceSettings.subsidyPercentage}
+                      onChange={(e) => setPriceSettings(prev => ({ ...prev, subsidyPercentage: e.target.value }))}
+                      placeholder="Enter percentage"
+                    />
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={setRationPrice}
+                      disabled={actionLoading.settingPrice}
+                      className="flex-1"
+                    >
+                      {actionLoading.settingPrice ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <DollarSign className="h-4 w-4 mr-2" />
+                      )}
+                      Set Price
+                    </Button>
+                    
+                    <Button
+                      onClick={setSubsidyPercentage}
+                      disabled={actionLoading.settingSubsidy}
+                      className="flex-1"
+                    >
+                      {actionLoading.settingSubsidy ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Gauge className="h-4 w-4 mr-2" />
+                      )}
+                      Set Subsidy
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
 
-            {/* System Settings Tab */}
-            <TabsContent value="settings" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* System Control */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>System Control</CardTitle>
-                    <CardDescription>Manage system operations</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">System Status</h4>
-                        <p className="text-sm text-gray-600">Current: {dashboardData.systemStatus}</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        {dashboardData.systemStatus === 'Active' ? (
-                          <Button
-                            onClick={pauseSystem}
-                            disabled={systemActions.pausing}
-                            variant="destructive"
-                          >
-                            {systemActions.pausing ? (
-                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <Pause className="h-4 w-4 mr-2" />
-                            )}
-                            Pause System
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={unpauseSystem}
-                            disabled={systemActions.unpausing}
-                          >
-                            {systemActions.unpausing ? (
-                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <Play className="h-4 w-4 mr-2" />
-                            )}
-                            Unpause System
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Price Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Price Settings</CardTitle>
-                    <CardDescription>Manage ration pricing</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+              {/* System Control */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Control</CardTitle>
+                  <CardDescription>Emergency system controls</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Ration Price (MATIC)
-                      </label>
-                      <div className="flex space-x-2">
-                        <Input
-                          type="number"
-                          step="0.001"
-                          value={priceSettings.rationPrice}
-                          onChange={(e) => setPriceSettings(prev => ({
-                            ...prev,
-                            rationPrice: e.target.value
-                          }))}
-                          placeholder="Enter price in MATIC"
-                        />
-                        <Button
-                          onClick={() => setRationPrice(priceSettings.rationPrice)}
-                          disabled={systemActions.settingPrice || !priceSettings.rationPrice}
-                        >
-                          {systemActions.settingPrice ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Set Price'
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Current: {dashboardData.rationPrice} MATIC
-                      </p>
+                      <h4 className="font-medium">System Status</h4>
+                      <p className="text-sm text-gray-600">Current operational status</p>
                     </div>
+                    <Badge 
+                      variant={dashboardData.systemStatus === 'Active' ? 'default' : 'destructive'}
+                    >
+                      {dashboardData.systemStatus}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={pauseSystem}
+                      disabled={actionLoading.pauseSystem || dashboardData.systemStatus === 'Paused'}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      {actionLoading.pauseSystem ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Pause className="h-4 w-4 mr-2" />
+                      )}
+                      Pause System
+                    </Button>
+                    
+                    <Button
+                      onClick={unpauseSystem}
+                      disabled={actionLoading.unpauseSystem || dashboardData.systemStatus === 'Active'}
+                      className="flex-1"
+                    >
+                      {actionLoading.unpauseSystem ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      Resume System
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Subsidy Percentage (%)
-                      </label>
-                      <div className="flex space-x-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={priceSettings.subsidyPercentage}
-                          onChange={(e) => setPriceSettings(prev => ({
-                            ...prev,
-                            subsidyPercentage: e.target.value
-                          }))}
-                          placeholder="Enter percentage"
-                        />
-                        <Button
-                          onClick={() => setSubsidyPercentage(parseInt(priceSettings.subsidyPercentage))}
-                          disabled={systemActions.settingSubsidy || !priceSettings.subsidyPercentage}
-                        >
-                          {systemActions.settingSubsidy ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            'Set Subsidy'
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Current: {dashboardData.subsidyPercentage}%
-                      </p>
+            {/* System Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle>System Information</CardTitle>
+                <CardDescription>Blockchain and contract details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Contract Address:</span>
+                    <div className="flex items-center mt-1">
+                      <span className="font-mono text-xs">
+                        {process.env.NEXT_PUBLIC_CONTRACT_ADDRESS}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS)}
+                        className="ml-2 h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  
+                  <div>
+                    <span className="font-medium">Admin Wallet:</span>
+                    <div className="flex items-center mt-1">
+                      <span className="font-mono text-xs">{adminWalletAddress}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(adminWalletAddress)}
+                        className="ml-2 h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="font-medium">Network:</span>
+                    <p className="text-xs mt-1">Polygon Amoy Testnet</p>
+                  </div>
+                  
+                  <div>
+                    <span className="font-medium">Connection Status:</span>
+                    <div className="flex items-center mt-1">
+                      <div className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-xs">{isConnected ? 'Connected' : 'Disconnected'}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialogs */}
+        
+        {/* Assign Delivery Agent Dialog */}
+        <Dialog open={assignAgentForm.showDialog} onOpenChange={(open) => 
+          setAssignAgentForm({ ...assignAgentForm, showDialog: open })
+        }>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Delivery Agent to Shopkeeper</DialogTitle>
+              <DialogDescription>
+                Select a delivery agent and shopkeeper to create an assignment
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Delivery Agent</label>
+                <Select
+                  value={assignAgentForm.deliveryAgent}
+                  onValueChange={(value) => setAssignAgentForm(prev => ({ ...prev, deliveryAgent: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select delivery agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allDeliveryAgents.map((agent) => (
+                      <SelectItem key={agent.agentAddress} value={agent.agentAddress}>
+                        {agent.name} ({formatAddress(agent.agentAddress)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+              
+              <div>
+                <label className="text-sm font-medium">Shopkeeper</label>
+                <Select
+                  value={assignAgentForm.shopkeeper}
+                  onValueChange={(value) => setAssignAgentForm(prev => ({ ...prev, shopkeeper: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select shopkeeper" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allShopkeepers.map((shopkeeper) => (
+                      <SelectItem key={shopkeeper.address} value={shopkeeper.address}>
+                        {shopkeeper.name} ({formatAddress(shopkeeper.address)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', showDialog: false })}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={assignDeliveryAgentToShopkeeper}
+                disabled={actionLoading.assigningAgent}
+              >
+                {actionLoading.assigningAgent ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="h-4 w-4 mr-2" />
+                )}
+                Assign Agent
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Token Generation Dialog */}
+        <Dialog open={bulkTokenForm.showDialog} onOpenChange={(open) => 
+          setBulkTokenForm({ ...bulkTokenForm, showDialog: open })
+        }>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bulk Generate Tokens</DialogTitle>
+              <DialogDescription>
+                Enter Aadhaar numbers separated by commas to generate tokens in bulk
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Aadhaar Numbers</label>
+                <textarea
+                  className="w-full h-32 p-3 border rounded-md resize-none"
+                  value={bulkTokenForm.aadhaars}
+                  onChange={(e) => setBulkTokenForm(prev => ({ ...prev, aadhaars: e.target.value }))}
+                  placeholder="Enter Aadhaar numbers separated by commas (e.g., 123456789012, 234567890123, 345678901234)"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  {bulkTokenForm.aadhaars.split(',').filter(a => a.trim()).length} Aadhaar numbers
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setBulkTokenForm({ aadhaars: '', showDialog: false })}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={bulkGenerateTokens}
+                disabled={actionLoading.bulkGenerateTokens}
+              >
+                {actionLoading.bulkGenerateTokens ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Package className="h-4 w-4 mr-2" />
+                )}
+                Generate Tokens
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Transaction Monitor */}
+        <TransactionMonitor />
       </div>
     </AdminLayout>
   );
