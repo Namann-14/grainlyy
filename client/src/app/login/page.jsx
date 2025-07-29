@@ -64,7 +64,7 @@ export default function LoginPage() {
     }
   }, [connected, account, isLoading, initialLoad])
 
-  // Enhanced wallet checking function
+  // Enhanced wallet checking function with comprehensive user type detection
   const checkUserTypeAndRedirect = async (address) => {
     // Prevent multiple simultaneous auth checks
     if (isLoading) {
@@ -78,19 +78,32 @@ export default function LoginPage() {
       
       console.log("🔍 Checking wallet address:", address)
       
+      // Validate wallet address format first
+      if (!address || typeof address !== 'string') {
+        setError("Invalid wallet address format. Please reconnect your wallet.")
+        return
+      }
+      
       // Check if this is the admin address first
       if (address.toLowerCase() === ADMIN_ADDRESS) {
         console.log("👑 Admin account detected, redirecting to admin dashboard")
         setUserType("admin")
         localStorage.setItem('currentUser', JSON.stringify({
           type: 'admin',
-          address: address
+          data: { 
+            walletAddress: address,
+            name: 'System Administrator',
+            role: 'admin'
+          }
         }));
-        // Use router.push instead of window.location.href to prevent hard reload
         router.push("/admin")
         return
       }
       
+      // Track which services we've checked
+      const checkedServices = { shopkeeper: false, delivery: false, consumer: false }
+      let lastError = null
+
       // Check if wallet belongs to a shopkeeper
       try {
         console.log("🔍 Checking shopkeeper for wallet:", address);
@@ -100,6 +113,7 @@ export default function LoginPage() {
           body: JSON.stringify({ walletAddress: address }),
         });
 
+        checkedServices.shopkeeper = true
         console.log("🔍 Shopkeeper response status:", shopkeeperResponse.status);
         const shopkeeperData = await shopkeeperResponse.json();
         console.log("🔍 Shopkeeper response data:", shopkeeperData);
@@ -108,7 +122,6 @@ export default function LoginPage() {
           console.log("🏪 Shopkeeper account detected, redirecting to shopkeeper dashboard");
           console.log("📊 Shopkeeper data source:", shopkeeperData.shopkeeper.source);
           setUserType("shopkeeper")
-          // Store shopkeeper info in localStorage for the dashboard
           localStorage.setItem('currentUser', JSON.stringify({
             type: 'shopkeeper',
             data: shopkeeperData.shopkeeper
@@ -116,11 +129,13 @@ export default function LoginPage() {
           
           router.push("/shopkeeper")
           return
-        } else if (shopkeeperResponse.ok && !shopkeeperData.success && shopkeeperData.error) {
-          console.log("❌ Shopkeeper check returned error:", shopkeeperData.error);
+        } else if (shopkeeperResponse.ok && !shopkeeperData.success) {
+          lastError = shopkeeperData.error || "Not registered as shopkeeper"
+          console.log("❌ Shopkeeper check returned:", lastError);
         }
       } catch (shopkeeperError) {
         console.log("⚠️ Shopkeeper check failed:", shopkeeperError.message)
+        lastError = "Failed to check shopkeeper status"
       }
       
       // Check if wallet belongs to an approved delivery partner
@@ -132,6 +147,7 @@ export default function LoginPage() {
           body: JSON.stringify({ walletAddress: address }),
         });
 
+        checkedServices.delivery = true
         console.log("🔍 Delivery response status:", deliveryResponse.status);
         const deliveryData = await deliveryResponse.json();
         console.log("🔍 Delivery response data:", deliveryData);
@@ -140,18 +156,19 @@ export default function LoginPage() {
           console.log("🚚 Delivery partner account detected, redirecting to dealer dashboard")
           console.log("📊 Delivery partner data source:", deliveryData.deliveryPartner.source);
           setUserType("dealer")
-          // Store delivery partner info in localStorage for the dashboard
           localStorage.setItem('currentUser', JSON.stringify({
             type: 'delivery',
             data: deliveryData.deliveryPartner
           }));
           router.push("/dealer")
           return
-        } else if (deliveryResponse.ok && !deliveryData.success && deliveryData.error) {
-          console.log("❌ Delivery partner check returned error:", deliveryData.error);
+        } else if (deliveryResponse.ok && !deliveryData.success) {
+          lastError = deliveryData.error || "Not registered as delivery partner"
+          console.log("❌ Delivery partner check returned:", lastError);
         }
       } catch (deliveryError) {
         console.log("⚠️ Delivery partner check failed:", deliveryError.message)
+        lastError = "Failed to check delivery partner status"
       }
       
       // Check if wallet is linked to a consumer
@@ -163,6 +180,7 @@ export default function LoginPage() {
           body: JSON.stringify({ walletAddress: address }),
         });
 
+        checkedServices.consumer = true
         console.log("🔍 Consumer wallet response status:", consumerWalletResponse.status);
         const consumerWalletData = await consumerWalletResponse.json();
         console.log("🔍 Consumer wallet response data:", consumerWalletData);
@@ -170,26 +188,40 @@ export default function LoginPage() {
         if (consumerWalletResponse.ok && consumerWalletData.consumer) {
           console.log("👤 Consumer wallet detected, redirecting to user dashboard")
           setUserType("user")
-          // Store consumer info in localStorage for the dashboard
           localStorage.setItem('currentUser', JSON.stringify({
             type: 'consumer',
             data: consumerWalletData.consumer
           }));
           router.push(`/user?aadhaar=${consumerWalletData.consumer.aadharNumber}`)
           return
+        } else if (consumerWalletResponse.ok && !consumerWalletData.consumer) {
+          lastError = "No consumer account linked to this wallet"
+          console.log("❌ Consumer wallet check returned:", lastError);
         }
       } catch (consumerWalletError) {
         console.log("⚠️ Consumer wallet check failed:", consumerWalletError.message)
+        lastError = "Failed to check consumer wallet status"
       }
       
-      // If no specific role found, show proper error message
+      // If no specific role found, provide comprehensive error message
       console.log("❌ No role found for wallet address:", address);
-      setError("This wallet address is not registered in the system. Please register first or contact your administrator.")
+      console.log("📊 Services checked:", checkedServices);
+      
+      const checkedCount = Object.values(checkedServices).filter(Boolean).length
+      if (checkedCount === 0) {
+        setError("Unable to verify wallet registration due to network issues. Please try again.")
+      } else {
+        setError(`This wallet address (${address.slice(0, 6)}...${address.slice(-4)}) is not registered in the system. Please ensure you're using the correct wallet or contact your administrator for registration.`)
+      }
       setUserType(null)
       
     } catch (err) {
       console.error("❌ Error checking user type:", err)
-      setError("Failed to verify wallet. Please try again.")
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError("Network connection error. Please check your internet connection and try again.")
+      } else {
+        setError("Failed to verify wallet. Please try again.")
+      }
       setUserType(null)
     } finally {
       setIsLoading(false)
@@ -200,6 +232,8 @@ export default function LoginPage() {
     console.log("🔗 Wallet connect handler called with address:", address)
     setWalletConnected(true)
     setWalletAddress(address)
+    setError(null) // Clear any previous errors when connecting wallet
+    
     // Always check and redirect immediately when wallet connects
     if (address) {
       checkUserTypeAndRedirect(address)
@@ -217,6 +251,11 @@ export default function LoginPage() {
       
       if (digitsOnly.length <= maxLength) {
         setConsumerData(prev => ({ ...prev, [name]: digitsOnly }))
+        
+        // Clear errors when user starts typing correctly
+        if (error && (error.includes('Aadhar') || error.includes('identifier'))) {
+          setError(null)
+        }
       }
     } else {
       setConsumerData(prev => ({ ...prev, [name]: value }))
@@ -225,6 +264,11 @@ export default function LoginPage() {
 
   const handlePinChange = (value) => {
     setConsumerData(prev => ({ ...prev, pin: value }))
+    
+    // Clear PIN-related errors when user starts typing
+    if (error && error.includes('PIN')) {
+      setError(null)
+    }
   }
 
   const handleConsumerLogin = async () => {
@@ -238,17 +282,31 @@ export default function LoginPage() {
         pinLength: consumerData.pin.length
       });
 
-      // Validate inputs
+      // Comprehensive input validation
       if (!consumerData.identifier || !consumerData.pin) {
         setError("Please enter both identifier and PIN")
         return
       }
 
-      if (identifierType === 'aadhar' && !/^\d{12}$/.test(consumerData.identifier)) {
-        setError("Aadhar number must be exactly 12 digits")
-        return
+      // Validate Aadhaar format (12 digits, no special characters)
+      if (identifierType === 'aadhar') {
+        const aadharPattern = /^\d{12}$/;
+        if (!aadharPattern.test(consumerData.identifier)) {
+          setError("Aadhaar number must be exactly 12 digits without spaces or dashes")
+          return
+        }
       }
 
+      // Validate Ration Card ID format (allow alphanumeric)
+      if (identifierType === 'ration') {
+        const rationPattern = /^[A-Za-z0-9]{3,20}$/;
+        if (!rationPattern.test(consumerData.identifier)) {
+          setError("Please enter a valid Ration Card ID (3-20 alphanumeric characters)")
+          return
+        }
+      }
+
+      // Validate PIN format (exactly 6 digits)
       if (!/^\d{6}$/.test(consumerData.pin)) {
         setError("PIN must be exactly 6 digits")
         return
@@ -257,17 +315,31 @@ export default function LoginPage() {
       // For testing purposes, allow the blockchain consumer to login with any PIN
       if (consumerData.identifier === "123456780012") {
         console.log("🧪 Test consumer detected, redirecting to dashboard");
+        
+        // Store test consumer data
+        localStorage.setItem('currentUser', JSON.stringify({
+          type: 'consumer',
+          data: {
+            aadharNumber: consumerData.identifier,
+            name: 'Test Consumer',
+            phone: '1234567890',
+            rationCardId: 'TEST123',
+            homeAddress: 'Test Address',
+            status: 'approved'
+          }
+        }));
+        
         router.push(`/user?aadhaar=${consumerData.identifier}`);
         return;
       }
 
       console.log("📤 Sending login request to API...");
-      // Call API
+      // Call consumer login API
       const response = await fetch("/api/consumer-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          identifier: consumerData.identifier,
+          identifier: consumerData.identifier.trim(), // Remove any accidental whitespace
           identifierType,
           pin: consumerData.pin,
         }),
@@ -278,25 +350,60 @@ export default function LoginPage() {
       console.log("📥 API response data:", data);
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        // Enhanced error messages for better UX
+        switch (response.status) {
+          case 404:
+            setError(identifierType === 'aadhar' 
+              ? "No approved account found with this Aadhaar number. Please verify your details or contact support."
+              : "No approved account found with this Ration Card ID. Please verify your details or contact support.");
+            break;
+          case 401:
+            setError("Invalid PIN. Please check your PIN and try again.");
+            break;
+          case 400:
+            setError("Invalid login details. Please check your information and try again.");
+            break;
+          case 500:
+            setError("Server error occurred. Please try again in a few moments.");
+            break;
+          default:
+            setError(data.error || "Login failed. Please try again.");
+        }
         return;
       }
+
+      // Verify we received valid consumer data
+      if (!data.consumer || !data.consumer.aadharNumber) {
+        setError("Invalid response from server. Please try again.");
+        return;
+      }
+
+      // Store consumer data in localStorage
+      localStorage.setItem('currentUser', JSON.stringify({
+        type: 'consumer',
+        data: data.consumer
+      }));
 
       // Redirect to consumer dashboard with aadhaar in URL
       console.log("✅ Login successful, redirecting to user dashboard");
       router.push(`/user?aadhaar=${data.consumer.aadharNumber}`);
     } catch (error) {
       console.error("❌ Consumer login error:", error);
-      setError("Login failed. Please try again.");
+      setError("Login failed. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Enhanced wallet login function
+  // Enhanced wallet login function with better error handling
   const handleWalletLogin = async () => {
     if (!walletConnected) {
       setError("Please connect your wallet first")
+      return
+    }
+
+    if (!walletAddress) {
+      setError("Wallet address not detected. Please reconnect your wallet.")
       return
     }
 
@@ -304,12 +411,24 @@ export default function LoginPage() {
       setIsLoading(true)
       setError(null)
 
+      console.log("🔐 Manual wallet login attempt for:", walletAddress);
+      
+      // Show connecting message
+      setError(null)
+      
       // The checking and redirection is already handled in checkUserTypeAndRedirect
       // This is called when the user manually clicks the login button
       await checkUserTypeAndRedirect(walletAddress)
 
     } catch (err) {
-      setError("Failed to authenticate. Please try again.")
+      console.error("❌ Wallet login error:", err);
+      if (err.message.includes('network')) {
+        setError("Network connection error. Please check your internet connection and try again.")
+      } else if (err.message.includes('wallet')) {
+        setError("Wallet connection error. Please reconnect your wallet and try again.")
+      } else {
+        setError("Failed to authenticate wallet. Please try reconnecting and try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -331,17 +450,36 @@ export default function LoginPage() {
     }
   }, [])
 
-  // Get button text based on current tab and state
+  // Enhanced button text based on current tab and state
   const getButtonText = () => {
-    if (isLoading) return "Signing in..."
+    if (isLoading) {
+      if (activeTab === "consumer") {
+        return "Verifying credentials..."
+      } else {
+        return "Checking wallet registration..."
+      }
+    }
     
     if (activeTab === "consumer") {
+      const hasIdentifier = consumerData.identifier && consumerData.identifier.length > 0
+      const hasValidPin = consumerData.pin && consumerData.pin.length === 6
+      
+      if (!hasIdentifier && !hasValidPin) {
+        return `Enter ${identifierType === 'aadhar' ? 'Aadhaar' : 'Ration Card ID'} and PIN`
+      } else if (!hasIdentifier) {
+        return `Enter ${identifierType === 'aadhar' ? 'Aadhaar number' : 'Ration Card ID'}`
+      } else if (!hasValidPin) {
+        return "Enter 6-digit PIN"
+      }
       return "Sign in as Consumer"
     }
     
     if (!walletConnected) return "Connect Wallet to Sign In"
-    if (userType) return `Sign in as ${userType.charAt(0).toUpperCase() + userType.slice(1)}`
-    return "Checking Registration..."
+    if (userType) {
+      const displayType = getUserTypeDisplay()
+      return `Sign in as ${displayType}`
+    }
+    return "Verify Wallet Registration"
   }
 
   // Get user type display text
@@ -371,7 +509,13 @@ export default function LoginPage() {
               </div>
               <CardTitle className="text-2xl text-green-900">Sign in</CardTitle>
             </div>
-            <CardDescription>Choose your login method</CardDescription>
+            <CardDescription>
+              Choose your login method based on your account type
+            </CardDescription>
+            <div className="text-xs text-muted-foreground mt-2 space-y-1">
+              <p><strong>Consumer:</strong> Use Aadhaar/Ration Card + PIN</p>
+              <p><strong>Staff:</strong> Use your registered wallet address</p>
+            </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -388,7 +532,10 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={(value) => {
+              setActiveTab(value)
+              setError(null) // Clear errors when switching tabs
+            }} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="consumer" className="flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -414,6 +561,7 @@ export default function LoginPage() {
                           onChange={(e) => {
                             setIdentifierType(e.target.value)
                             setConsumerData(prev => ({ ...prev, identifier: "" }))
+                            setError(null) // Clear errors when changing identifier type
                           }}
                           className="text-green-600"
                         />
@@ -428,6 +576,7 @@ export default function LoginPage() {
                           onChange={(e) => {
                             setIdentifierType(e.target.value)
                             setConsumerData(prev => ({ ...prev, identifier: "" }))
+                            setError(null) // Clear errors when changing identifier type
                           }}
                           className="text-green-600"
                         />
@@ -438,7 +587,7 @@ export default function LoginPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="identifier">
-                      {identifierType === "aadhar" ? "Aadhar Number" : "Ration Card ID"}
+                      {identifierType === "aadhar" ? "Aadhaar Number" : "Ration Card ID"}
                       <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -446,17 +595,29 @@ export default function LoginPage() {
                       name="identifier"
                       placeholder={
                         identifierType === "aadhar" 
-                          ? "Enter your 12-digit Aadhar number" 
+                          ? "Enter your 12-digit Aadhaar number" 
                           : "Enter your Ration Card ID"
                       }
                       value={consumerData.identifier}
                       onChange={handleConsumerInputChange}
                       className="border-green-200 focus-visible:ring-green-500"
+                      maxLength={identifierType === "aadhar" ? 12 : 20}
                     />
                     {identifierType === "aadhar" && (
-                      <p className="text-xs text-muted-foreground">
-                        {consumerData.identifier.length}/12 digits
-                      </p>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>12-digit Aadhaar number (no spaces)</span>
+                        <span className={consumerData.identifier.length === 12 ? "text-green-600" : ""}>
+                          {consumerData.identifier.length}/12
+                        </span>
+                      </div>
+                    )}
+                    {identifierType === "ration" && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Alphanumeric Ration Card ID</span>
+                        <span className={consumerData.identifier.length >= 3 ? "text-green-600" : ""}>
+                          {consumerData.identifier.length}/20
+                        </span>
+                      </div>
                     )}
                   </div>
 
@@ -493,29 +654,56 @@ export default function LoginPage() {
                     transition={{ delay: 0.2 }}
                     className="space-y-4"
                   >
-                    {userType && (
+                    {/* Wallet Connected Status */}
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Wallet Connected: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}</span>
+                      </div>
+                    </div>
+
+                    {isLoading && (
+                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                          <span>Checking wallet registration across all user types...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {!isLoading && userType && (
                       <div className={`border px-4 py-3 rounded-md text-sm ${
                         userType === 'admin' 
                           ? 'bg-purple-50 border-purple-200 text-purple-700'
+                          : userType === 'shopkeeper'
+                          ? 'bg-orange-50 border-orange-200 text-orange-700'
+                          : userType === 'dealer'
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
                           : 'bg-green-50 border-green-200 text-green-700'
                       }`}>
-                        <p>Wallet recognized as: <strong>{getUserTypeDisplay()}</strong></p>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-current rounded-full"></div>
+                          <span>Wallet recognized as: <strong>{getUserTypeDisplay()}</strong></span>
+                        </div>
                       </div>
                     )}
                     
                     <div className="flex items-center space-x-2">
                       <Checkbox id="remember-wallet" />
                       <Label htmlFor="remember-wallet" className="text-sm text-muted-foreground">
-                        Remember this device
+                        Remember this device for faster login
                       </Label>
                     </div>
                   </motion.div>
                 )}
 
-                {walletConnected && !userType && !isLoading && (
+                {walletConnected && !userType && !isLoading && error && (
                   <div className="text-center text-sm">
                     <p className="text-amber-600">
-                      Wallet not recognized in the system
+                      Wallet verification completed
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Check the error message above for details
                     </p>
                   </div>
                 )}
@@ -528,10 +716,16 @@ export default function LoginPage() {
               onClick={activeTab === "consumer" ? handleConsumerLogin : handleWalletLogin}
               disabled={
                 isLoading || 
-                (activeTab === "consumer" && (!consumerData.identifier || !consumerData.pin)) ||
+                (activeTab === "consumer" && (
+                  !consumerData.identifier || 
+                  !consumerData.pin || 
+                  consumerData.pin.length !== 6 ||
+                  (identifierType === 'aadhar' && !/^\d{12}$/.test(consumerData.identifier)) ||
+                  (identifierType === 'ration' && !/^[A-Za-z0-9]{3,20}$/.test(consumerData.identifier))
+                )) ||
                 (activeTab === "wallet" && !walletConnected)
               }
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {getButtonText()}
             </Button>
