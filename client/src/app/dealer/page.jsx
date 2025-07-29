@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import DealerLayout from "@/components/DealerLayout";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -193,12 +194,43 @@ export default function DeliveryPersonDashboard() {
     }
   };
 
-  // Initialize and fetch delivery person data
+  // Initialize and fetch delivery person data with proper auth handling
   useEffect(() => {
-    if (!connected || !provider) {
-      router.push("/");
-      return;
-    }
+    const checkAuth = async () => {
+      // First check localStorage for existing user data
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          if (userData.type === 'delivery') {
+            console.log("✅ Found stored delivery data, proceeding with dashboard");
+            // If we have stored data but no wallet connection yet, wait a bit
+            if (!connected || !provider) {
+              console.log("⏳ Waiting for wallet connection...");
+              return; // Don't redirect yet, wait for wallet to connect
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing stored user data:", e);
+          localStorage.removeItem('currentUser');
+        }
+      }
+      
+      // Only redirect to login if we're sure there's no wallet connection after a reasonable delay
+      if (!connected || !provider) {
+        // Give MetaMask time to connect (especially on page refresh)
+        setTimeout(() => {
+          if (!connected || !provider) {
+            console.log("🚫 No wallet connection found, redirecting to home");
+            localStorage.removeItem('currentUser'); // Clear stale auth data
+            router.push("/login?auth=failed");
+          }
+        }, 2000); // Wait 2 seconds before redirecting
+        return;
+      }
+
+      await fetchData();
+    };
 
     const fetchData = async () => {
       try {
@@ -251,7 +283,7 @@ export default function DeliveryPersonDashboard() {
       }
     };
 
-    fetchData();
+    checkAuth();
   }, [connected, provider, router]);
 
   // Fetch deliveries for this delivery person
@@ -1084,16 +1116,24 @@ export default function DeliveryPersonDashboard() {
   return (
     <DealerLayout>
       <div className="container mx-auto p-6">
-        <div className="flex flex-col gap-2 mb-6">
-          <h1 className="text-3xl font-bold text-green-800">
-            Delivery Person Dashboard
-          </h1>
-          {!loading && deliveryPersonName && (
-            <p className="text-muted-foreground">
-              Welcome, {deliveryPersonName}. Manage your deliveries and ration
-              distributions.
-            </p>
-          )}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-green-800">
+              Delivery Person Dashboard
+            </h1>
+            {!loading && deliveryPersonName && (
+              <p className="text-muted-foreground">
+                Welcome, {deliveryPersonName}. Manage your deliveries and ration
+                distributions.
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <NotificationPanel 
+              userAddress={account} 
+              userType="delivery" 
+            />
+          </div>
         </div>
 
         {error && (
@@ -1102,10 +1142,12 @@ export default function DeliveryPersonDashboard() {
           </div>
         )}
 
-        {loading ? (
+        {loading || (!connected && !localStorage.getItem('currentUser')) ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            <p className="ml-3">Loading your dashboard...</p>
+            <p className="ml-3">
+              {!connected ? "Connecting to wallet..." : "Loading your dashboard..."}
+            </p>
           </div>
         ) : (
           <div className="flex items-center justify-between mb-6">

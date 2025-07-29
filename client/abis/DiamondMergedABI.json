@@ -1,6 +1,43 @@
 [
   {
     "type": "function",
+    "name": "archiveNotification",
+    "inputs": [
+      {
+        "name": "notificationId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "assignDeliveryAgent",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "assignDeliveryAgentToShopkeeper",
     "inputs": [
       {
@@ -15,6 +52,19 @@
       }
     ],
     "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "autoProgressOrders",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "processedCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -46,6 +96,35 @@
       }
     ],
     "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkProgressOrders",
+    "inputs": [
+      {
+        "name": "orderIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "newStatus",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "successCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -83,6 +162,30 @@
   },
   {
     "type": "function",
+    "name": "calculateDeliveryETA",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "estimatedTimeMinutes",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "etaDescription",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "calculatePaymentAmount",
     "inputs": [
       {
@@ -111,6 +214,53 @@
         "name": "payableAmount",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelOrder",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "canFulfillOrder",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -177,6 +327,29 @@
   },
   {
     "type": "function",
+    "name": "completeDelivery",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "proofOfDelivery",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "digitalSignature",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "completePayment",
     "inputs": [
       {
@@ -208,6 +381,91 @@
   },
   {
     "type": "function",
+    "name": "confirmItemDelivery",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmPickup",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createOrder",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deliveryAddress",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "specialInstructions",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "isEmergency",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "deactivateConsumer",
     "inputs": [
       {
@@ -227,6 +485,24 @@
         "name": "agent",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deactivateItem",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "outputs": [],
@@ -301,10 +577,41 @@
   },
   {
     "type": "function",
+    "name": "escalateToEmergency",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "expireOldTokens",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "exportAnalyticsData",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -409,6 +716,38 @@
   },
   {
     "type": "function",
+    "name": "generateOptimizedRoute",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "generatePerformanceAlerts",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "alertCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "generateTokenForConsumer",
     "inputs": [
       {
@@ -467,10 +806,56 @@
   },
   {
     "type": "function",
-    "name": "getActivityLogsByAadhaar",
+    "name": "getActiveDeliveries",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveDeliveryLocations",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "deliveryIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "agents",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "locations",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "statuses",
+        "type": "uint8[]",
+        "internalType": "enum LibAppStorage.DeliveryStatus[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActivityLogsByActor",
     "inputs": [
       {
-        "name": "aadhaar",
+        "name": "actor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "limit",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -518,59 +903,14 @@
   },
   {
     "type": "function",
-    "name": "getActivityLogsByActor",
+    "name": "getActivityLogsForAI",
     "inputs": [
       {
-        "name": "actor",
-        "type": "address",
-        "internalType": "address"
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct LibAppStorage.ActivityLog[]",
-        "components": [
-          {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "actor",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "action",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "aadhaar",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "tokenId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "details",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getActivityLogsForAI",
-    "inputs": [],
     "outputs": [
       {
         "name": "",
@@ -679,13 +1019,118 @@
   },
   {
     "type": "function",
-    "name": "getAllShopkeepers",
-    "inputs": [],
+    "name": "getAgentDeliveries",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAgentPerformanceMetrics",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "metrics",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.DeliveryMetrics",
+        "components": [
+          {
+            "name": "agent",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "totalDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "successfulDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "failedDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "averageDeliveryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "rating",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalRatings",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastDeliveryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "rank",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "performanceGrade",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllUsersByRole",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "admins",
         "type": "address[]",
         "internalType": "address[]"
+      },
+      {
+        "name": "shopkeepers",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "deliveryAgents",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "consumerAadhaars",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -701,17 +1146,17 @@
         "internalType": "string[]"
       },
       {
-        "name": "shopkeeperCounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
         "name": "consumerCounts",
         "type": "uint256[]",
         "internalType": "uint256[]"
       },
       {
-        "name": "activeConsumers",
+        "name": "activeShopkeepers",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "tokenDistributed",
         "type": "uint256[]",
         "internalType": "uint256[]"
       }
@@ -720,61 +1165,19 @@
   },
   {
     "type": "function",
-    "name": "getAssignedDeliveryAgent",
+    "name": "getAvailableNextStates",
     "inputs": [
       {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
       {
         "name": "",
-        "type": "tuple",
-        "internalType": "struct LibAppStorage.DeliveryAgentStruct",
-        "components": [
-          {
-            "name": "agentAddress",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "mobile",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "registrationTime",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "assignedShopkeeper",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "totalDeliveries",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "isActive",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      },
-      {
-        "name": "hasAgent",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "uint8[]",
+        "internalType": "enum LibAppStorage.OrderStatus[]"
       }
     ],
     "stateMutability": "view"
@@ -1030,7 +1433,41 @@
         "internalType": "uint256"
       },
       {
-        "name": "monthsBack",
+        "name": "months",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "monthsArray",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "yearsArray",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "received",
+        "type": "bool[]",
+        "internalType": "bool[]"
+      },
+      {
+        "name": "tokenCounts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumerOrders",
+    "inputs": [
+      {
+        "name": "aadhaar",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1040,21 +1477,6 @@
         "name": "",
         "type": "uint256[]",
         "internalType": "uint256[]"
-      },
-      {
-        "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "",
-        "type": "bool[]",
-        "internalType": "bool[]"
-      },
-      {
-        "name": "",
-        "type": "bool[]",
-        "internalType": "bool[]"
       }
     ],
     "stateMutability": "view"
@@ -1391,19 +1813,19 @@
     "name": "getConsumersPaginated",
     "inputs": [
       {
-        "name": "offset",
+        "name": "startIndex",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "limit",
+        "name": "pageSize",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "consumerList",
+        "name": "consumers",
         "type": "tuple[]",
         "internalType": "struct LibAppStorage.ConsumerStruct[]",
         "components": [
@@ -1460,7 +1882,7 @@
         ]
       },
       {
-        "name": "total",
+        "name": "totalCount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1489,45 +1911,6 @@
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getCurrentMonthPendingTokens",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "tokenIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "consumerNames",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "categories",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "rationAmounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -1625,34 +2008,86 @@
   },
   {
     "type": "function",
-    "name": "getDeliveredUnclaimedTokens",
+    "name": "getDelivery",
     "inputs": [
       {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "tokenIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "consumerNames",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "deliveryTimes",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.Delivery",
+        "components": [
+          {
+            "name": "deliveryId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "orderId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deliveryAgent",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.DeliveryStatus"
+          },
+          {
+            "name": "assignedTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pickedUpTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deliveredTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "estimatedDelivery",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "currentLocation",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "proofOfDelivery",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "failureReason",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "requiresSignature",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "digitalSignature",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
@@ -1669,61 +2104,39 @@
     ],
     "outputs": [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct LibAppStorage.DashboardData",
-        "components": [
-          {
-            "name": "totalConsumers",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalShopkeepers",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalDeliveryAgents",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensIssued",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensClaimed",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensExpired",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "pendingTokens",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "currentMonth",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "currentYear",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "lastUpdateTime",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
+        "name": "agentAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "agentName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "mobile",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "registrationTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assignedShopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "totalDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -1771,6 +2184,194 @@
           },
           {
             "name": "totalDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isActive",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDeliveryLocationHistory",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "locationHistory",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "timestamps",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDeliveryMetrics",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.DeliveryMetrics",
+        "components": [
+          {
+            "name": "agent",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "totalDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "successfulDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "failedDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "averageDeliveryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "rating",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalRatings",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastDeliveryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDeliveryRoute",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGlobalInventorySummary",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "totalQuantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "totalShopsWithItems",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getInventoryItem",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.InventoryItem",
+        "components": [
+          {
+            "name": "itemName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "quantityAvailable",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "quantityReserved",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pricePerUnit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastUpdated",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -1882,7 +2483,294 @@
   },
   {
     "type": "function",
-    "name": "getPaymentAnalytics",
+    "name": "getLocationSettings",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "gpsIntegrationEnabled",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "realTimeEnabled",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "totalUsersWithLocation",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "activeDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLowStockItems",
+    "inputs": [
+      {
+        "name": "threshold",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "shopkeepers",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNearbyDeliveryAgents",
+    "inputs": [
+      {
+        "name": "location",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "radiusKm",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "agents",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "locations",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "distances",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNotificationCount",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "total",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "unread",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getNotificationsByPriority",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "priority",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.NotificationPriority"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.Notification[]",
+        "components": [
+          {
+            "name": "notificationId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "notificationType",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationType"
+          },
+          {
+            "name": "priority",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationPriority"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "metadata",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isRead",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isArchived",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "expiryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrder",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.Order",
+        "components": [
+          {
+            "name": "orderId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "aadhaar",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenIds",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "assignedDeliveryAgent",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.OrderStatus"
+          },
+          {
+            "name": "createdTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "scheduledDelivery",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "completedTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deliveryAddress",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "specialInstructions",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "totalAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isPaid",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "cancellationReason",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrderChecklist",
     "inputs": [
       {
         "name": "shopkeeper",
@@ -1890,31 +2778,103 @@
         "internalType": "address"
       },
       {
-        "name": "daysCount",
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "availableItems",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "unavailableItems",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "availableQuantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "canFulfill",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrdersRequiringAttention",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "orderIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "reasons",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrderWorkflowHistory",
+    "inputs": [
+      {
+        "name": "orderId",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "dailyPayments",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "currentStatus",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
       },
       {
-        "name": "dailyAmounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "createdTime",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "topCategories",
-        "type": "string[]",
-        "internalType": "string[]"
+        "name": "lastUpdated",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "categoryAmounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "isEmergency",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "hasDispute",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "disputeReason",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -1992,78 +2952,62 @@
   },
   {
     "type": "function",
-    "name": "getPendingDeliveriesForShopkeeper",
-    "inputs": [
-      {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
+    "name": "getPerformanceDashboard",
+    "inputs": [],
     "outputs": [
       {
-        "name": "pendingTokenIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "totalActiveUsers",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "dailyOrders",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "consumerNames",
-        "type": "string[]",
-        "internalType": "string[]"
+        "name": "weeklyOrders",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "rationAmounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "monthlyOrders",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "expiryTimes",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "systemUptimePercentage",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "averageResponseTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "systemHealth",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "getPendingPaymentActions",
+    "name": "getRationAmount",
     "inputs": [
       {
-        "name": "shopkeeper",
-        "type": "address",
-        "internalType": "address"
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "outputs": [
       {
-        "name": "paymentIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "aadhaars",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "consumerNames",
-        "type": "string[]",
-        "internalType": "string[]"
-      },
-      {
-        "name": "amounts",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "tokenIds",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -2110,7 +3054,7 @@
     "name": "getRecentActivityLogs",
     "inputs": [
       {
-        "name": "limit",
+        "name": "hoursBack",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2158,86 +3102,71 @@
   },
   {
     "type": "function",
-    "name": "getRecentPaymentTransactions",
+    "name": "getShopInventory",
     "inputs": [
       {
         "name": "shopkeeper",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "payments",
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "items",
         "type": "tuple[]",
-        "internalType": "struct LibAppStorage.PaymentRecord[]",
+        "internalType": "struct LibAppStorage.InventoryItem[]",
         "components": [
           {
-            "name": "paymentId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "aadhaar",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "tokenId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "shopkeeper",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "upiTransactionId",
+            "name": "itemName",
             "type": "string",
             "internalType": "string"
           },
           {
-            "name": "paymentMethod",
+            "name": "category",
             "type": "string",
             "internalType": "string"
           },
           {
-            "name": "timestamp",
+            "name": "quantityAvailable",
             "type": "uint256",
             "internalType": "uint256"
           },
           {
-            "name": "isVerified",
+            "name": "quantityReserved",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pricePerUnit",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastUpdated",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isActive",
             "type": "bool",
             "internalType": "bool"
-          },
-          {
-            "name": "invoiceHash",
-            "type": "string",
-            "internalType": "string"
           }
         ]
       },
       {
-        "name": "consumerNames",
-        "type": "string[]",
-        "internalType": "string[]"
+        "name": "totalValue",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        "name": "categories",
-        "type": "string[]",
-        "internalType": "string[]"
+        "name": "lastUpdated",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -2254,117 +3183,44 @@
     ],
     "outputs": [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct LibAppStorage.DashboardData",
-        "components": [
-          {
-            "name": "totalConsumers",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalShopkeepers",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalDeliveryAgents",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensIssued",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensClaimed",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "totalTokensExpired",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "pendingTokens",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "currentMonth",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "currentYear",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "lastUpdateTime",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getShopkeeperDeliveryHistory",
-    "inputs": [
-      {
-        "name": "shopkeeper",
+        "name": "shopkeeperAddress",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "limit",
+        "name": "assignedConsumers",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "outputs": [
+      },
       {
-        "name": "deliveryLogs",
-        "type": "tuple[]",
-        "internalType": "struct LibAppStorage.ActivityLog[]",
-        "components": [
-          {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "actor",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "action",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "aadhaar",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "tokenId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "details",
-            "type": "string",
-            "internalType": "string"
-          }
-        ]
+        "name": "activeConsumers",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "monthlyTokensIssued",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalTokensIssued",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalDeliveries",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "isActive",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "registrationTime",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -2391,7 +3247,7 @@
     ],
     "outputs": [
       {
-        "name": "totalAssigned",
+        "name": "assignedConsumers",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -2406,7 +3262,7 @@
         "internalType": "uint256"
       },
       {
-        "name": "pendingDeliveries",
+        "name": "pendingTokens",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2476,7 +3332,7 @@
   },
   {
     "type": "function",
-    "name": "getShopkeeperPaymentDashboard",
+    "name": "getShopkeeperOrders",
     "inputs": [
       {
         "name": "shopkeeper",
@@ -2486,44 +3342,9 @@
     ],
     "outputs": [
       {
-        "name": "todayPayments",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "todayAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "weeklyPayments",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "weeklyAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "monthlyPayments",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "monthlyAmount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "pendingPayments",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "totalEarnings",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -2598,39 +3419,29 @@
     ],
     "outputs": [
       {
-        "name": "totalAssignedConsumers",
+        "name": "totalOrders",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "activeConsumers",
+        "name": "completedOrders",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "currentMonthTokensIssued",
+        "name": "averageProcessingTime",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "currentMonthDeliveries",
+        "name": "customerSatisfactionScore",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "pendingDeliveries",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "overdueDeliveries",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "deliverySuccessRate",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "performanceGrade",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -2644,6 +3455,61 @@
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSystemAnalytics",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct LibAppStorage.SystemAnalytics",
+        "components": [
+          {
+            "name": "totalOrders",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "successRate",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "averageDeliveryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "activeDeliveries",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pendingOrders",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalRevenue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastUpdated",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "stateMutability": "view"
@@ -2702,22 +3568,66 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "paused",
+        "name": "systemPaused",
         "type": "bool",
         "internalType": "bool"
       },
       {
-        "name": "totalTokens",
+        "name": "totalTokensIssued",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "totalClaimed",
+        "name": "totalTokensClaimed",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "totalExpired",
+        "name": "totalTokensExpired",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTimeBasedAnalytics",
+    "inputs": [
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "endTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "ordersCreated",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deliveriesCompleted",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "averageDeliveryTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalRevenue",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "uniqueCustomers",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2756,6 +3666,35 @@
     "outputs": [
       {
         "name": "",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTopPerformingAgents",
+    "inputs": [
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "agents",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "successfulDeliveries",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "ratings",
         "type": "uint256[]",
         "internalType": "uint256[]"
       }
@@ -2803,19 +3742,214 @@
   },
   {
     "type": "function",
-    "name": "getUnclaimedTokensByAadhaar",
+    "name": "getUnreadNotifications",
     "inputs": [
       {
-        "name": "aadhaar",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
       {
         "name": "",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.Notification[]",
+        "components": [
+          {
+            "name": "notificationId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "notificationType",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationType"
+          },
+          {
+            "name": "priority",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationPriority"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "metadata",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isRead",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isArchived",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "expiryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserLocation",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserNotifications",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct LibAppStorage.Notification[]",
+        "components": [
+          {
+            "name": "notificationId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "notificationType",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationType"
+          },
+          {
+            "name": "priority",
+            "type": "uint8",
+            "internalType": "enum LibAppStorage.NotificationPriority"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "metadata",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "isRead",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isArchived",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "expiryTime",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserRole",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserRoleAndRedirect",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "role",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "redirectUrl",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
@@ -2841,6 +3975,19 @@
   },
   {
     "type": "function",
+    "name": "handleEmergencyEscalation",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "hasConsumerReceivedMonthlyToken",
     "inputs": [
       {
@@ -2857,6 +4004,73 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initializeOrderWorkflow",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "deliveryAddress",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "specialInstructions",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "isEmergency",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiateDispute",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "evidence",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -2889,6 +4103,44 @@
   },
   {
     "type": "function",
+    "name": "isRegisteredAadhaar",
+    "inputs": [
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isRegisteredUser",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "isValidCategory",
     "inputs": [
       {
@@ -2908,6 +4160,30 @@
   },
   {
     "type": "function",
+    "name": "isValidStateTransition",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
+      },
+      {
+        "name": "to",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
     "name": "linkConsumerWallet",
     "inputs": [
       {
@@ -2919,6 +4195,69 @@
         "name": "wallet",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "login",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "success",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "redirectUrl",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "logout",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markAllAsRead",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markAsRead",
+    "inputs": [
+      {
+        "name": "notificationId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markOrderReady",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -2946,6 +4285,42 @@
     "type": "function",
     "name": "pause",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "performInventoryAudit",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "progressOrderState",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "newStatus",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -3069,6 +4444,91 @@
   },
   {
     "type": "function",
+    "name": "releaseReservedItems",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reserveItems",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "itemNames",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "quantities",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "resolveDispute",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolution",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "finalStatus",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.OrderStatus"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "searchConsumersByName",
     "inputs": [
       {
@@ -3140,12 +4600,240 @@
   },
   {
     "type": "function",
+    "name": "sendBulkNotificationByRole",
+    "inputs": [
+      {
+        "name": "role",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "notificationType",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.NotificationType"
+      },
+      {
+        "name": "priority",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.NotificationPriority"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "metadata",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sendDeliveryAssignmentNotification",
+    "inputs": [
+      {
+        "name": "deliveryAgent",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deliveryAddress",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sendEmergencyAlert",
+    "inputs": [
+      {
+        "name": "alertMessage",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "additionalInfo",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sendEmergencyLocationAlert",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sendNotification",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "notificationType",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.NotificationType"
+      },
+      {
+        "name": "priority",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.NotificationPriority"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "metadata",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sendStatusUpdateNotification",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.DeliveryStatus"
+      },
+      {
+        "name": "additionalInfo",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setDCVTokenAddress",
     "inputs": [
       {
         "name": "tokenAddress",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setDeliveryRoute",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "waypoints",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "estimatedTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGPSIntegration",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRationAmount",
+    "inputs": [
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -3171,12 +4859,53 @@
   },
   {
     "type": "function",
+    "name": "setRealTimeTracking",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setSubsidyPercentage",
     "inputs": [
       {
         "name": "percentage",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setupGeofence",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "location",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "radius",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "outputs": [],
@@ -3203,6 +4932,45 @@
   },
   {
     "type": "function",
+    "name": "trackDeliveryProgress",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "currentLocation",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "routeWaypoints",
+        "type": "string[]",
+        "internalType": "string[]"
+      },
+      {
+        "name": "nextWaypointIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "estimatedTimeToDestination",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "progressPercentage",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "unpause",
     "inputs": [],
     "outputs": [],
@@ -3223,6 +4991,116 @@
   },
   {
     "type": "function",
+    "name": "updateDeliveryLocation",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentLocation",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateDeliveryStatus",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "internalType": "enum LibAppStorage.DeliveryStatus"
+      },
+      {
+        "name": "location",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "additionalInfo",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateInventoryItem",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "category",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "quantity",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pricePerUnit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateLocation",
+    "inputs": [
+      {
+        "name": "coordinates",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateMyInventory",
+    "inputs": [
+      {
+        "name": "itemName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "newQuantity",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "updateRationAmount",
     "inputs": [
       {
@@ -3236,6 +5114,13 @@
         "internalType": "uint256"
       }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateSystemAnalytics",
+    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -3262,6 +5147,75 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "AnalyticsUpdated",
+    "inputs": [
+      {
+        "name": "metricType",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AutomationTriggered",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "automationType",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BulkNotificationSent",
+    "inputs": [
+      {
+        "name": "notificationType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum LibAppStorage.NotificationType"
+      },
+      {
+        "name": "recipientCount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -3437,6 +5391,50 @@
   },
   {
     "type": "event",
+    "name": "DeliveryAssigned",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryCompleted",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "DeliveryConfirmed",
     "inputs": [
       {
@@ -3450,6 +5448,25 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryFailed",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
       }
     ],
     "anonymous": false
@@ -3475,6 +5492,25 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DeliveryStatusUpdated",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "status",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum LibAppStorage.DeliveryStatus"
       }
     ],
     "anonymous": false
@@ -3523,6 +5559,219 @@
   },
   {
     "type": "event",
+    "name": "DisputeInitiated",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "initiator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisputeResolved",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolution",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "resolver",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EmergencyAlert",
+    "inputs": [
+      {
+        "name": "message",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EmergencyDelivery",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EmergencyLocationAlert",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "location",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GeofenceEntered",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "location",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GeofenceExited",
+    "inputs": [
+      {
+        "name": "agent",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "location",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InventoryAudit",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "totalValue",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "InventoryUpdated",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "newQuantity",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "InvoiceGenerated",
     "inputs": [
       {
@@ -3542,6 +5791,231 @@
         "type": "string",
         "indexed": false,
         "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ItemReleased",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "quantity",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ItemReserved",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "quantity",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LocationTrackingEnabled",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "enabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LocationUpdated",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newLocation",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LoginAttempt",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "success",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LowStockAlert",
+    "inputs": [
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "itemName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "currentStock",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NotificationRead",
+    "inputs": [
+      {
+        "name": "notificationId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NotificationSent",
+    "inputs": [
+      {
+        "name": "notificationId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "notificationType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum LibAppStorage.NotificationType"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OrderCreated",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aadhaar",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shopkeeper",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -3642,6 +6116,56 @@
   },
   {
     "type": "event",
+    "name": "PerformanceAlert",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "alertType",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RouteOptimized",
+    "inputs": [
+      {
+        "name": "deliveryId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "waypoints",
+        "type": "string[]",
+        "indexed": false,
+        "internalType": "string[]"
+      },
+      {
+        "name": "estimatedTime",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "ShopkeeperDeactivated",
     "inputs": [
       {
@@ -3703,6 +6227,31 @@
       },
       {
         "name": "subsidyAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SystemHealthCheck",
+    "inputs": [
+      {
+        "name": "totalUsers",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "activeDeliveries",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "successRate",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -3787,6 +6336,50 @@
   },
   {
     "type": "event",
+    "name": "UserLoggedIn",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UserLoggedOut",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "timestamp",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "WalletLinked",
     "inputs": [
       {
@@ -3800,6 +6393,56 @@
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WorkflowRuleApplied",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "ruleName",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "result",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WorkflowStateChanged",
+    "inputs": [
+      {
+        "name": "orderId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "fromStatus",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum LibAppStorage.OrderStatus"
+      },
+      {
+        "name": "toStatus",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum LibAppStorage.OrderStatus"
       }
     ],
     "anonymous": false

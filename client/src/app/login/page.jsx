@@ -32,6 +32,7 @@ export default function LoginPage() {
   const [walletAddress, setWalletAddress] = useState("")
   const [userType, setUserType] = useState(null)
   const [activeTab, setActiveTab] = useState("consumer")
+  const [initialLoad, setInitialLoad] = useState(true)
 
   // Consumer login state
   const [consumerData, setConsumerData] = useState({
@@ -40,21 +41,37 @@ export default function LoginPage() {
   })
   const [identifierType, setIdentifierType] = useState("aadhar") // 'aadhar' or 'ration'
 
+  // Mark initial load as complete after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoad(false)
+    }, 1000) // Wait 1 second before allowing auto-redirects
+
+    return () => clearTimeout(timer)
+  }, [])
+
   // Sync wallet state with MetaMask provider
   useEffect(() => {
     console.log("🔄 Wallet state changed - connected:", connected, "account:", account)
     setWalletConnected(connected)
     setWalletAddress(account || "")
     
-    // Always check and redirect when wallet is connected, regardless of active tab
-    if (account && connected) {
+    // Only auto-redirect if the wallet is connected AND we're past initial load AND not currently loading
+    // This prevents the infinite redirect loop
+    if (account && connected && !isLoading && !initialLoad) {
       console.log("🚀 Wallet connected, checking user type and redirecting...")
       checkUserTypeAndRedirect(account)
     }
-  }, [connected, account])
+  }, [connected, account, isLoading, initialLoad])
 
   // Enhanced wallet checking function
   const checkUserTypeAndRedirect = async (address) => {
+    // Prevent multiple simultaneous auth checks
+    if (isLoading) {
+      console.log("🔄 Auth check already in progress, skipping...")
+      return
+    }
+    
     try {
       setIsLoading(true)
       setError(null)
@@ -69,7 +86,8 @@ export default function LoginPage() {
           type: 'admin',
           address: address
         }));
-        window.location.href = "/admin" // Force immediate redirect
+        // Use router.push instead of window.location.href to prevent hard reload
+        router.push("/admin")
         return
       }
       
@@ -87,16 +105,16 @@ export default function LoginPage() {
         console.log("🔍 Shopkeeper response data:", shopkeeperData);
 
         if (shopkeeperResponse.ok && shopkeeperData.success && shopkeeperData.shopkeeper) {
-          console.log("🏪 Shopkeeper account detected, redirecting to depot dashboard");
+          console.log("🏪 Shopkeeper account detected, redirecting to shopkeeper dashboard");
           console.log("📊 Shopkeeper data source:", shopkeeperData.shopkeeper.source);
-          setUserType("depot")
+          setUserType("shopkeeper")
           // Store shopkeeper info in localStorage for the dashboard
           localStorage.setItem('currentUser', JSON.stringify({
             type: 'shopkeeper',
             data: shopkeeperData.shopkeeper
           }));
           
-          window.location.href = "/depot" // Force immediate redirect
+          router.push("/shopkeeper")
           return
         } else if (shopkeeperResponse.ok && !shopkeeperData.success && shopkeeperData.error) {
           console.log("❌ Shopkeeper check returned error:", shopkeeperData.error);
@@ -127,7 +145,7 @@ export default function LoginPage() {
             type: 'delivery',
             data: deliveryData.deliveryPartner
           }));
-          window.location.href = "/dealer" // Force immediate redirect
+          router.push("/dealer")
           return
         } else if (deliveryResponse.ok && !deliveryData.success && deliveryData.error) {
           console.log("❌ Delivery partner check returned error:", deliveryData.error);
@@ -157,7 +175,7 @@ export default function LoginPage() {
             type: 'consumer',
             data: consumerWalletData.consumer
           }));
-          window.location.href = `/user?aadhaar=${consumerWalletData.consumer.aadharNumber}` // Force immediate redirect
+          router.push(`/user?aadhaar=${consumerWalletData.consumer.aadharNumber}`)
           return
         }
       } catch (consumerWalletError) {
@@ -297,6 +315,22 @@ export default function LoginPage() {
     }
   }
 
+  // Clear authentication data
+  const clearAuth = () => {
+    localStorage.removeItem('currentUser')
+    setUserType(null)
+    setError(null)
+  }
+
+  // Check if we're being redirected from a dashboard due to auth failure
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('auth') === 'failed') {
+      clearAuth()
+      setError("Authentication failed. Please connect your wallet to continue.")
+    }
+  }, [])
+
   // Get button text based on current tab and state
   const getButtonText = () => {
     if (isLoading) return "Signing in..."
@@ -314,7 +348,7 @@ export default function LoginPage() {
   const getUserTypeDisplay = () => {
     switch(userType) {
       case "admin": return "Administrator"
-      case "depot": return "Shopkeeper"
+      case "shopkeeper": return "Shopkeeper"
       case "dealer": return "Delivery Partner"
       case "user": return "Consumer"
       default: return null

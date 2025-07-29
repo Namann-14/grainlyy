@@ -10,11 +10,19 @@ import {
   AlertTriangle, TrendingUp, MapPin, Calendar,
   Zap, Activity, Database, RefreshCw, DollarSign,
   CreditCard, Settings, Pause, Play, Shield,
-  FileText, BarChart3, PieChart, Download
+  FileText, BarChart3, PieChart, Download,
+  Bell, X, Check, Eye, UserX, UserPlus,
+  Navigation, Star, Award, Target, Gauge
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SendRationDialog } from "@/components/admin/SendRationDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AdminContractAPI, parseTransactionError } from '@/utils/blockchainUtils';
+import { ethers } from 'ethers';
 
 // Animation variants
 const containerVariants = {
@@ -39,664 +47,721 @@ const itemVariants = {
     },
   },
 };
+
 export default function AdminDashboard() {
   const router = useRouter();
   
-  // Dashboard data states
-  const [dashboardData, setDashboardData] = useState(null);
-  const [pendingRegistrations, setPendingRegistrations] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
+  // Blockchain Integration
+  const [adminContract, setAdminContract] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [adminWalletAddress, setAdminWalletAddress] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  
+  // Core Dashboard States
+  const [dashboardData, setDashboardData] = useState({
+    totalConsumers: 0,
+    totalShopkeepers: 0,
+    totalDeliveryAgents: 0,
+    activeDeliveries: 0,
+    tokensDistributed: 0,
+    systemStatus: 'Active'
+  });
+  
+  const [systemAnalytics, setSystemAnalytics] = useState(null);
   const [systemHealth, setSystemHealth] = useState(null);
   const [paymentAnalytics, setPaymentAnalytics] = useState(null);
-  const [systemSettings, setSystemSettings] = useState(null);
+  
+  // Pending Approvals States
+  const [pendingConsumers, setPendingConsumers] = useState([]);
+  const [pendingShopkeepers, setPendingShopkeepers] = useState([]);
+  const [pendingAgents, setPendingAgents] = useState([]);
+  
+  // User Management States
+  const [consumersByCategory, setConsumersByCategory] = useState({
+    BPL: [],
+    APL: [],
+    AAY: []
+  });
+  const [allShopkeepers, setAllShopkeepers] = useState([]);
+  const [allDeliveryAgents, setAllDeliveryAgents] = useState([]);
+  const [activeDeliveries, setActiveDeliveries] = useState([]);
+  
+  // UI States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-
-  // Token generation loading states
+  const [activeTab, setActiveTab] = useState('overview');
+  
+  // Loading States for Actions
   const [generatingTokens, setGeneratingTokens] = useState({
     monthly: false,
     bpl: false,
     apl: false,
+    aay: false,
     bulk: false,
-    expiring: false
+    individual: {}
   });
-
-  // System management loading states
+  
   const [systemActions, setSystemActions] = useState({
     pausing: false,
     unpausing: false,
     settingPrice: false,
     settingSubsidy: false
   });
-
-  // Active tab state
-  const [activeTab, setActiveTab] = useState('overview');
-
-  // Price and subsidy management states
+  
+  const [userActions, setUserActions] = useState({
+    deactivating: {},
+    reactivating: {},
+    approving: {},
+    rejecting: {}
+  });
+  
+  // Settings States
   const [priceSettings, setPriceSettings] = useState({
     rationPrice: '',
     subsidyPercentage: ''
   });
 
+  // ========== BLOCKCHAIN INITIALIZATION ==========
+  
+  useEffect(() => {
+    initializeBlockchain();
+  }, []);
+
+  useEffect(() => {
+    if (adminContract && isConnected) {
+      fetchAllDashboardData();
+    }
+  }, [adminContract, isConnected]);
+
+  const initializeBlockchain = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        // Request account access
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signerInstance = await provider.getSigner();
+        const address = await signerInstance.getAddress();
+        
+        setSigner(signerInstance);
+        setAdminWalletAddress(address);
+        
+        // Initialize contract API
+        const contractAPI = new AdminContractAPI(signerInstance);
+        setAdminContract(contractAPI);
+        setIsConnected(true);
+        
+        setSuccess('✅ Successfully connected to blockchain!');
+      } else {
+        setError('❌ Please install MetaMask to use this dashboard');
+      }
+    } catch (error) {
+      console.error('Error initializing blockchain:', error);
+      setError('❌ Failed to connect to blockchain: ' + parseTransactionError(error));
+    }
+  };
+
+  // ========== BLOCKCHAIN FUNCTIONS ==========
+  
   // Test blockchain connection
   const testConnection = async () => {
     try {
       setRefreshing(true);
-      const response = await fetch('/api/admin?endpoint=test-connection');
-      const data = await response.json();
+      if (!adminContract) {
+        setError('❌ Contract not initialized');
+        return;
+      }
       
-      if (data.success) {
+      const totalConsumers = await adminContract.getTotalConsumers();
+      const totalShopkeepers = await adminContract.getTotalShopkeepers();
+      const isPaused = await adminContract.isPaused();
+      
+      if (totalConsumers.success && totalShopkeepers.success && isPaused.success) {
         setSuccess(`✅ Blockchain connection test successful!<br/>
-          Contract Address: ${data.contractAddress}<br/>
-          Network: ${data.network}<br/>
-          Admin Wallet: ${data.adminWallet}<br/>
-          Block Number: ${data.blockNumber || 'N/A'}`);
+          Total Consumers: ${totalConsumers.data}<br/>
+          Total Shopkeepers: ${totalShopkeepers.data}<br/>
+          System Status: ${isPaused.data ? 'Paused' : 'Active'}<br/>
+          Admin Wallet: ${adminWalletAddress}`);
       } else {
-        setError(`❌ Blockchain connection test failed: ${data.error}`);
+        setError('❌ Blockchain connection test failed');
       }
     } catch (error) {
-      setError(`❌ Connection test failed: ${error.message}`);
+      setError(`❌ Connection test failed: ${parseTransactionError(error)}`);
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Transaction monitoring
+  // Transaction monitoring helper
   const addTransactionToMonitor = (txData) => {
     const event = new CustomEvent('addTransaction', { detail: txData });
     window.dispatchEvent(event);
   };
 
-  // Load dashboard data on component mount
-  useEffect(() => {
-    console.log('🔄 Loading admin dashboard data...');
+  // ========== DATA FETCHING FUNCTIONS ==========
+  
+  // Fetch all dashboard data
+  const fetchAllDashboardData = async () => {
+    if (!adminContract) return;
     
-    // Clear any existing data first to avoid showing stale data
-    setDashboardData(null);
-    setPaymentAnalytics(null);
-    setSystemSettings(null);
-    setRecentActivity([]);
-    setSystemHealth(null);
-    
-    // Fetch fresh data
-    fetchDashboardData();
-    fetchPendingRegistrations();
-    fetchRecentActivity();
-    fetchSystemHealth();
-    fetchPaymentAnalytics();
-    fetchSystemSettings();
-  }, []);
-
-  // Fetch main dashboard data
-  const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      setRefreshing(true);
-      
-      // Add cache-busting timestamp to prevent browser caching
-      const timestamp = Date.now();
-      const response = await fetch(`/api/admin?endpoint=dashboard&_t=${timestamp}`, {
-        method: 'GET',
-        cache: 'no-store', // Prevent caching
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      const data = await response.json();
-      
-      console.log('📊 Dashboard response:', data);
-      
-      if (data.success) {
-        setDashboardData(data.data);
-        
-        // Show warning if there are blockchain connection issues
-        if (data.warning) {
-          setError(`⚠️ ${data.warning}`);
-        } else if (data.error) {
-          setError(`❌ Blockchain connection failed: ${data.warning || 'Unknown error'}`);
-        } else {
-          // Clear any previous errors if data loads successfully
-          setError('');
-        }
-      } else {
-        setError('❌ Failed to load dashboard data: ' + data.error);
-      }
+      await Promise.all([
+        fetchSystemOverview(),
+        fetchUserManagementData(),
+        fetchDeliveryData(),
+        fetchAnalyticsData(),
+        fetchPendingApprovals()
+      ]);
     } catch (error) {
-      console.error('❌ Error fetching dashboard data:', error);
-      setError('❌ Failed to connect to backend API');
+      console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data: ' + parseTransactionError(error));
     } finally {
-      setRefreshing(false);
       setLoading(false);
     }
   };
 
-  // Fetch pending consumer registrations
-  const fetchPendingRegistrations = async () => {
+  // 1. System Overview Data
+  const fetchSystemOverview = async () => {
     try {
-      const response = await fetch('/api/admin?endpoint=pending-registrations');
-      const data = await response.json();
-      
-      if (data.success) {
-        setPendingRegistrations(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching pending registrations:', error);
-    }
-  };
+      const [
+        totalConsumersRes,
+        totalShopkeepersRes,
+        totalAgentsRes,
+        systemAnalyticsRes,
+        isPausedRes,
+        rationPriceRes,
+        subsidyRes
+      ] = await Promise.all([
+        adminContract.getTotalConsumers(),
+        adminContract.getTotalShopkeepers(),
+        adminContract.getTotalDeliveryAgents(),
+        adminContract.getSystemAnalytics(),
+        adminContract.isPaused(),
+        adminContract.getRationPrice(),
+        adminContract.getSubsidyPercentage()
+      ]);
 
-  // Fetch recent system activity
-  const fetchRecentActivity = async () => {
-    try {
-      const response = await fetch('/api/admin?endpoint=recent-activity&limit=10');
-      const data = await response.json();
-      
-      if (data.success) {
-        setRecentActivity(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching recent activity:', error);
-    }
-  };
-
-  // Fetch system health data
-  const fetchSystemHealth = async () => {
-    try {
-      const response = await fetch('/api/admin?endpoint=system-health-report');
-      const data = await response.json();
-      
-      if (data.success) {
-        setSystemHealth(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching system health:', error);
-    }
-  };
-
-  // Fetch payment analytics data
-  const fetchPaymentAnalytics = async () => {
-    try {
-      console.log('🔄 Fetching payment analytics...');
-      
-      // Add cache-busting timestamp to prevent browser caching
-      const timestamp = Date.now();
-      const response = await fetch(`/api/admin?endpoint=payment-analytics&_t=${timestamp}`, {
-        method: 'GET',
-        cache: 'no-store', // Prevent caching
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      const data = await response.json();
-      
-      console.log('💰 Payment analytics response:', data);
-      
-      if (data.success) {
-        setPaymentAnalytics(data.data);
-        
-        // Show warning if there are blockchain connection issues
-        if (data.warning) {
-          console.log('⚠️ Payment analytics warning:', data.warning);
-        }
-      } else {
-        console.error('❌ Failed to fetch payment analytics:', data.error);
-        // Set to zeros to show no data available
-        setPaymentAnalytics({
-          totalPayments: 0,
-          totalAmount: 0,
-          pendingPayments: 0,
-          failedPayments: 0,
-          successRate: 0,
-          averagePayment: 0,
-          monthlyGrowth: 0,
-          activeUsers: 0
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error fetching payment analytics:', error);
-      // Set to zeros to show no data available
-      setPaymentAnalytics({
-        totalPayments: 0,
-        totalAmount: 0,
-        pendingPayments: 0,
-        failedPayments: 0,
-        successRate: 0,
-        averagePayment: 0,
-        monthlyGrowth: 0,
-        activeUsers: 0
-      });
-    }
-  };
-
-  // Fetch system settings
-  const fetchSystemSettings = async () => {
-    try {
-      const response = await fetch('/api/admin?endpoint=system-settings');
-      const data = await response.json();
-      
-      if (data.success) {
-        setSystemSettings(data.data);
-        setPriceSettings({
-          rationPrice: data.data.rationPrice || '',
-          subsidyPercentage: data.data.subsidyPercentage || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching system settings:', error);
-    }
-  };
-
-  // Generate monthly tokens for all consumers
-  const generateMonthlyTokens = async () => {
-    try {
-      setGeneratingTokens(prev => ({ ...prev, monthly: true }));
-      
-      const response = await fetch('/api/admin?endpoint=generate-monthly-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
+      setDashboardData({
+        totalConsumers: totalConsumersRes.success ? totalConsumersRes.data : 0,
+        totalShopkeepers: totalShopkeepersRes.success ? totalShopkeepersRes.data : 0,
+        totalDeliveryAgents: totalAgentsRes.success ? totalAgentsRes.data : 0,
+        systemStatus: isPausedRes.success ? (isPausedRes.data ? 'Paused' : 'Active') : 'Unknown',
+        rationPrice: rationPriceRes.success ? rationPriceRes.data : '0',
+        subsidyPercentage: subsidyRes.success ? subsidyRes.data : 0
       });
 
+      if (systemAnalyticsRes.success) {
+        setSystemAnalytics(systemAnalyticsRes.data);
+      }
+
+      setPriceSettings({
+        rationPrice: rationPriceRes.success ? rationPriceRes.data : '',
+        subsidyPercentage: subsidyRes.success ? subsidyRes.data.toString() : ''
+      });
+      
+    } catch (error) {
+      console.error('Error fetching system overview:', error);
+    }
+  };
+
+  // 2. User Management Data
+  const fetchUserManagementData = async () => {
+    try {
+      const [
+        bplConsumersRes,
+        aplConsumersRes,
+        aayConsumersRes,
+        shopkeepersRes,
+        agentsRes
+      ] = await Promise.all([
+        adminContract.getConsumersByCategory('BPL'),
+        adminContract.getConsumersByCategory('APL'),
+        adminContract.getConsumersByCategory('AAY'),
+        adminContract.getAllShopkeepers(),
+        adminContract.getAllDeliveryAgents()
+      ]);
+
+      setConsumersByCategory({
+        BPL: bplConsumersRes.success ? bplConsumersRes.data : [],
+        APL: aplConsumersRes.success ? aplConsumersRes.data : [],
+        AAY: aayConsumersRes.success ? aayConsumersRes.data : []
+      });
+
+      if (shopkeepersRes.success) setAllShopkeepers(shopkeepersRes.data);
+      if (agentsRes.success) setAllDeliveryAgents(agentsRes.data);
+      
+    } catch (error) {
+      console.error('Error fetching user management data:', error);
+    }
+  };
+
+  // 3. Delivery Data
+  const fetchDeliveryData = async () => {
+    try {
+      const activeDeliveriesRes = await adminContract.getActiveDeliveries();
+      
+      if (activeDeliveriesRes.success) {
+        setActiveDeliveries(activeDeliveriesRes.data);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching delivery data:', error);
+    }
+  };
+
+  // 4. Analytics Data
+  const fetchAnalyticsData = async () => {
+    try {
+      const [
+        paymentAnalyticsRes,
+        systemHealthRes
+      ] = await Promise.all([
+        adminContract.getPaymentAnalytics(),
+        adminContract.getSystemHealthReport()
+      ]);
+
+      if (paymentAnalyticsRes.success) setPaymentAnalytics(paymentAnalyticsRes.data);
+      if (systemHealthRes.success) setSystemHealth(systemHealthRes.data);
+      
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    }
+  };
+
+  // 5. Pending Approvals (from API/Database)
+  const fetchPendingApprovals = async () => {
+    try {
+      const response = await fetch('/api/admin?endpoint=get-pending-approvals');
       const data = await response.json();
       
       if (data.success) {
-        // Add transaction to monitor
+        setPendingConsumers(data.data.consumers || []);
+        setPendingShopkeepers(data.data.shopkeepers || []);
+        setPendingAgents(data.data.agents || []);
+      }
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+    }
+  };
+
+  // ========== USER REGISTRATION FUNCTIONS ==========
+  
+  // Approve Consumer Registration
+  const approveConsumer = async (consumer) => {
+    try {
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [consumer.aadhaar]: true }
+      }));
+
+      const result = await adminContract.registerConsumer(
+        consumer.aadhaar,
+        consumer.name,
+        consumer.mobile,
+        consumer.category,
+        consumer.assignedShopkeeper
+      );
+      
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'Monthly Token Generation',
-          details: 'Monthly tokens for all consumers',
-          polygonScanUrl: data.polygonScanUrl
+          hash: result.txHash,
+          type: 'Consumer Registration',
+          details: `Registered consumer: ${consumer.name}`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ Monthly token generation started! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        setSuccess(`✅ Consumer ${consumer.name} approved and registered on blockchain!`);
         
-        // Refresh dashboard data after some time
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 30000); // 30 seconds
+        // Remove from pending list
+        setPendingConsumers(prev => prev.filter(c => c.aadhaar !== consumer.aadhaar));
+        
+        // Refresh data
+        fetchUserManagementData();
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to generate tokens: ${data.error}`);
+        setError(`❌ Failed to approve consumer: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error generating monthly tokens:', error);
-      setError('Failed to generate monthly tokens');
+      console.error('Error approving consumer:', error);
+      setError('Failed to approve consumer: ' + parseTransactionError(error));
     } finally {
-      setGeneratingTokens(prev => ({ ...prev, monthly: false }));
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [consumer.aadhaar]: false }
+      }));
     }
   };
 
-  // Generate BPL tokens
-  const generateBPLTokens = async () => {
+  // Approve Shopkeeper Registration
+  const approveShopkeeper = async (shopkeeper) => {
     try {
-      setGeneratingTokens(prev => ({ ...prev, bpl: true }));
-      
-      const response = await fetch('/api/admin?endpoint=generate-bpl-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [shopkeeper.address]: true }
+      }));
 
-      const data = await response.json();
+      const result = await adminContract.registerShopkeeper(
+        shopkeeper.address,
+        shopkeeper.name,
+        shopkeeper.area
+      );
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'BPL Token Generation',
-          details: 'Tokens for BPL consumers',
-          polygonScanUrl: data.polygonScanUrl
+          hash: result.txHash,
+          type: 'Shopkeeper Registration',
+          details: `Registered shopkeeper: ${shopkeeper.name}`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ BPL tokens generation started! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        setSuccess(`✅ Shopkeeper ${shopkeeper.name} approved and registered on blockchain!`);
         
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 30000);
+        // Remove from pending list
+        setPendingShopkeepers(prev => prev.filter(s => s.address !== shopkeeper.address));
+        
+        // Refresh data
+        fetchUserManagementData();
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to generate BPL tokens: ${data.error}`);
+        setError(`❌ Failed to approve shopkeeper: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error generating BPL tokens:', error);
-      setError('Failed to generate BPL tokens');
+      console.error('Error approving shopkeeper:', error);
+      setError('Failed to approve shopkeeper: ' + parseTransactionError(error));
     } finally {
-      setGeneratingTokens(prev => ({ ...prev, bpl: false }));
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [shopkeeper.address]: false }
+      }));
     }
   };
 
-  // Generate APL tokens
-  const generateAPLTokens = async () => {
+  // Approve Delivery Agent Registration
+  const approveDeliveryAgent = async (agent) => {
     try {
-      setGeneratingTokens(prev => ({ ...prev, apl: true }));
-      
-      const response = await fetch('/api/admin?endpoint=generate-apl-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [agent.address]: true }
+      }));
 
-      const data = await response.json();
+      const result = await adminContract.registerDeliveryAgent(
+        agent.address,
+        agent.name,
+        agent.mobile
+      );
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'APL Token Generation',
-          details: 'Tokens for APL consumers',
-          polygonScanUrl: data.polygonScanUrl
+          hash: result.txHash,
+          type: 'Delivery Agent Registration',
+          details: `Registered delivery agent: ${agent.name}`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ APL tokens generation started! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
+        setSuccess(`✅ Delivery Agent ${agent.name} approved and registered on blockchain!`);
         
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 30000);
+        // Remove from pending list
+        setPendingAgents(prev => prev.filter(a => a.address !== agent.address));
+        
+        // Refresh data
+        fetchUserManagementData();
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to generate APL tokens: ${data.error}`);
+        setError(`❌ Failed to approve delivery agent: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error generating APL tokens:', error);
-      setError('Failed to generate APL tokens');
+      console.error('Error approving delivery agent:', error);
+      setError('Failed to approve delivery agent: ' + parseTransactionError(error));
     } finally {
-      setGeneratingTokens(prev => ({ ...prev, apl: false }));
+      setUserActions(prev => ({
+        ...prev,
+        approving: { ...prev.approving, [agent.address]: false }
+      }));
     }
   };
 
-  // Bulk generate tokens
-  const generateBulkTokens = async () => {
+  // ========== TOKEN MANAGEMENT FUNCTIONS ==========
+  
+  // Generate Token for Individual Consumer
+  const generateTokenForConsumer = async (aadhaar) => {
     try {
-      setGeneratingTokens(prev => ({ ...prev, bulk: true }));
-      
-      const response = await fetch('/api/admin?endpoint=bulk-generate-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
+      setGeneratingTokens(prev => ({
+        ...prev,
+        individual: { ...prev.individual, [aadhaar]: true }
+      }));
 
-      const data = await response.json();
+      const result = await adminContract.generateTokenForConsumer(aadhaar);
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'Bulk Token Generation',
-          details: 'Bulk tokens for all eligible consumers',
-          polygonScanUrl: data.polygonScanUrl
+          hash: result.txHash,
+          type: 'Individual Token Generation',
+          details: `Token generated for consumer: ${aadhaar}`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ Bulk token generation started! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 30000);
+        setSuccess(`✅ Token generated for consumer ${aadhaar}!`);
+        fetchUserManagementData();
       } else {
-        setError(`❌ Failed to generate bulk tokens: ${data.error}`);
+        setError(`❌ Failed to generate token: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error generating bulk tokens:', error);
-      setError('Failed to generate bulk tokens');
+      console.error('Error generating token:', error);
+      setError('Failed to generate token: ' + parseTransactionError(error));
     } finally {
-      setGeneratingTokens(prev => ({ ...prev, bulk: false }));
+      setGeneratingTokens(prev => ({
+        ...prev,
+        individual: { ...prev.individual, [aadhaar]: false }
+      }));
     }
   };
 
-  // Expire old tokens
-  const expireOldTokens = async () => {
+  // Generate Tokens for Category
+  const generateTokensForCategory = async (category) => {
     try {
-      setGeneratingTokens(prev => ({ ...prev, expiring: true }));
-      
-      const response = await fetch('/api/admin?endpoint=expire-old-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
+      setGeneratingTokens(prev => ({
+        ...prev,
+        [category.toLowerCase()]: true
+      }));
 
-      const data = await response.json();
+      const result = await adminContract.generateTokensForCategory(category);
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'Token Expiration',
-          details: 'Expired old tokens',
-          polygonScanUrl: data.polygonScanUrl
+          hash: result.txHash,
+          type: 'Category Token Generation',
+          details: `Tokens generated for category: ${category}`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ Token expiration completed! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 30000);
+        setSuccess(`✅ Tokens generated for all ${category} consumers!`);
+        fetchUserManagementData();
       } else {
-        setError(`❌ Failed to expire tokens: ${data.error}`);
+        setError(`❌ Failed to generate tokens for ${category}: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error expiring tokens:', error);
-      setError('Failed to expire old tokens');
+      console.error('Error generating tokens for category:', error);
+      setError('Failed to generate tokens: ' + parseTransactionError(error));
     } finally {
-      setGeneratingTokens(prev => ({ ...prev, expiring: false }));
+      setGeneratingTokens(prev => ({
+        ...prev,
+        [category.toLowerCase()]: false
+      }));
     }
   };
 
-  // Pause system
+  // ========== SYSTEM MANAGEMENT FUNCTIONS ==========
+  
+  // Pause System
   const pauseSystem = async () => {
     try {
       setSystemActions(prev => ({ ...prev, pausing: true }));
-      
-      const response = await fetch('/api/admin?endpoint=pause-system', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
 
-      const data = await response.json();
+      const result = await adminContract.pauseSystem();
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: result.txHash,
           type: 'System Pause',
           details: 'System has been paused',
-          polygonScanUrl: data.polygonScanUrl
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ System paused successfully! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchSystemSettings();
-        }, 10000);
+        setSuccess('✅ System paused successfully!');
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to pause system: ${data.error}`);
+        setError(`❌ Failed to pause system: ${result.error}`);
       }
     } catch (error) {
       console.error('Error pausing system:', error);
-      setError('Failed to pause system');
+      setError('Failed to pause system: ' + parseTransactionError(error));
     } finally {
       setSystemActions(prev => ({ ...prev, pausing: false }));
     }
   };
 
-  // Unpause system
+  // Unpause System
   const unpauseSystem = async () => {
     try {
       setSystemActions(prev => ({ ...prev, unpausing: true }));
-      
-      const response = await fetch('/api/admin?endpoint=unpause-system', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
 
-      const data = await response.json();
+      const result = await adminContract.unpauseSystem();
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: result.txHash,
           type: 'System Unpause',
           details: 'System has been unpaused',
-          polygonScanUrl: data.polygonScanUrl
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ System unpaused successfully! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchSystemSettings();
-        }, 10000);
+        setSuccess('✅ System unpaused successfully!');
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to unpause system: ${data.error}`);
+        setError(`❌ Failed to unpause system: ${result.error}`);
       }
     } catch (error) {
       console.error('Error unpausing system:', error);
-      setError('Failed to unpause system');
+      setError('Failed to unpause system: ' + parseTransactionError(error));
     } finally {
       setSystemActions(prev => ({ ...prev, unpausing: false }));
     }
   };
 
-  // Set ration price
-  const setRationPrice = async () => {
+  // Set Ration Price
+  const setRationPrice = async (priceInEther) => {
     try {
       setSystemActions(prev => ({ ...prev, settingPrice: true }));
-      
-      const response = await fetch('/api/admin?endpoint=set-ration-price', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ price: priceSettings.rationPrice })
-      });
 
-      const data = await response.json();
+      const priceInWei = ethers.parseEther(priceInEther);
+      const result = await adminContract.setRationPrice(priceInWei);
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: result.txHash,
           type: 'Price Update',
-          details: `Ration price set to ₹${priceSettings.rationPrice}`,
-          polygonScanUrl: data.polygonScanUrl
+          details: `Ration price set to ${priceInEther} MATIC`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ Ration price updated to ₹${priceSettings.rationPrice}! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchSystemSettings();
-        }, 10000);
+        setSuccess(`✅ Ration price set to ${priceInEther} MATIC!`);
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to set ration price: ${data.error}`);
+        setError(`❌ Failed to set ration price: ${result.error}`);
       }
     } catch (error) {
       console.error('Error setting ration price:', error);
-      setError('Failed to set ration price');
+      setError('Failed to set ration price: ' + parseTransactionError(error));
     } finally {
       setSystemActions(prev => ({ ...prev, settingPrice: false }));
     }
   };
 
-  // Set subsidy percentage
-  const setSubsidyPercentage = async () => {
+  // Set Subsidy Percentage
+  const setSubsidyPercentage = async (percentage) => {
     try {
       setSystemActions(prev => ({ ...prev, settingSubsidy: true }));
-      
-      const response = await fetch('/api/admin?endpoint=set-subsidy-percentage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ percentage: priceSettings.subsidyPercentage })
-      });
 
-      const data = await response.json();
+      const result = await adminContract.setSubsidyPercentage(percentage);
       
-      if (data.success) {
+      if (result.success) {
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: result.txHash,
           type: 'Subsidy Update',
-          details: `Subsidy percentage set to ${priceSettings.subsidyPercentage}%`,
-          polygonScanUrl: data.polygonScanUrl
+          details: `Subsidy percentage set to ${percentage}%`,
+          polygonScanUrl: result.polygonScanUrl
         });
 
-        setSuccess(`✅ Subsidy percentage updated to ${priceSettings.subsidyPercentage}%! View on <a href="${data.polygonScanUrl}" target="_blank" class="underline">PolygonScan ↗</a>`);
-        
-        setTimeout(() => {
-          fetchSystemSettings();
-        }, 10000);
+        setSuccess(`✅ Subsidy percentage set to ${percentage}%!`);
+        fetchSystemOverview();
       } else {
-        setError(`❌ Failed to set subsidy percentage: ${data.error}`);
+        setError(`❌ Failed to set subsidy percentage: ${result.error}`);
       }
     } catch (error) {
       console.error('Error setting subsidy percentage:', error);
-      setError('Failed to set subsidy percentage');
+      setError('Failed to set subsidy percentage: ' + parseTransactionError(error));
     } finally {
       setSystemActions(prev => ({ ...prev, settingSubsidy: false }));
     }
   };
 
-  // Format date for display
+  // ========== USER MANAGEMENT FUNCTIONS ==========
+  
+  // Deactivate Consumer
+  const deactivateConsumer = async (aadhaar) => {
+    try {
+      setUserActions(prev => ({
+        ...prev,
+        deactivating: { ...prev.deactivating, [aadhaar]: true }
+      }));
+
+      const result = await adminContract.deactivateConsumer(aadhaar);
+      
+      if (result.success) {
+        addTransactionToMonitor({
+          hash: result.txHash,
+          type: 'Consumer Deactivation',
+          details: `Consumer ${aadhaar} deactivated`,
+          polygonScanUrl: result.polygonScanUrl
+        });
+
+        setSuccess(`✅ Consumer ${aadhaar} deactivated successfully!`);
+        fetchUserManagementData();
+      } else {
+        setError(`❌ Failed to deactivate consumer: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error deactivating consumer:', error);
+      setError('Failed to deactivate consumer: ' + parseTransactionError(error));
+    } finally {
+      setUserActions(prev => ({
+        ...prev,
+        deactivating: { ...prev.deactivating, [aadhaar]: false }
+      }));
+    }
+  };
+
+  // Reactivate Consumer
+  const reactivateConsumer = async (aadhaar) => {
+    try {
+      setUserActions(prev => ({
+        ...prev,
+        reactivating: { ...prev.reactivating, [aadhaar]: true }
+      }));
+
+      const result = await adminContract.reactivateConsumer(aadhaar);
+      
+      if (result.success) {
+        addTransactionToMonitor({
+          hash: result.txHash,
+          type: 'Consumer Reactivation',
+          details: `Consumer ${aadhaar} reactivated`,
+          polygonScanUrl: result.polygonScanUrl
+        });
+
+        setSuccess(`✅ Consumer ${aadhaar} reactivated successfully!`);
+        fetchUserManagementData();
+      } else {
+        setError(`❌ Failed to reactivate consumer: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error reactivating consumer:', error);
+      setError('Failed to reactivate consumer: ' + parseTransactionError(error));
+    } finally {
+      setUserActions(prev => ({
+        ...prev,
+        reactivating: { ...prev.reactivating, [aadhaar]: false }
+      }));
+    }
+  };
+
+  // ========== UTILITY FUNCTIONS ==========
+  
   const formatDate = (timestamp) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return new Date(timestamp).toLocaleDateString();
   };
 
-  // Calculate stats for overview cards
-  const getOverviewStats = () => {
-    if (!dashboardData) return [];
-
-    return [
-      {
-        title: "Total Consumers",
-        value: dashboardData.totalConsumers?.toString() || "0",
-        change: "Active in system",
-        icon: Users,
-        color: "bg-blue-50 text-blue-700",
-      },
-      {
-        title: "Shopkeepers",
-        value: dashboardData.totalShopkeepers?.toString() || "0",
-        change: "Registered shops",
-        icon: Building,
-        color: "bg-green-50 text-green-700",
-      },
-      {
-        title: "Tokens Issued",
-        value: dashboardData.totalTokensIssued?.toString() || "0",
-        change: `${dashboardData.totalTokensClaimed || 0} claimed`,
-        icon: Package,
-        color: "bg-purple-50 text-purple-700",
-      },
-      {
-        title: "Total Payments",
-        value: paymentAnalytics?.totalPayments?.toString() || "0",
-        change: `₹${paymentAnalytics?.totalAmount || 0} collected`,
-        icon: DollarSign,
-        color: "bg-amber-50 text-amber-700",
-      },
-    ];
+  const getStatusBadgeColor = (status) => {
+    switch (status) {
+      case 'Active': return 'bg-green-100 text-green-800';
+      case 'Paused': return 'bg-red-100 text-red-800';
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  if (loading && !dashboardData) {
+  // ========== RENDER ==========
+  
+  if (loading && !isConnected) {
     return (
       <AdminLayout>
-        <div className="container mx-auto p-6">
-          <div className="text-center p-12 mt-6 bg-white rounded-lg shadow-sm border border-green-100">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
-            <p>Loading dashboard data from blockchain...</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>Connecting to blockchain...</p>
           </div>
         </div>
       </AdminLayout>
@@ -705,933 +770,683 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <TransactionMonitor />
+        
         {/* Header */}
-        <div className="flex flex-col gap-2 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-green-900">Admin Dashboard</h1>
-              <p className="text-muted-foreground">
-                Indian Public Distribution System - Blockchain Management
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => window.open('/api/admin?endpoint=test-connection', '_blank')}
-                className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors text-sm"
-                title="Test blockchain connection"
-              >
-                Test Connection
-              </button>
-              <button
-                onClick={async () => {
-                  setRefreshing(true);
-                  setError('');
-                  setSuccess('');
-                  
-                  // Clear all existing data first
-                  setDashboardData(null);
-                  setPaymentAnalytics(null);
-                  setSystemSettings(null);
-                  setSystemHealth(null);
-                  setRecentActivity([]);
-                  setPendingRegistrations([]);
-                  
-                  // Fetch fresh data
-                  await Promise.all([
-                    fetchDashboardData(),
-                    fetchPaymentAnalytics(),
-                    fetchSystemSettings(),
-                    fetchSystemHealth(),
-                    fetchRecentActivity(),
-                    fetchPendingRegistrations()
-                  ]);
-                  
-                  setRefreshing(false);
-                }}
-                disabled={refreshing}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Force Refresh All
-              </button>
+        <div className="bg-white shadow-sm border-b">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-gray-600">Blockchain-powered ration distribution system</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Badge className={`${getStatusBadgeColor(dashboardData.systemStatus)}`}>
+                  {dashboardData.systemStatus}
+                </Badge>
+                <Button 
+                  onClick={testConnection}
+                  disabled={refreshing}
+                  size="sm"
+                  variant="outline"
+                >
+                  {refreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                  Test Connection
+                </Button>
+                <Button 
+                  onClick={fetchAllDashboardData}
+                  disabled={loading}
+                  size="sm"
+                >
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Blockchain Status Banner */}
-        {(error && error.includes('Blockchain')) || (dashboardData && error) ? (
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <div>
-                <strong>Blockchain Status:</strong> {error || 'Connection Issues'}
-                <br />
-                <small>Showing zero values because no real blockchain data is available. Test your connection above.</small>
-              </div>
-            </div>
-          </div>
-        ) : dashboardData && !error ? (
-          <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded mb-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              <div>
-                <strong>Blockchain Status:</strong> Connected and showing real data
-                <br />
-                <small>All dashboard statistics are from the live blockchain contract.</small>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Error/Success Messages */}
+        {/* Alerts */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <div dangerouslySetInnerHTML={{ __html: error }} />
-            <button 
-              onClick={() => setError('')}
-              className="float-right text-red-700 hover:text-red-900"
-            >
-              ×
-            </button>
+          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+              <div dangerouslySetInnerHTML={{ __html: error }} />
+              <Button
+                onClick={() => setError('')}
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            <div dangerouslySetInnerHTML={{ __html: success }} />
-            <button 
-              onClick={() => setSuccess('')}
-              className="float-right text-green-700 hover:text-green-900"
-            >
-              ×
-            </button>
+          <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
+              <div dangerouslySetInnerHTML={{ __html: success }} />
+              <Button
+                onClick={() => setSuccess('')}
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="tokens">Tokens</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
+        {/* Main Content */}
+        <div className="p-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="approvals">Pending Approvals</TabsTrigger>
+              <TabsTrigger value="users">User Management</TabsTrigger>
+              <TabsTrigger value="tokens">Token Management</TabsTrigger>
+              <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
+              <TabsTrigger value="settings">System Settings</TabsTrigger>
+            </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* Overview Stats */}
-            <motion.div
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-            >
-              {getOverviewStats().map((stat, index) => (
-                <motion.div key={index} variants={itemVariants}>
-                  <Card className="border-green-100 hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between pb-2">
-                        <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                        <div className={`rounded-full p-2 ${stat.color}`}>
-                          <stat.icon className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <p className="text-xs text-green-600 flex items-center mt-1">
-                        {stat.change}
-                        <ArrowUpRight className="ml-1 h-3 w-3" />
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6">
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              >
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Consumers</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{dashboardData.totalConsumers}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Registered on blockchain
                       </p>
-                      {/* Data source indicator */}
-                      {error && error.includes('Blockchain') && (
-                        <div className="mt-2">
-                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">
-                            No Blockchain Data
-                          </Badge>
-                        </div>
-                      )}
-                      {!error && dashboardData && (
-                        <div className="mt-2">
-                          <Badge className="bg-green-100 text-green-800 text-xs">
-                            Live Blockchain Data
-                          </Badge>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
-            </motion.div>
 
-            {/* Simple card for raina */}
-            <Card className="border-gray-200 bg-gray-50/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Configuration</span>
-                  <select className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-                    <option>div for raina</option>
-                    <option>Option A</option>
-                    <option>Option B</option>
-                    <option>Option C</option>
-                    <option>Settings</option>
-                  </select>
-                </div>
-              </CardContent>
-            </Card>
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Shopkeepers</CardTitle>
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{dashboardData.totalShopkeepers}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Active shopkeepers
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            {/* System Health and Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* System Health */}
-              <Card className="border-green-100">
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Delivery Agents</CardTitle>
+                      <Truck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{dashboardData.totalDeliveryAgents}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Active agents
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active Deliveries</CardTitle>
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{activeDeliveries.length}</div>
+                      <p className="text-xs text-muted-foreground">
+                        In progress
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
+
+              {/* Quick Actions */}
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    System Health
-                  </CardTitle>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>Common administrative tasks</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Blockchain Status</span>
-                      <Badge className={error ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
-                        <div className={`w-2 h-2 rounded-full mr-2 ${error ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                        {error ? 'Disconnected' : 'Connected'}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Current Month</span>
-                      <span className="text-sm font-medium">
-                        {dashboardData?.currentMonth || 'Loading...'}/{dashboardData?.currentYear || ''}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Pending Tokens</span>
-                      <span className="text-sm font-medium">
-                        {dashboardData?.pendingTokens || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Last Update</span>
-                      <span className="text-xs text-gray-500">
-                        {dashboardData?.lastUpdateTime ? formatDate(dashboardData.lastUpdateTime) : 'Never'}
-                      </span>
-                    </div>
-                    {systemHealth && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">System Efficiency</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{systemHealth.systemEfficiencyScore}%</span>
-                          <div className={`w-2 h-2 rounded-full ${systemHealth.systemEfficiencyScore > 75 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Button
+                      onClick={() => generateTokensForCategory('BPL')}
+                      disabled={generatingTokens.bpl}
+                      className="h-20 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.bpl ? (
+                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-5 w-5 mb-2" />
+                      )}
+                      Generate BPL Tokens
+                    </Button>
+
+                    <Button
+                      onClick={() => generateTokensForCategory('APL')}
+                      disabled={generatingTokens.apl}
+                      className="h-20 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.apl ? (
+                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-5 w-5 mb-2" />
+                      )}
+                      Generate APL Tokens
+                    </Button>
+
+                    <Button
+                      onClick={() => generateTokensForCategory('AAY')}
+                      disabled={generatingTokens.aay}
+                      className="h-20 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.aay ? (
+                        <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-5 w-5 mb-2" />
+                      )}
+                      Generate AAY Tokens
+                    </Button>
+
+                    <Button
+                      onClick={() => setActiveTab('settings')}
+                      variant="outline"
+                      className="h-20 flex flex-col items-center justify-center"
+                    >
+                      <Settings className="h-5 w-5 mb-2" />
+                      System Settings
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Pending Approvals Tab */}
+            <TabsContent value="approvals" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Pending Consumers */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Users className="h-5 w-5 mr-2" />
+                      Pending Consumers ({pendingConsumers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {pendingConsumers.map((consumer) => (
+                        <div key={consumer.aadhaar} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium">{consumer.name}</h4>
+                              <p className="text-sm text-gray-600">Aadhaar: {consumer.aadhaar}</p>
+                              <p className="text-sm text-gray-600">Category: {consumer.category}</p>
+                            </div>
+                            <Badge variant="outline">{consumer.category}</Badge>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => approveConsumer(consumer)}
+                              disabled={userActions.approving[consumer.aadhaar]}
+                            >
+                              {userActions.approving[consumer.aadhaar] ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={userActions.rejecting[consumer.aadhaar]}
+                            >
+                              <X className="h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      ))}
+                      {pendingConsumers.length === 0 && (
+                        <p className="text-center text-gray-500 py-4">No pending consumer approvals</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pending Shopkeepers */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Building className="h-5 w-5 mr-2" />
+                      Pending Shopkeepers ({pendingShopkeepers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {pendingShopkeepers.map((shopkeeper) => (
+                        <div key={shopkeeper.address} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium">{shopkeeper.name}</h4>
+                              <p className="text-sm text-gray-600">Address: {shopkeeper.address}</p>
+                              <p className="text-sm text-gray-600">Area: {shopkeeper.area}</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => approveShopkeeper(shopkeeper)}
+                              disabled={userActions.approving[shopkeeper.address]}
+                            >
+                              {userActions.approving[shopkeeper.address] ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={userActions.rejecting[shopkeeper.address]}
+                            >
+                              <X className="h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {pendingShopkeepers.length === 0 && (
+                        <p className="text-center text-gray-500 py-4">No pending shopkeeper approvals</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pending Delivery Agents */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Truck className="h-5 w-5 mr-2" />
+                      Pending Agents ({pendingAgents.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {pendingAgents.map((agent) => (
+                        <div key={agent.address} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium">{agent.name}</h4>
+                              <p className="text-sm text-gray-600">Address: {agent.address}</p>
+                              <p className="text-sm text-gray-600">Mobile: {agent.mobile}</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={() => approveDeliveryAgent(agent)}
+                              disabled={userActions.approving[agent.address]}
+                            >
+                              {userActions.approving[agent.address] ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={userActions.rejecting[agent.address]}
+                            >
+                              <X className="h-4 w-4" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {pendingAgents.length === 0 && (
+                        <p className="text-center text-gray-500 py-4">No pending agent approvals</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* User Management Tab */}
+            <TabsContent value="users" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* BPL Consumers */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>BPL Consumers ({consumersByCategory.BPL.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {consumersByCategory.BPL.map((consumer, index) => (
+                        <div key={index} className="p-3 border rounded flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{consumer.name || consumer[1]}</p>
+                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
+                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
+                          >
+                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Generate Token'
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* APL Consumers */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>APL Consumers ({consumersByCategory.APL.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {consumersByCategory.APL.map((consumer, index) => (
+                        <div key={index} className="p-3 border rounded flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{consumer.name || consumer[1]}</p>
+                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
+                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
+                          >
+                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Generate Token'
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* AAY Consumers */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>AAY Consumers ({consumersByCategory.AAY.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {consumersByCategory.AAY.map((consumer, index) => (
+                        <div key={index} className="p-3 border rounded flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">{consumer.name || consumer[1]}</p>
+                            <p className="text-sm text-gray-600">ID: {consumer.aadhaar || consumer[0]}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => generateTokenForConsumer(consumer.aadhaar || consumer[0])}
+                            disabled={generatingTokens.individual[consumer.aadhaar || consumer[0]]}
+                          >
+                            {generatingTokens.individual[consumer.aadhaar || consumer[0]] ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Generate Token'
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Token Management Tab */}
+            <TabsContent value="tokens" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Token Management</CardTitle>
+                  <CardDescription>Generate and manage ration tokens</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button
+                      onClick={() => generateTokensForCategory('BPL')}
+                      disabled={generatingTokens.bpl}
+                      className="h-24 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.bpl ? (
+                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-6 w-6 mb-2" />
+                      )}
+                      <span>Generate BPL Tokens</span>
+                      <span className="text-xs">({consumersByCategory.BPL.length} consumers)</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => generateTokensForCategory('APL')}
+                      disabled={generatingTokens.apl}
+                      className="h-24 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.apl ? (
+                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-6 w-6 mb-2" />
+                      )}
+                      <span>Generate APL Tokens</span>
+                      <span className="text-xs">({consumersByCategory.APL.length} consumers)</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => generateTokensForCategory('AAY')}
+                      disabled={generatingTokens.aay}
+                      className="h-24 flex flex-col items-center justify-center"
+                    >
+                      {generatingTokens.aay ? (
+                        <RefreshCw className="h-6 w-6 animate-spin mb-2" />
+                      ) : (
+                        <Package className="h-6 w-6 mb-2" />
+                      )}
+                      <span>Generate AAY Tokens</span>
+                      <span className="text-xs">({consumersByCategory.AAY.length} consumers)</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Deliveries Tab */}
+            <TabsContent value="deliveries" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Deliveries</CardTitle>
+                  <CardDescription>Monitor ongoing deliveries</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {activeDeliveries.length > 0 ? (
+                      activeDeliveries.map((delivery, index) => (
+                        <div key={index} className="p-4 border rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">Delivery #{delivery.id || index + 1}</h4>
+                              <p className="text-sm text-gray-600">
+                                Consumer: {delivery.consumerAadhaar || delivery[0]}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Agent: {delivery.agentAddress || delivery[1]}
+                              </p>
+                            </div>
+                            <Badge variant="outline">
+                              {delivery.status || 'In Progress'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">No active deliveries</p>
                     )}
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Quick Actions */}
-              <Card className="border-green-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5" />
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <button
-                    onClick={() => router.push('/admin/consumers')}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Manage Consumers
-                  </button>
-                  <button
-                    onClick={() => router.push('/admin/shopkeepers')}
-                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Building className="h-4 w-4" />
-                    Manage Shopkeepers
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('analytics')}
-                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    View Analytics
-                  </button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Activity */}
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Recent System Activity
-                </CardTitle>
-                <CardDescription>Latest blockchain transactions and events</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {recentActivity.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentActivity.slice(0, 5).map((activity, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-md">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{activity.action}</p>
-                          <p className="text-xs text-gray-500">{activity.details}</p>
-                          <p className="text-xs text-gray-400">{formatDate(activity.timestamp)}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => setActiveTab('transactions')}
-                      className="w-full mt-3 text-sm text-green-600 hover:text-green-700"
-                    >
-                      View All Activity & Transactions →
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">No recent activity</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Contract Information */}
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  Contract Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Contract Address:</span>
-                    <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                      0xD21958aa...68B3059
-                    </code>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Network:</span>
-                    <Badge className="bg-purple-100 text-purple-800">Polygon Amoy Testnet</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Contract Type:</span>
-                    <span className="text-xs">Diamond Proxy (EIP-2535)</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Connection Status:</span>
-                    <Badge className={error ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
-                      {error ? 'Disconnected' : 'Connected'}
-                    </Badge>
-                  </div>
-                  {error && (
-                    <div className="p-2 bg-red-50 text-red-800 rounded text-xs">
-                      <strong>Issue:</strong> {error}
-                    </div>
-                  )}
-                  <div className="mt-4 grid grid-cols-1 gap-2">
-                    <a 
-                      href="https://amoy.polygonscan.com/address/0xD21958aa2130C1E8cFA88dd82b352DCa068B3059" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm"
-                    >
-                      View on PolygonScan
-                      <ArrowUpRight className="ml-2 h-4 w-4" />
-                    </a>
-                    <button
-                      onClick={() => window.open('/api/admin?endpoint=test-connection', '_blank')}
-                      className="w-full inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors text-sm"
-                    >
-                      Test Connection
-                      <Database className="ml-2 h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Transactions Tab */}
-          <TabsContent value="transactions" className="space-y-6">
-            <TransactionMonitor />
-            
-            {/* Additional Transaction Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="border-green-100">
-                <CardHeader>
-                  <CardTitle className="text-lg">Token Transactions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total Issued:</span>
-                      <span className="font-medium">{dashboardData?.totalTokensIssued || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total Claimed:</span>
-                      <span className="font-medium">{dashboardData?.totalTokensClaimed || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Success Rate:</span>
-                      <span className="font-medium text-green-600">
-                        {dashboardData?.totalTokensIssued ? 
-                          Math.round((dashboardData.totalTokensClaimed / dashboardData.totalTokensIssued) * 100) 
-                          : 0}%
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-green-100">
-                <CardHeader>
-                  <CardTitle className="text-lg">Network Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Network:</span>
-                      <Badge className="bg-purple-100 text-purple-800">Polygon Amoy</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Status:</span>
-                      <Badge className="bg-green-100 text-green-800">Connected</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Gas Price:</span>
-                      <span className="text-xs text-gray-500">~1 GWEI</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-green-100">
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Links</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <a 
-                      href="https://amoy.polygonscan.com/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="text-sm">PolygonScan</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </a>
-                    <a 
-                      href="https://faucet.polygon.technology/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="text-sm">Polygon Faucet</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage consumers, shopkeepers, and delivery agents</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Users className="mx-auto h-8 w-8 text-blue-600 mb-2" />
-                    <h3 className="font-semibold">Consumers</h3>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {dashboardData?.totalConsumers || 0}
-                    </p>
-                    <button
-                      onClick={() => router.push('/admin/consumers')}
-                      className="mt-2 text-sm text-blue-600 hover:text-blue-700"
-                    >
-                      Manage →
-                    </button>
-                  </div>
-                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Building className="mx-auto h-8 w-8 text-green-600 mb-2" />
-                    <h3 className="font-semibold">Shopkeepers</h3>
-                    <p className="text-2xl font-bold text-green-600">
-                      {dashboardData?.totalShopkeepers || 0}
-                    </p>
-                    <button
-                      onClick={() => router.push('/admin/shopkeepers')}
-                      className="mt-2 text-sm text-green-600 hover:text-green-700"
-                    >
-                      Manage →
-                    </button>
-                  </div>
-                  <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Truck className="mx-auto h-8 w-8 text-purple-600 mb-2" />
-                    <h3 className="font-semibold">Delivery Agents</h3>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {dashboardData?.totalDeliveryAgents || 0}
-                    </p>
-                    <button
-                      onClick={() => router.push('/admin/delivery-agents')}
-                      className="mt-2 text-sm text-purple-600 hover:text-purple-700"
-                    >
-                      Manage →
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tokens Tab */}
-          <TabsContent value="tokens" className="space-y-6">
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle>Token Management</CardTitle>
-                <CardDescription>Manage ration tokens and distributions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-600">Total Issued</p>
-                    <p className="text-2xl font-bold text-blue-700">
-                      {dashboardData?.totalTokensIssued || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-sm text-green-600">Claimed</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      {dashboardData?.totalTokensClaimed || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <p className="text-sm text-amber-600">Pending</p>
-                    <p className="text-2xl font-bold text-amber-700">
-                      {dashboardData?.pendingTokens || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <p className="text-sm text-red-600">Expired</p>
-                    <p className="text-2xl font-bold text-red-700">
-                      {dashboardData?.totalTokensExpired || 0}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button
-                      onClick={generateMonthlyTokens}
-                      disabled={generatingTokens.monthly}
-                      className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Package className="h-4 w-4" />
-                      {generatingTokens.monthly ? 'Generating...' : 'Generate Monthly Tokens'}
-                    </button>
-                    <button
-                      onClick={generateBPLTokens}
-                      disabled={generatingTokens.bpl}
-                      className="px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      {generatingTokens.bpl ? 'Generating...' : 'Generate BPL Tokens'}
-                    </button>
-                    <button
-                      onClick={generateAPLTokens}
-                      disabled={generatingTokens.apl}
-                      className="px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                      {generatingTokens.apl ? 'Generating...' : 'Generate APL Tokens'}
-                    </button>
-                  </div>
-                  
-                  {/* Advanced Token Operations */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      onClick={generateBulkTokens}
-                      disabled={generatingTokens.bulk}
-                      className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Package className="h-4 w-4" />
-                      {generatingTokens.bulk ? 'Processing...' : 'Bulk Generate Tokens'}
-                    </button>
-                    <button
-                      onClick={expireOldTokens}
-                      disabled={generatingTokens.expiring}
-                      className="px-4 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Clock className="h-4 w-4" />
-                      {generatingTokens.expiring ? 'Processing...' : 'Expire Old Tokens'}
-                    </button>
-                  </div>
-                  
-                  <button
-                    onClick={() => router.push('/admin/consumers')}
-                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    Individual Token Management
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-6">
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Payment Management
-                </CardTitle>
-                <CardDescription>Manage payments, pricing, and subsidies</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Payment Statistics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-sm text-green-600">Total Payments</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      {paymentAnalytics?.totalPayments || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-600">Amount Collected</p>
-                    <p className="text-2xl font-bold text-blue-700">
-                      ₹{paymentAnalytics?.totalAmount || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-purple-600">Pending Payments</p>
-                    <p className="text-2xl font-bold text-purple-700">
-                      {paymentAnalytics?.pendingPayments || 0}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-amber-50 rounded-lg">
-                    <p className="text-sm text-amber-600">Failed Payments</p>
-                    <p className="text-2xl font-bold text-amber-700">
-                      {paymentAnalytics?.failedPayments || 0}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Price and Subsidy Management */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Price Management</h3>
-                    <div className="space-y-3">
+            {/* System Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* System Control */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Control</CardTitle>
+                    <CardDescription>Manage system operations</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Ration Price (per kg)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            value={priceSettings.rationPrice}
-                            onChange={(e) => setPriceSettings(prev => ({ ...prev, rationPrice: e.target.value }))}
-                            placeholder="Enter price in ₹"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                          />
-                          <button
-                            onClick={setRationPrice}
-                            disabled={systemActions.settingPrice || !priceSettings.rationPrice}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors"
+                        <h4 className="font-medium">System Status</h4>
+                        <p className="text-sm text-gray-600">Current: {dashboardData.systemStatus}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        {dashboardData.systemStatus === 'Active' ? (
+                          <Button
+                            onClick={pauseSystem}
+                            disabled={systemActions.pausing}
+                            variant="destructive"
                           >
-                            {systemActions.settingPrice ? 'Setting...' : 'Set Price'}
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">Current: ₹{systemSettings?.rationPrice || 'Not set'}/kg</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Subsidy Percentage</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            value={priceSettings.subsidyPercentage}
-                            onChange={(e) => setPriceSettings(prev => ({ ...prev, subsidyPercentage: e.target.value }))}
-                            placeholder="Enter percentage"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                          />
-                          <button
-                            onClick={setSubsidyPercentage}
-                            disabled={systemActions.settingSubsidy || !priceSettings.subsidyPercentage}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md transition-colors"
+                            {systemActions.pausing ? (
+                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Pause className="h-4 w-4 mr-2" />
+                            )}
+                            Pause System
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={unpauseSystem}
+                            disabled={systemActions.unpausing}
                           >
-                            {systemActions.settingSubsidy ? 'Setting...' : 'Set Subsidy'}
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">Current: {systemSettings?.subsidyPercentage || 'Not set'}%</p>
+                            {systemActions.unpausing ? (
+                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Play className="h-4 w-4 mr-2" />
+                            )}
+                            Unpause System
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Payment Actions</h3>
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => router.push('/admin/payments')}
-                        className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                      >
-                        <FileText className="h-4 w-4" />
-                        View Payment History
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('analytics')}
-                        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        Payment Analytics
-                      </button>
-                      <button
-                        onClick={fetchPaymentAnalytics}
-                        className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                        Refresh Payment Data
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* System Management Tab */}
-          <TabsContent value="system" className="space-y-6">
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  System Management
-                </CardTitle>
-                <CardDescription>Manage system settings and operations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* System Control */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">System Control</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">System Status</p>
-                          <p className="text-sm text-gray-600">
-                            {systemSettings?.isPaused ? 'Paused' : 'Active'}
-                          </p>
-                        </div>
-                        <Badge className={systemSettings?.isPaused ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-                          <div className={`w-2 h-2 rounded-full mr-2 ${systemSettings?.isPaused ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                          {systemSettings?.isPaused ? 'Paused' : 'Running'}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3">
-                        <button
-                          onClick={pauseSystem}
-                          disabled={systemActions.pausing || systemSettings?.isPaused}
-                          className="px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                {/* Price Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Price Settings</CardTitle>
+                    <CardDescription>Manage ration pricing</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Ration Price (MATIC)
+                      </label>
+                      <div className="flex space-x-2">
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={priceSettings.rationPrice}
+                          onChange={(e) => setPriceSettings(prev => ({
+                            ...prev,
+                            rationPrice: e.target.value
+                          }))}
+                          placeholder="Enter price in MATIC"
+                        />
+                        <Button
+                          onClick={() => setRationPrice(priceSettings.rationPrice)}
+                          disabled={systemActions.settingPrice || !priceSettings.rationPrice}
                         >
-                          <Pause className="h-4 w-4" />
-                          {systemActions.pausing ? 'Pausing...' : 'Pause System'}
-                        </button>
-                        <button
-                          onClick={unpauseSystem}
-                          disabled={systemActions.unpausing || !systemSettings?.isPaused}
-                          className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+                          {systemActions.settingPrice ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Set Price'
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Current: {dashboardData.rationPrice} MATIC
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Subsidy Percentage (%)
+                      </label>
+                      <div className="flex space-x-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={priceSettings.subsidyPercentage}
+                          onChange={(e) => setPriceSettings(prev => ({
+                            ...prev,
+                            subsidyPercentage: e.target.value
+                          }))}
+                          placeholder="Enter percentage"
+                        />
+                        <Button
+                          onClick={() => setSubsidyPercentage(parseInt(priceSettings.subsidyPercentage))}
+                          disabled={systemActions.settingSubsidy || !priceSettings.subsidyPercentage}
                         >
-                          <Play className="h-4 w-4" />
-                          {systemActions.unpausing ? 'Unpausing...' : 'Resume System'}
-                        </button>
+                          {systemActions.settingSubsidy ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Set Subsidy'
+                          )}
+                        </Button>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* System Information */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">System Information</h3>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-blue-600">DCV Token Address</p>
-                        <p className="text-xs font-mono break-all">
-                          {systemSettings?.dcvTokenAddress || 'Not set'}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-purple-50 rounded-lg">
-                        <p className="text-sm text-purple-600">Payment System Status</p>
-                        <p className="text-xs">
-                          {systemSettings?.paymentSystemEnabled ? 'Enabled' : 'Disabled'}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-amber-50 rounded-lg">
-                        <p className="text-sm text-amber-600">Total Registered Users</p>
-                        <p className="text-lg font-bold text-amber-700">
-                          {(dashboardData?.totalConsumers || 0) + (dashboardData?.totalShopkeepers || 0) + (dashboardData?.totalDeliveryAgents || 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Additional System Actions */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button
-                    onClick={() => router.push('/admin/health-report')}
-                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Activity className="h-4 w-4" />
-                    System Health Report
-                  </button>
-                  <button
-                    onClick={fetchSystemSettings}
-                    className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh Settings
-                  </button>
-                  <button
-                    onClick={() => router.push('/admin/emergency-cases')}
-                    className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                  >
-                    <AlertTriangle className="h-4 w-4" />
-                    Emergency Cases
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <Card className="border-green-100">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  System Analytics
-                </CardTitle>
-                <CardDescription>Comprehensive system analytics and reports</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Distribution Analytics</h3>
-                    <button
-                      onClick={() => router.push('/admin/area-stats')}
-                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <MapPin className="h-4 w-4" />
-                      Area-wise Statistics
-                    </button>
-                    <button
-                      onClick={() => router.push('/admin/category-stats')}
-                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <PieChart className="h-4 w-4" />
-                      Category-wise Statistics
-                    </button>
-                    <button
-                      onClick={() => router.push('/admin/deliveries')}
-                      className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Truck className="h-4 w-4" />
-                      Delivery Analytics
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Payment Analytics</h3>
-                    <button
-                      onClick={fetchPaymentAnalytics}
-                      className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <DollarSign className="h-4 w-4" />
-                      Payment Summary
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('payments')}
-                      className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Payment Management
-                    </button>
-                    <button
-                      onClick={() => router.push('/admin/shopkeepers')}
-                      className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Building className="h-4 w-4" />
-                      Shopkeeper Performance
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">System Reports</h3>
-                    <button
-                      onClick={() => router.push('/admin/emergency-cases')}
-                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      Emergency Cases
-                    </button>
-                    <button
-                      onClick={() => router.push('/admin/health-report')}
-                      className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Activity className="h-4 w-4" />
-                      System Health Report
-                    </button>
-                    <button
-                      onClick={() => window.open('/api/admin/export-data', '_blank')}
-                      className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export Data
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Analytics Overview */}
-                {paymentAnalytics && (
-                  <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-600">Success Rate</p>
-                      <p className="text-2xl font-bold text-blue-700">
-                        {paymentAnalytics.successRate || 0}%
+                      <p className="text-xs text-gray-500 mt-1">
+                        Current: {dashboardData.subsidyPercentage}%
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-sm text-green-600">Avg. Payment</p>
-                      <p className="text-2xl font-bold text-green-700">
-                        ₹{paymentAnalytics.averagePayment || 0}
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-sm text-purple-600">Monthly Growth</p>
-                      <p className="text-2xl font-bold text-purple-700">
-                        {paymentAnalytics.monthlyGrowth || 0}%
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-amber-50 rounded-lg">
-                      <p className="text-sm text-amber-600">Active Users</p>
-                      <p className="text-2xl font-bold text-amber-700">
-                        {paymentAnalytics.activeUsers || 0}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </AdminLayout>
   );
