@@ -941,7 +941,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-7xl mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tokens">Token Management</TabsTrigger>
