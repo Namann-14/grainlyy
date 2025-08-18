@@ -227,7 +227,7 @@ export default function DeliverySignupRequests() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex flex-col gap-2 mb-6">
           <h1 className="text-3xl font-bold text-green-900">Delivery Partner Signup Requests</h1>
           <p className="text-muted-foreground">
