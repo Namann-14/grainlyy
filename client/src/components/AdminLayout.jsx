@@ -10,6 +10,7 @@ import {
   Settings,
   ShoppingCart,
   Users,
+  LayoutDashboardIcon
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,67 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMetaMask } from "@/components/MetaMaskProvider";
 import Image from "next/image";
+
+const navLinks = {
+  mainMenu: [
+    {
+      href: "/admin",
+      icon: LayoutDashboardIcon,
+      label: "Dashboard",
+      iconColor: "text-green-700"
+    },
+    {
+      href: "/admin/users",
+      icon: Users,
+      label: "Users",
+      iconColor: "text-green-700"
+    },
+    {
+      href: "/admin/consumer-requests",
+      icon: Package,
+      label: "Consumer Requests",
+      iconColor: "text-green-700"
+    },
+    {
+      href: "/admin/consumers",
+      icon: Users,
+      label: "Consumer Management",
+      iconColor: "text-purple-700"
+    },
+    {
+      href: "/admin/register-shopkeeper",
+      icon: Users,
+      label: "Register Shopkeeper",
+      iconColor: "text-blue-700"
+    },
+    {
+      href: "/admin/debug-shopkeepers",
+      icon: Settings,
+      label: "Debug Shopkeepers",
+      iconColor: "text-red-700"
+    },
+    {
+      href: "/admin/test-data",
+      icon: Settings,
+      label: "Test Data",
+      iconColor: "text-green-700"
+    },
+    {
+      href: "/admin/deliveries",
+      icon: ShoppingCart,
+      label: "Deliveries",
+      iconColor: "text-green-700"
+    }
+  ],
+  system: [
+    {
+      href: "/settings",
+      icon: Settings,
+      label: "Settings",
+      iconColor: "text-green-700"
+    }
+  ]
+};
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
@@ -115,98 +177,19 @@ export default function AdminLayout({ children }) {
               <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/dashboard"}
-                    >
-                      <Link href="/dashboard">
-                        <LayoutDashboard className="h-4 w-4 text-green-700" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/users"}>
-                      <Link href="/admin/users">
-                        <Users className="h-4 w-4 text-green-700" />
-                        <span>Users</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin/consumer-requests"}>
-                      <Link href="/admin/consumer-requests">
-                        <Package className="h-4 w-4 text-green-700" />
-                        <span>Consumer Requests</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin/consumers"}>
-                      <Link href="/admin/consumers">
-                        <Users className="h-4 w-4 text-purple-700" />
-                        <span>Consumer Management</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin/register-shopkeeper"}>
-                      <Link href="/admin/register-shopkeeper">
-                        <Users className="h-4 w-4 text-blue-700" />
-                        <span>Register Shopkeeper</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin/debug-shopkeepers"}>
-                      <Link href="/admin/debug-shopkeepers">
-                        <Settings className="h-4 w-4 text-red-700" />
-                        <span>Debug Shopkeepers</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === "/admin/test-data"}>
-                      <Link href="/admin/test-data">
-                        <Settings className="h-4 w-4 text-green-700" />
-                        <span>Test Data</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/depots"}
-                    >
-                      <Link href="/depots">
-                        <Home className="h-4 w-4 text-green-700" />
-                        <span>Depots</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/deliveries"}
-                    >
-                      <Link href="/admin/deliveries">
-                        <ShoppingCart className="h-4 w-4 text-green-700" />
-                        <span>Deliveries</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/analytics"}
-                    >
-                      <Link href="/analytics">
-                        <BarChart3 className="h-4 w-4 text-green-700" />
-                        <span>Analytics</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {navLinks.mainMenu.map((link) => {
+                    const IconComponent = link.icon;
+                    return (
+                      <SidebarMenuItem key={link.href}>
+                        <SidebarMenuButton asChild isActive={pathname === link.href}>
+                          <Link href={link.href}>
+                            <IconComponent className={`h-4 w-4 ${link.iconColor}`} />
+                            <span>{link.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -214,17 +197,19 @@ export default function AdminLayout({ children }) {
               <SidebarGroupLabel>System</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === "/settings"}
-                    >
-                      <Link href="/settings">
-                        <Settings className="h-4 w-4 text-green-700" />
-                        <span>Settings</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  {navLinks.system.map((link) => {
+                    const IconComponent = link.icon;
+                    return (
+                      <SidebarMenuItem key={link.href}>
+                        <SidebarMenuButton asChild isActive={pathname === link.href}>
+                          <Link href={link.href}>
+                            <IconComponent className={`h-4 w-4 ${link.iconColor}`} />
+                            <span>{link.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -298,13 +283,6 @@ export default function AdminLayout({ children }) {
               </form>
             </div>
             <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-green-200 text-green-700"
-              >
-                <span className="sr-only sm:not-sr-only sm:ml-2">Help</span>
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">

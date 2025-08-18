@@ -862,7 +862,7 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 max-w-7xl mx-auto mt-6">
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -923,7 +923,7 @@ export default function AdminDashboard() {
 
         {/* Status Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4 max-w-7xl">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <div className="flex">
               <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
               <div className="text-red-700" dangerouslySetInnerHTML={{ __html: error }} />
@@ -932,7 +932,7 @@ export default function AdminDashboard() {
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-4 max-w-7xl">
+          <div className="bg-green-50 border border-green-200 rounded-md p-4 max-w-7xl mx-auto">
             <div className="flex">
               <CheckCircle2 className="h-5 w-5 text-green-400 mr-2" />
               <div className="text-green-700" dangerouslySetInnerHTML={{ __html: success }} />
@@ -941,7 +941,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-7xl mx-auto">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tokens">Token Management</TabsTrigger>

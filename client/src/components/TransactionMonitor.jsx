@@ -449,7 +449,7 @@ export default function TransactionMonitor() {
   };
 
   return (
-    <Card className="border-green-100">
+    <Card className="border-green-100 max-w-7xl mx-auto">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">

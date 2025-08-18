@@ -17,7 +17,7 @@ const CallTranscriptWidget = ({ onClose }) => {
     endCall,
   } = useVapi();
 
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const transcriptEndRef = useRef(null);
 
   // Auto scroll to bottom when new messages arrive
