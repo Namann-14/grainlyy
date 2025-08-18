@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Assignment - Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-section { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        input, button { padding: 10px; margin: 5px; }
+        button { background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005a8b; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Assignment Testing - Simplified</h1>
+    
+    <div class="test-section">
+        <h3>✅ Test Shopkeeper Assignment (Current Implementation)</h3>
+        <input type="text" id="shopkeeperAddress" placeholder="Shopkeeper Address" value="0x6E588051bb1506eEeA9B96d6fFD46727205d9600">
+        <input type="text" id="deliveryAgentAddress" placeholder="Delivery Agent Address" value="0xf5BB544eF61E21d644341c3729129fB94A6A2E94">
+        <button onclick="testShopkeeperAssignment()">Test Shopkeeper Assignment</button>
+        <div id="shopkeeperResult"></div>
+    </div>
+
+    <script>
+        async function testShopkeeperAssignment() {
+            const shopkeeperAddress = document.getElementById('shopkeeperAddress').value;
+            const deliveryAgentAddress = document.getElementById('deliveryAgentAddress').value;
+            const resultDiv = document.getElementById('shopkeeperResult');
+            
+            if (!shopkeeperAddress || !deliveryAgentAddress) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please enter both addresses</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result loading">⏳ Testing assignment...</div>';
+            
+            try {
+                const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        shopkeeperAddress,
+                        deliveryAgentAddress
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            ✅ Assignment successful!<br>
+                            Transaction: <a href="${result.polygonScanUrl}" target="_blank">${result.txHash}</a><br>
+                            Message: ${result.message}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Assignment failed: ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Network error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+// Simple HTML page to test the assignment API
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Assignment</title>
+</head>
+<body>
+    <h1>Test Delivery Agent Assignment to Order</h1>
+    <div style="margin: 20px 0;">
+        <label>Order ID: <input type="number" id="orderId" value="1" style="margin-left: 10px; padding: 5px;"></label>
+    </div>
+    <div style="margin: 20px 0;">
+        <label>Delivery Agent: <input type="text" id="agentAddress" value="0xf5BB544eF61E21d644341c3729129fB94A6A2E94" style="margin-left: 10px; padding: 5px; width: 400px;"></label>
+    </div>
+    <button onclick="testOrderAssignment()">Assign Agent to Order</button>
+    <div id="result"></div>
+    
+    <hr style="margin: 40px 0;">
+    
+    <h2>Test Shopkeeper Assignment (Legacy)</h2>
+    <button onclick="testShopkeeperAssignment()">Assign Agent to Shopkeeper</button>
+    <div id="result2"></div>
+    
+    <script>
+        async function testOrderAssignment() {
+            const resultDiv = document.getElementById('result');
+            const orderId = document.getElementById('orderId').value;
+            const agentAddress = document.getElementById('agentAddress').value;
+            
+            resultDiv.innerHTML = 'Testing order assignment...';
+            
+            try {
+                const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        orderId: parseInt(orderId),
+                        deliveryAgentAddress: agentAddress
+                    })
+                });
+
+                const result = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+        
+        async function testShopkeeperAssignment() {
+            const resultDiv = document.getElementById('result2');
+            resultDiv.innerHTML = 'Testing shopkeeper assignment...';
+            
+            try {
+                const response = await fetch('/api/admin?endpoint=assign-agent-to-shopkeeper', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        deliveryAgentAddress: '0xf5BB544eF61E21d644341c3729129fB94A6A2E94',
+                        shopkeeperAddress: '0x6E588051bb1506eEeA9B96d6fFD46727205d9600'
+                    })
+                });
+
+                const result = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
