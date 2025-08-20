@@ -121,6 +121,36 @@
   }
 }
 
+/* Hero Section Styles */
+.hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.hero-content {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.header {
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.hero-img-container {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.hero-img {
+  will-change: transform, opacity;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
 
 ::-webkit-scrollbar {
   width: 0px;

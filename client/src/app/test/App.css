@@ -1,4 +1,4 @@
-:root {
+/* :root {
   --fg: #241910;
   --bg: #fefbf4;
 }
@@ -11,7 +11,7 @@
 
 body {
   font-family: sans-serif;
-}
+} */
 /* 
 img {
   width: 100%;
@@ -102,13 +102,13 @@ nav .logo a {
   gap: 1.5rem;
   justify-content: flex-end;
 } */
-
+/* 
 section {
   position: relative;
   width: 100vw;
   height: 100svh;
   overflow: hidden;
-}
+} */
 
 .outro {
   display: flex;
@@ -126,7 +126,7 @@ canvas {
   object-fit: cover;
 }
 
-.hero-content {
+/* .hero-content {
   position: absolute;
   top: 25%;
   left: 50%;
@@ -134,7 +134,7 @@ canvas {
   transform-style: preserve-3d;
   perspective: 1000px;
   padding: 0.5rem 0;
-}
+} */
 
 .header {
   position: absolute;
@@ -150,15 +150,6 @@ canvas {
   color: var(--fg);
   transform-origin: center;
   will-change: transform, opacity;
-}
-
-.header h1 {
-  width: 50%;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  opacity: 0.35;
 }
 
 .client-logos {
