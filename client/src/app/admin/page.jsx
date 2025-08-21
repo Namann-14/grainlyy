@@ -268,7 +268,7 @@ export default function AdminDashboard() {
           setAllShopkeepers(shopkeepersData.data);
         }
       }
-
+      
       // Fetch delivery agents
       const agentsResponse = await fetch('/api/admin?endpoint=get-delivery-agents');
       if (agentsResponse.ok) {
@@ -277,6 +277,7 @@ export default function AdminDashboard() {
           setAllDeliveryAgents(agentsData.data);
         }
       }
+
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -660,33 +661,47 @@ export default function AdminDashboard() {
         return;
       }
       
-      const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
+      // Find the selected delivery agent and shopkeeper objects
+      const selectedAgent = allDeliveryAgents.find(agent => 
+        (agent.agentAddress || agent.address) === assignAgentForm.deliveryAgent
+      );
+      const selectedShopkeeper = allShopkeepers.find(shopkeeper => 
+        (shopkeeper.shopkeeperAddress || shopkeeper.address) === assignAgentForm.shopkeeper
+      );
+      
+      if (!selectedAgent || !selectedShopkeeper) {
+        setError('❌ Could not find selected delivery agent or shopkeeper');
+        return;
+      }
+      
+      console.log('Selected Agent:', selectedAgent);
+      console.log('Selected Shopkeeper:', selectedShopkeeper);
+      
+      const res = await fetch('/api/delivery-allocation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          deliveryAgentAddress: assignAgentForm.deliveryAgent,
-          shopkeeperAddress: assignAgentForm.shopkeeper
+          shopkeeper: {
+            name: selectedShopkeeper.name,
+            shopkeeperAddress: selectedShopkeeper.shopkeeperAddress || selectedShopkeeper.address
+          },
+          deliveryRider: {
+            name: selectedAgent.name,
+            agentAddress: selectedAgent.agentAddress || selectedAgent.address
+          },
+          status: 'active'
         })
       });
       
-      const data = await response.json();
+      const data = await res.json();
       
       if (data.success) {
-        setSuccess(`✅ Delivery agent assigned successfully! 
-          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        setSuccess(`✅ Delivery agent "${selectedAgent.name}" assigned to shopkeeper "${selectedShopkeeper.name}" successfully!`);
         
         setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', showDialog: false });
         
-        addTransactionToMonitor({
-          hash: data.txHash,
-          type: 'Assign Delivery Agent',
-          details: `Assigned delivery agent to shopkeeper`,
-          status: 'pending',
-          polygonScanUrl: data.polygonScanUrl
-        });
-        
         // Refresh data
-        setTimeout(() => fetchUsers(), 10000);
+        setTimeout(() => fetchUsers(), 2000);
       } else {
         setError('❌ Failed to assign delivery agent: ' + data.error);
       }

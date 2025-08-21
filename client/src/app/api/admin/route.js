@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import twilio from 'twilio';
 import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import DeliverySignupRequest from '@/models/DeliverySignupRequest';
 import ShopkeeperSignupRequest from '@/models/ShopkeeperSignupRequest';
 import ConsumerSignupRequest from '@/models/ConsumerSignupRequest';
 import DiamondMergedABI from "../../../../abis/DiamondMergedABI.json";
+import Shopkeeper from '@/models/Shopkeeper';
+import DeliveryRider from '@/models/DeliveryRider';
 
 // Initialize Twilio
 const twilioClient = twilio(
@@ -31,13 +34,12 @@ const DASHBOARD_ABI = [
   "function getCategoryWiseStats() view returns (string[] categories, uint256[] consumerCounts, uint256[] rationAmounts)",
   // NEW FUNCTIONS NOW AVAILABLE:
   "function getAllShopkeepers() view returns (address[])",
-  "function getAllDeliveryAgents() view returns (address[])",
   "function getAreaWiseStats() view returns (string[] areas, uint256[] consumerCounts, uint256[] activeShopkeepers, uint256[] tokenDistributed)",
   "function getConsumersPaginated(uint256 offset, uint256 limit) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[] consumerList, uint256 total)",
   "function searchConsumersByName(string name) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[])",
   "function getConsumersNeedingEmergencyHelp() view returns (uint256[])",
   "function getShopkeeperDashboard(address shopkeeper) view returns (tuple(address shopkeeperAddress, string name, string area, uint256 registrationTime, uint256 totalConsumersAssigned, uint256 totalTokensIssued, uint256 totalDeliveries, bool isActive))",
-  "function getDeliveryAgentDashboard(address agent) view returns (tuple(address agentAddress, string name, string mobile, address assignedShopkeeper, uint256 totalDeliveries, uint256 registrationTime, bool isActive))"
+  "function getDeliveryAgentDashboard(address agent) view returns (tuple(address agentAddress, string agentName, string mobile, uint256 registrationTime, address assignedShopkeeper, uint256 totalDeliveries, bool isActive))"
 ];
 
 // Use public RPC
@@ -1201,11 +1203,10 @@ async function handleConsumers(searchParams) {
   }
 }
 
-async function handleShopkeepers() {
+export async function handleShopkeepers() {;
   try {
-    console.log('🏪 Fetching shopkeepers from blockchain...');
-    
-    // Try blockchain first with the new getAllShopkeepers function
+    console.log("🏪 Fetching shopkeepers from blockchain...");
+
     const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
     const contract = new ethers.Contract(
       process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
@@ -1214,11 +1215,11 @@ async function handleShopkeepers() {
     );
 
     try {
-      // Get all shopkeeper addresses using the new function
+      // Get all shopkeeper addresses from blockchain
       const shopkeeperAddresses = await contract.getAllShopkeepers();
       console.log(`✅ Found ${shopkeeperAddresses.length} shopkeepers on blockchain`);
-      
-      // Get detailed info for each shopkeeper
+
+      // Fetch detailed info for each shopkeeper
       const shopkeepers = [];
       for (const address of shopkeeperAddresses) {
         try {
@@ -1227,77 +1228,73 @@ async function handleShopkeepers() {
             shopkeeperAddress: info.shopkeeperAddress,
             name: info.name,
             area: info.area,
-            mobile: 'Available via blockchain',
+            mobile: "Available via blockchain",
             registrationTime: Number(info.registrationTime),
             totalConsumersAssigned: Number(info.totalConsumersAssigned),
             totalTokensIssued: Number(info.totalTokensIssued),
             totalDeliveries: Number(info.totalDeliveries),
             isActive: info.isActive,
-            dataSource: 'blockchain'
+            dataSource: "blockchain",
           });
         } catch (error) {
           console.error(`Error getting info for shopkeeper ${address}:`, error);
         }
       }
-      
+      await connectDB(); // ensure DB connection
+      await Shopkeeper.insertMany(shopkeepers, { ordered: false }); 
+
       console.log(`🎉 Successfully fetched ${shopkeepers.length} shopkeepers from blockchain!`);
-      
+
       return NextResponse.json({
         success: true,
         data: shopkeepers,
-        dataSource: 'blockchain',
+        dataSource: "blockchain",
         message: `Found ${shopkeepers.length} shopkeepers from blockchain`,
         info: {
           totalOnBlockchain: shopkeeperAddresses.length,
           successfullyFetched: shopkeepers.length,
-          note: 'Data fetched directly from blockchain using getAllShopkeepers()'
-        }
+          note: "Data fetched directly from blockchain using getAllShopkeepers()",
+        },
       });
-      
     } catch (blockchainError) {
-      console.log('❌ getAllShopkeepers failed:', blockchainError.message);
-      
-      // Fallback to database
-      await dbConnect();
-      console.log('📦 Falling back to database...');
-      
-      const shopkeeperRequests = await ShopkeeperSignupRequest.find({ status: 'approved' })
+      console.log("❌ getAllShopkeepers failed:", blockchainError.message);
+
+      const shopkeeperRequests = await ShopkeeperSignupRequest.find({ status: "approved" })
         .sort({ createdAt: -1 })
         .lean();
-      
-      const shopkeepers = shopkeeperRequests.map(request => ({
+
+      const shopkeepers = shopkeeperRequests.map((request) => ({
         shopkeeperAddress: request.walletAddress,
-        name: request.name || 'Unknown',
-        area: request.area || 'Unknown',
-        mobile: request.mobile || 'Not provided',
+        name: request.name || "Unknown",
+        area: request.area || "Unknown",
+        mobile: request.mobile || "Not provided",
         registrationTime: Math.floor(new Date(request.updatedAt).getTime() / 1000),
         totalConsumersAssigned: 0,
         totalTokensIssued: 0,
         totalDeliveries: 0,
         isActive: true,
-        dataSource: 'database'
+        dataSource: "database",
       }));
 
       return NextResponse.json({
         success: true,
         data: shopkeepers,
-        dataSource: 'database',
+        dataSource: "database",
         message: `Found ${shopkeepers.length} shopkeepers from database`,
         blockchainError: blockchainError.message,
         info: {
-          note: 'Blockchain function failed, using database fallback',
-          totalInDatabase: shopkeepers.length
-        }
+          note: "Blockchain function failed, using database fallback",
+          totalInDatabase: shopkeepers.length,
+        },
       });
     }
-    
   } catch (error) {
-    console.error('Shopkeepers fetch error:', error);
-    
+    console.error("Shopkeepers fetch error:", error);
+
     return NextResponse.json({
       success: false,
       data: [],
-      error: `Failed to fetch shopkeepers: ${error.message}`
+      error: `Failed to fetch shopkeepers: ${error.message}`,
     });
   }
 }
@@ -1317,66 +1314,40 @@ async function handleDeliveryAgents() {
 
     let blockchainAgents = [];
     
-    try {
-      // Get all delivery agent addresses using the new function
-      const agentAddresses = await contract.getAllDeliveryAgents();
-      console.log(`✅ Found ${agentAddresses.length} delivery agents on blockchain`);
-      
-      // Get detailed info for each agent
-      for (const address of agentAddresses) {
-        try {
-          const agentInfo = await contract.getDeliveryAgentDashboard(address);
-          blockchainAgents.push({
-            agentAddress: agentInfo.agentAddress,
-            name: agentInfo.name,
-            mobile: agentInfo.mobile,
-            assignedShopkeeper: agentInfo.assignedShopkeeper,
-            totalDeliveries: Number(agentInfo.totalDeliveries),
-            registrationTime: Number(agentInfo.registrationTime),
-            isActive: agentInfo.isActive,
-            dataSource: 'blockchain'
-          });
-        } catch (infoError) {
-          console.log(`⚠️ Could not get details for agent ${address}, using basic info`);
-          blockchainAgents.push({
-            agentAddress: address,
-            name: 'Unknown Agent',
-            mobile: 'Not available',
-            assignedShopkeeper: '0x0000000000000000000000000000000000000000',
-            totalDeliveries: 0,
-            registrationTime: 0,
-            isActive: true,
-            dataSource: 'blockchain-limited'
-          });
-        }
-      }
-      
-      console.log(`🎉 Successfully fetched ${blockchainAgents.length} agents from blockchain!`);
-      
-    } catch (blockchainError) {
-      console.log('❌ getAllDeliveryAgents failed:', blockchainError.message);
-    }
-
-    // Also get approved agents from database for comparison
+    // Since getAllDeliveryAgents doesn't exist in the ABI, we'll get agent addresses from database
+    // and then fetch their details from blockchain using getDeliveryAgentDashboard
+    console.log('🔍 Getting delivery agent addresses from database first...');
+    
     await dbConnect();
     const approvedPartners = await DeliverySignupRequest.find({ 
       status: 'approved' 
     }).select('name phone walletAddress vehicleType licenseNumber reviewedAt blockchainTxHash');
 
-    // Combine data from both sources, prioritizing blockchain data
-    const combinedAgents = [];
-    const processedAddresses = new Set();
-
-    // Add blockchain agents first
-    for (const agent of blockchainAgents) {
-      combinedAgents.push(agent);
-      processedAddresses.add(agent.agentAddress.toLowerCase());
-    }
-
-    // Add approved partners not already in blockchain data
+    console.log(`📋 Found ${approvedPartners.length} approved agents in database`);
+    
+    // For each approved agent, try to get their blockchain details
     for (const partner of approvedPartners) {
-      if (!processedAddresses.has(partner.walletAddress.toLowerCase())) {
-        combinedAgents.push({
+      try {
+        console.log(`🔍 Fetching blockchain details for ${partner.name} (${partner.walletAddress})`);
+        const agentInfo = await contract.getDeliveryAgentDashboard(partner.walletAddress);
+        
+        blockchainAgents.push({
+          agentAddress: agentInfo.agentAddress,
+          name: agentInfo.agentName, // Note: it's agentName, not name in the ABI
+          mobile: agentInfo.mobile,
+          assignedShopkeeper: agentInfo.assignedShopkeeper,
+          totalDeliveries: Number(agentInfo.totalDeliveries),
+          registrationTime: Number(agentInfo.registrationTime),
+          isActive: agentInfo.isActive,
+          dataSource: 'blockchain',
+          vehicleType: partner.vehicleType,
+          licenseNumber: partner.licenseNumber
+        });
+        console.log(`✅ Successfully fetched blockchain details for ${agentInfo.agentName}`);
+      } catch (infoError) {
+        console.log(`⚠️ Could not get blockchain details for agent ${partner.walletAddress}, using database info:`, infoError.message);
+        // Use database info as fallback
+        blockchainAgents.push({
           agentAddress: partner.walletAddress,
           name: partner.name,
           mobile: partner.phone,
@@ -1385,22 +1356,30 @@ async function handleDeliveryAgents() {
           registrationTime: Math.floor(new Date(partner.reviewedAt).getTime() / 1000),
           isActive: true,
           dataSource: 'database',
+          vehicleType: partner.vehicleType,
+          licenseNumber: partner.licenseNumber,
           txHash: partner.blockchainTxHash
         });
       }
     }
+    console.log(`🎉 Successfully processed ${blockchainAgents.length} agents!`);
 
-    console.log(`📊 Combined agents: ${combinedAgents.length} total (${blockchainAgents.length} from blockchain, ${approvedPartners.length} from database)`);
+    console.log(blockchainAgents);
+
+    await dbConnect();
+    await DeliveryRider.insertMany(blockchainAgents); 
+
+    console.log(`📊 Total agents processed: ${blockchainAgents.length}`);
 
     return NextResponse.json({
       success: true,
-      data: combinedAgents,
+      data: blockchainAgents,
       metadata: {
-        totalAgents: combinedAgents.length,
-        blockchainAgents: blockchainAgents.length,
-        databaseAgents: approvedPartners.length,
+        totalAgents: blockchainAgents.length,
+        blockchainAgents: blockchainAgents.filter(a => a.dataSource === 'blockchain').length,
+        databaseAgents: blockchainAgents.filter(a => a.dataSource === 'database').length,
         lastUpdated: new Date().toISOString(),
-        note: blockchainAgents.length > 0 ? 'Successfully using blockchain data' : 'Using database fallback'
+        note: 'Delivery agents fetched using database addresses with blockchain details'
       }
     });
 
