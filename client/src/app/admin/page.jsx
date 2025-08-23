@@ -93,6 +93,8 @@ export default function AdminDashboard() {
   const [assignAgentForm, setAssignAgentForm] = useState({
     deliveryAgent: '',
     shopkeeper: '',
+    rationDetails: '',
+    orderId: '',
     showDialog: false
   });
   
@@ -654,29 +656,47 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, assigningAgent: true }));
       setError('');
-      
+      // Validate all fields
       if (!assignAgentForm.deliveryAgent || !assignAgentForm.shopkeeper) {
         setError('❌ Please select both delivery agent and shopkeeper');
         return;
       }
-      
+      if (!assignAgentForm.orderId || isNaN(Number(assignAgentForm.orderId))) {
+        setError('❌ Please enter a valid numeric Order ID');
+        return;
+      }
+      if (!/^0x[a-fA-F0-9]{40}$/.test(assignAgentForm.deliveryAgent)) {
+        setError('❌ Invalid delivery agent address');
+        return;
+      }
+      if (!/^0x[a-fA-F0-9]{40}$/.test(assignAgentForm.shopkeeper)) {
+        setError('❌ Invalid shopkeeper address');
+        return;
+      }
+
+      // Call backend API to assign delivery agent using backend wallet
       const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orderId: Number(assignAgentForm.orderId),
+          shopkeeperAddress: assignAgentForm.shopkeeper,
           deliveryAgentAddress: assignAgentForm.deliveryAgent,
-          shopkeeperAddress: assignAgentForm.shopkeeper
+          rationDetails: assignAgentForm.rationDetails || "Assigned via Admin"
         })
       });
-      
-      const data = await response.json();
-      
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        setError('❌ Backend error: Could not parse response.');
+        return;
+      }
+
       if (data.success) {
-        setSuccess(`✅ Delivery agent assigned successfully! 
-          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
-        setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', showDialog: false });
-        
+        setSuccess(`✅ Delivery agent assigned successfully! <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+        setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', rationDetails: '', orderId: '', showDialog: false });
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Assign Delivery Agent',
@@ -684,18 +704,17 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
-        // Refresh data
         setTimeout(() => fetchUsers(), 10000);
       } else {
-        setError('❌ Failed to assign delivery agent: ' + data.error);
+        // Show more details if available
+        setError('❌ Failed to assign delivery agent: ' + (data.error || 'Unknown error. Please check backend logs and contract conditions.'));
       }
     } catch (error) {
-      setError('❌ Error assigning delivery agent: ' + error.message);
+      setError('❌ Error assigning delivery agent: ' + (error?.message || error));
     } finally {
       setActionLoading(prev => ({ ...prev, assigningAgent: false }));
     }
-  };
+  }
 
   // ========== UTILITY FUNCTIONS ==========
   
@@ -1627,6 +1646,17 @@ export default function AdminDashboard() {
             
             <div className="space-y-4">
               <div>
+                <label className="text-sm font-medium">Order ID</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-md p-2 mt-1"
+                  value={assignAgentForm.orderId}
+                  onChange={e => setAssignAgentForm(prev => ({ ...prev, orderId: e.target.value }))}
+                  placeholder="Enter order ID"
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-medium">Delivery Agent</label>
                 <Select
                   value={assignAgentForm.deliveryAgent}
@@ -1647,7 +1677,7 @@ export default function AdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium">Shopkeeper</label>
                 <Select
@@ -1668,6 +1698,17 @@ export default function AdminDashboard() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Ration Details</label>
+                <input
+                  type="text"
+                  className="w-full border rounded-md p-2 mt-1"
+                  value={assignAgentForm.rationDetails}
+                  onChange={e => setAssignAgentForm(prev => ({ ...prev, rationDetails: e.target.value }))}
+                  placeholder="Enter ration details (optional)"
+                />
               </div>
             </div>
             
