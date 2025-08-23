@@ -220,7 +220,7 @@ export default function LoginPage() {
             type: 'delivery',
             data: deliveryData.deliveryPartner
           }));
-          router.push("/dealer")
+          router.push("/delivery")
           return
         } else if (deliveryResponse.ok && !deliveryData.success) {
           lastError = deliveryData.error || "Not registered as delivery partner"

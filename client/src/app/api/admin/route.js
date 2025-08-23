@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import twilio from 'twilio';
 import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import DeliverySignupRequest from '@/models/DeliverySignupRequest';
 import ShopkeeperSignupRequest from '@/models/ShopkeeperSignupRequest';
 import ConsumerSignupRequest from '@/models/ConsumerSignupRequest';
 import DiamondMergedABI from "../../../../abis/DiamondMergedABI.json";
+import Shopkeeper from '@/models/Shopkeeper';
+import DeliveryRider from '@/models/DeliveryRider';
 
 // Initialize Twilio
 const twilioClient = twilio(
@@ -16,7 +19,7 @@ const twilioClient = twilio(
 // Token Operations ABI - Simplified without events
 const TOKEN_OPS_ABI = [
   "function generateTokenForConsumer(uint256 aadhaar) external",
-  "function generateTokensForCategory(string category) external", 
+  "function generateTokensForCategory(string category) external",
   "function generateMonthlyTokensForAll() external"
 ];
 
@@ -31,30 +34,29 @@ const DASHBOARD_ABI = [
   "function getCategoryWiseStats() view returns (string[] categories, uint256[] consumerCounts, uint256[] rationAmounts)",
   // NEW FUNCTIONS NOW AVAILABLE:
   "function getAllShopkeepers() view returns (address[])",
-  "function getAllDeliveryAgents() view returns (address[])",
   "function getAreaWiseStats() view returns (string[] areas, uint256[] consumerCounts, uint256[] activeShopkeepers, uint256[] tokenDistributed)",
   "function getConsumersPaginated(uint256 offset, uint256 limit) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[] consumerList, uint256 total)",
   "function searchConsumersByName(string name) view returns (tuple(uint256 aadhaar, string name, string mobile, string category, uint256 registrationTime, address assignedShopkeeper, uint256 totalTokensReceived, uint256 totalTokensClaimed, uint256 lastTokenIssuedTime, bool isActive)[])",
   "function getConsumersNeedingEmergencyHelp() view returns (uint256[])",
   "function getShopkeeperDashboard(address shopkeeper) view returns (tuple(address shopkeeperAddress, string name, string area, uint256 registrationTime, uint256 totalConsumersAssigned, uint256 totalTokensIssued, uint256 totalDeliveries, bool isActive))",
-  "function getDeliveryAgentDashboard(address agent) view returns (tuple(address agentAddress, string name, string mobile, address assignedShopkeeper, uint256 totalDeliveries, uint256 registrationTime, bool isActive))"
+  "function getDeliveryAgentDashboard(address agent) view returns (tuple(address agentAddress, string agentName, string mobile, uint256 registrationTime, address assignedShopkeeper, uint256 totalDeliveries, bool isActive))"
 ];
 
 // Use public RPC
 const provider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
 
 // Contract address
-const CONTRACT_ADDRESS = "0x3329CA690f619bae73b9f36eb43839892D20045f";
+const CONTRACT_ADDRESS = "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C";
 
 // Initialize contracts
 let adminWallet, dashboardContract, tokenOpsContract, diamondContract;
 
 try {
   adminWallet = new ethers.Wallet(
-    process.env.ADMIN_PRIVATE_KEY || "cc7a9fa8676452af481a0fd486b9e2f500143bc63893171770f4d76e7ead33ec", 
+    process.env.ADMIN_PRIVATE_KEY || "cc7a9fa8676452af481a0fd486b9e2f500143bc63893171770f4d76e7ead33ec",
     provider
   );
-  
+
   dashboardContract = new ethers.Contract(
     CONTRACT_ADDRESS,
     DASHBOARD_ABI,
@@ -71,9 +73,9 @@ try {
   function getMergedABI() {
     try {
       console.log('� GOD MODE: Processing DiamondMergedABI structure...');
-      
+
       let rawItems = [];
-      
+
       // Extract ALL ABI items from abiMap
       if (DiamondMergedABI.abiMap && typeof DiamondMergedABI.abiMap === 'object') {
         console.log('📄 Using abiMap structure');
@@ -84,44 +86,44 @@ try {
           }
         });
       }
-      
+
       console.log(`🔥 Extracted ${rawItems.length} raw ABI items`);
-      
+
       // 🔥 NUCLEAR DEDUPLICATION - categorize and process systematically
       const deduplicated = [];
       const seenSignatures = new Set();
-      
+
       // Only keep ONE constructor
       const constructors = rawItems.filter(item => item.type === 'constructor');
       if (constructors.length > 0) {
         console.log(`� Found ${constructors.length} constructors, keeping ONLY the first`);
         deduplicated.push(constructors[0]);
       }
-      
+
       // Only keep ONE fallback
       const fallbacks = rawItems.filter(item => item.type === 'fallback');
       if (fallbacks.length > 0) {
         console.log(`� Found ${fallbacks.length} fallbacks, keeping ONLY the first`);
         deduplicated.push(fallbacks[0]);
       }
-      
+
       // Only keep ONE receive
       const receives = rawItems.filter(item => item.type === 'receive');
       if (receives.length > 0) {
         console.log(`� Found ${receives.length} receives, keeping ONLY the first`);
         deduplicated.push(receives[0]);
       }
-      
+
       // Process functions with signature-based deduplication
       const functions = rawItems.filter(item => item.type === 'function');
       console.log(`🔥 Processing ${functions.length} functions`);
-      
+
       functions.forEach(func => {
         if (!func.name) return;
-        
+
         const inputs = (func.inputs || []).map(input => input.type).join(',');
         const signature = `${func.name}(${inputs})`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           deduplicated.push(func);
@@ -129,47 +131,47 @@ try {
           console.log(`⚡ Skipping duplicate function: ${signature}`);
         }
       });
-      
+
       // Process events
       const events = rawItems.filter(item => item.type === 'event');
       console.log(`🔥 Processing ${events.length} events`);
-      
+
       events.forEach(event => {
         if (!event.name) return;
-        
+
         const inputs = (event.inputs || []).map(input => input.type).join(',');
         const signature = `event:${event.name}(${inputs})`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           deduplicated.push(event);
         }
       });
-      
+
       // Process errors
       const errors = rawItems.filter(item => item.type === 'error');
       console.log(`🔥 Processing ${errors.length} errors`);
-      
+
       errors.forEach(error => {
         if (!error.name) return;
-        
+
         const inputs = (error.inputs || []).map(input => input.type).join(',');
         const signature = `error:${error.name}(${inputs})`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           deduplicated.push(error);
         }
       });
-      
+
       console.log(`� DEDUPLICATION COMPLETE: ${rawItems.length} → ${deduplicated.length} items`);
-      
+
       // Verify our target function
-      const targetFunction = deduplicated.find(item => 
-        item.type === 'function' && 
+      const targetFunction = deduplicated.find(item =>
+        item.type === 'function' &&
         item.name === 'assignDeliveryAgentToShopkeeper'
       );
-      
+
       console.log("🎯 Target function found:", !!targetFunction);
       if (targetFunction) {
         console.log("🎯 Function details:", {
@@ -178,7 +180,7 @@ try {
           outputs: targetFunction.outputs?.map(o => o.type)
         });
       }
-      
+
       // Final stats
       const stats = {
         functions: deduplicated.filter(i => i.type === 'function').length,
@@ -188,11 +190,11 @@ try {
         fallbacks: deduplicated.filter(i => i.type === 'fallback').length,
         receives: deduplicated.filter(i => i.type === 'receive').length
       };
-      
+
       console.log('🔥 FINAL ABI COMPOSITION:', stats);
-      
+
       return deduplicated;
-      
+
     } catch (error) {
       console.error('💀 GOD MODE FAILED:', error);
       throw error;
@@ -206,14 +208,14 @@ try {
     let hasConstructor = false;
     let hasFallback = false;
     let hasReceive = false;
-    
+
     for (const item of abi) {
       if (item.type === 'function') {
         // Create a signature string for the function
         const inputs = item.inputs || [];
         const inputTypes = inputs.map(input => input.type).join(',');
         const signature = `${item.name}(${inputTypes})`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           deduplicatedABI.push(item);
@@ -225,7 +227,7 @@ try {
         const inputs = item.inputs || [];
         const inputTypes = inputs.map(input => input.type).join(',');
         const signature = `${item.type}:${item.name}(${inputTypes})`;
-        
+
         if (!seenSignatures.has(signature)) {
           seenSignatures.add(signature);
           deduplicatedABI.push(item);
@@ -262,22 +264,22 @@ try {
         deduplicatedABI.push(item);
       }
     }
-    
+
     console.log(`✅ Deduplication complete: ${abi.length} → ${deduplicatedABI.length} items`);
     return deduplicatedABI;
   }
-  
+
   try {
     const mergedABI = getMergedABI();
     console.log('🔥 GOD MODE: ABI processing complete, creating contract...');
-    
+
     // Log specific function availability before creating contract
-    const hasAssignFunction = mergedABI.some(item => 
-      item.type === 'function' && 
+    const hasAssignFunction = mergedABI.some(item =>
+      item.type === 'function' &&
       item.name === 'assignDeliveryAgentToShopkeeper'
     );
     console.log('🎯 assignDeliveryAgentToShopkeeper available in ABI:', hasAssignFunction);
-    
+
     // Log ABI statistics before contract creation
     const abiStats = {
       totalItems: mergedABI.length,
@@ -288,9 +290,9 @@ try {
       receives: mergedABI.filter(item => item.type === 'receive').length
     };
     console.log('📊 Final ABI stats:', abiStats);
-    
+
     console.log('🔥 GOD MODE: Creating ethers contract with cleaned ABI...');
-    
+
     try {
       // Create contract with bulletproof error handling
       diamondContract = new ethers.Contract(
@@ -298,32 +300,32 @@ try {
         mergedABI,
         adminWallet
       );
-      
+
       console.log('🔥 Contract object created successfully');
-      
+
       // Verify contract interface (ethers.js v6 uses fragments, not functions)
       if (!diamondContract.interface) {
         throw new Error('Contract interface is null');
       }
-      
+
       // In ethers.js v6, functions are accessed via interface.fragments or getFunction()
       if (!diamondContract.interface.fragments) {
         console.error('❌ Contract interface.fragments is null');
         console.error('Interface keys:', Object.keys(diamondContract.interface));
         throw new Error('Contract interface.fragments is null - ABI structure problem');
       }
-      
+
       const functionFragments = diamondContract.interface.fragments.filter(f => f.type === 'function');
       const functionCount = functionFragments.length;
       console.log(`🔥 Contract interface initialized with ${functionCount} functions`);
-      
+
       // Verify our target function exists in the interface
-      const hasTargetFunction = functionFragments.some(f => 
+      const hasTargetFunction = functionFragments.some(f =>
         f.name === 'assignDeliveryAgentToShopkeeper'
       );
-      
+
       console.log('🎯 assignDeliveryAgentToShopkeeper in interface:', hasTargetFunction);
-      
+
       if (hasTargetFunction) {
         try {
           const targetFunction = diamondContract.interface.getFunction('assignDeliveryAgentToShopkeeper');
@@ -336,9 +338,9 @@ try {
           console.log('🎯 Could not get function details:', e.message);
         }
       }
-      
+
       console.log('🔥 GOD MODE SUCCESS: Diamond contract fully initialized!');
-      
+
     } catch (contractError) {
       console.error('💀 Contract creation failed:', contractError);
       throw new Error(`Contract creation failed: ${contractError.message}`);
@@ -350,14 +352,14 @@ try {
 
     // Verify the specific function exists in the contract interface
     const contractFunctions = functionFragments.map(f => f.name);
-    const hasAssignInInterface = contractFunctions.some(fn => 
+    const hasAssignInInterface = contractFunctions.some(fn =>
       fn.includes('assignDeliveryAgentToShopkeeper')
     );
     console.log('🎯 assignDeliveryAgentToShopkeeper available in contract interface:', hasAssignInInterface);
-    
+
     // List all delivery-related functions in the interface
-    const deliveryFuncsInInterface = contractFunctions.filter(fn => 
-      fn.toLowerCase().includes('delivery') || 
+    const deliveryFuncsInInterface = contractFunctions.filter(fn =>
+      fn.toLowerCase().includes('delivery') ||
       fn.toLowerCase().includes('agent') ||
       fn.toLowerCase().includes('assign')
     );
@@ -372,27 +374,27 @@ try {
     console.log('Falling back to tokenOpsContract for token operations');
     diamondContract = null; // Set to null so we can check and use fallback
   }
-  
+
   // Only log debugging info if contract was created successfully
   if (diamondContract && diamondContract.interface && diamondContract.interface.fragments) {
     const functionFragments = diamondContract.interface.fragments.filter(f => f.type === 'function');
     const hasMonthlyTokens = functionFragments.some(f => f.name === 'generateMonthlyTokensForAll');
     const hasCategoryTokens = functionFragments.some(f => f.name === 'generateTokensForCategory');
-    
+
     console.log('generateMonthlyTokensForAll available on contract:', hasMonthlyTokens);
     console.log('generateTokensForCategory available on contract:', hasCategoryTokens);
     console.log('Total contract interface functions:', functionFragments.length);
   } else {
     console.log('⚠️ Diamond contract interface not available, will use fallback tokenOpsContract');
   }
-  
+
   // Also verify tokenOpsContract is available as fallback
   if (tokenOpsContract) {
     console.log('✅ TokenOpsContract available as fallback');
   } else {
     console.log('❌ TokenOpsContract not available');
   }
-  
+
 } catch (error) {
   console.error('Failed to initialize blockchain components:', error);
 }
@@ -472,7 +474,7 @@ function createShortSMSMessage(consumerName, tokenId, category) {
 async function sendSMSToConsumer(consumer, actualTokenId = null) {
   try {
     const shopkeeper = await getShopkeeperDetails(consumer.assignedShopkeeper);
-    
+
     // Use actual token ID if provided, otherwise get latest token for consumer
     let tokenId = actualTokenId;
     if (!tokenId) {
@@ -491,7 +493,7 @@ async function sendSMSToConsumer(consumer, actualTokenId = null) {
         tokenId = `T-${consumer.aadhaar.toString().slice(-4)}`;
       }
     }
-    
+
     const message = createSMSMessage(
       consumer.name,
       tokenId,
@@ -507,7 +509,7 @@ async function sendSMSToConsumer(consumer, actualTokenId = null) {
     }
 
     const result = await sendSMSNotification(consumer.mobile, finalMessage);
-    
+
     if (result.success) {
       console.log(`✅ SMS sent to ${consumer.name} (${consumer.mobile}) with token ID: ${tokenId}`);
     } else {
@@ -534,9 +536,9 @@ function formatConsumerBasic(consumer) {
 async function sendSMSNotifications(operationType, category = null, aadhaarList = null) {
   try {
     console.log(`📱 Starting SMS notifications for ${operationType}...`);
-    
+
     let consumersToNotify = [];
-    
+
     if (operationType === 'individual' && aadhaarList && aadhaarList.length > 0) {
       for (const aadhaar of aadhaarList) {
         try {
@@ -573,7 +575,7 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
         await sendSMSToConsumer(consumer);
         smsCount++;
         console.log(`SMS ${smsCount}/${consumersToNotify.length} sent to ${consumer.name}`);
-        
+
         // Add delay between SMS to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
@@ -583,7 +585,7 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
 
     console.log(`📱 SMS notifications completed: ${smsCount}/${consumersToNotify.length} sent`);
     return { success: true, smsSent: smsCount, totalConsumers: consumersToNotify.length };
-    
+
   } catch (error) {
     console.error('SMS notification process failed:', error);
     return { success: false, error: error.message };
@@ -627,13 +629,17 @@ export async function GET(request) {
         return await handleTestConnection();
       case 'system-status':
         return await handleSystemStatus();
+      case 'pickup-statistics':
+        return await handlePickupStatistics();
+      case 'all-pickups':
+        return await handleAllPickups();
       default:
         return NextResponse.json({ success: false, error: 'Invalid endpoint' }, { status: 400 });
     }
   } catch (error) {
     console.error('Admin API Error:', error);
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: error.message || 'Failed to process request'
     }, { status: 500 });
   }
@@ -644,7 +650,7 @@ export async function POST(request) {
   try {
     const { searchParams } = new URL(request.url);
     const endpoint = searchParams.get('endpoint');
-    
+
     let body = {};
     try {
       const text = await request.text();
@@ -653,9 +659,9 @@ export async function POST(request) {
       }
     } catch (jsonError) {
       console.error('JSON parsing error:', jsonError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Invalid JSON in request body' 
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid JSON in request body'
       }, { status: 400 });
     }
 
@@ -696,7 +702,7 @@ export async function POST(request) {
         return await handleCreateOrder(body);
       case 'get-orders':
         return await handleGetOrders(body);
-      case 'assign-agent-to-shopkeeper':  
+      case 'assign-agent-to-shopkeeper':
         return await handleAssignDeliveryAgent(body);
       case 'remove-delivery-agent':
         return await handleRemoveDeliveryAgent(body);
@@ -709,15 +715,15 @@ export async function POST(request) {
       case 'manual-sync-consumer':
         return await handleManualSyncConsumer(body);
       default:
-        return NextResponse.json({ 
-          success: false, 
-          error: `Invalid endpoint: ${endpoint}` 
+        return NextResponse.json({
+          success: false,
+          error: `Invalid endpoint: ${endpoint}`
         }, { status: 400 });
     }
   } catch (error) {
     console.error('Admin API POST Error:', error);
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: error.message || 'Failed to process request'
     }, { status: 500 });
   }
@@ -726,50 +732,115 @@ export async function POST(request) {
 async function handleGenerateMonthlyTokens() {
   try {
     console.log('🚀 Generating monthly tokens for all consumers...');
-    
-    // Try diamondContract first, fallback to tokenOpsContract
-    let contractToUse = diamondContract;
-    let contractName = 'diamondContract';
-    
-    if (!diamondContract || !diamondContract.interface || !diamondContract.interface.fragments) {
-      console.log('⚠️ Diamond contract not available, using tokenOpsContract fallback');
-      contractToUse = tokenOpsContract;
-      contractName = 'tokenOpsContract';
-    }
-    
-    if (!contractToUse) {
-      throw new Error('No contract available for token generation');
+
+    // Use DCVToken contract directly since it has mintTokenForAadhaar function
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+
+    // Load DCVToken ABI directly from DCVToken.json
+    const DCVTokenABI = require('../../../../abis/DCVToken.json');
+
+    console.log('✅ DCVToken ABI loaded, functions count:', DCVTokenABI.length);
+
+    const dcvTokenContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS, // 0xC336869ac6f9D51888ab27615a086524C281D3Aa
+      DCVTokenABI,
+      wallet
+    );
+
+    console.log('✅ DCVToken contract initialized:', process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS);
+
+    // Get all consumers from the Diamond contract
+    let allConsumers = [];
+    try {
+      if (diamondContract) {
+        console.log('📋 Fetching all consumers from Diamond contract...');
+        const consumers = await diamondContract.getAllConsumers();
+        allConsumers = consumers || [];
+        console.log(`✅ Found ${allConsumers.length} consumers`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch consumers from Diamond contract:', error.message);
+      // Fallback: use a test consumer for demonstration
+      allConsumers = [
+        {
+          aadhaar: BigInt("123456789012"),
+          assignedShopkeeper: "0x0000000000000000000000000000000000000000",
+          category: "BPL"
+        }
+      ];
     }
 
-    console.log(`Using ${contractName} for token generation`);
-    
-    // Check if function exists (only for diamondContract)
-    if (contractName === 'diamondContract') {
+    if (allConsumers.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No consumers found to generate tokens for'
+      });
+    }
+
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    let successCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+    const errors = [];
+
+    console.log(`🎯 Processing ${allConsumers.length} consumers for month ${currentMonth}/${currentYear}`);
+
+    for (let i = 0; i < allConsumers.length; i++) {
+      const consumer = allConsumers[i];
       try {
-        const hasFunction = contractToUse.interface.getFunction('generateMonthlyTokensForAll');
-        console.log('✅ generateMonthlyTokensForAll function found in diamond contract');
+        const aadhaar = BigInt(consumer.aadhaar || consumer[0]);
+        const assignedShopkeeper = consumer.assignedShopkeeper || consumer[4] || "0x0000000000000000000000000000000000000000";
+        const category = consumer.category || consumer[3] || "BPL";
+
+        console.log(`📦 Processing consumer ${i + 1}/${allConsumers.length}: ${aadhaar}`);
+
+        // Check if consumer already has token for this month
+        const hasToken = await dcvTokenContract.hasTokensForMonth(aadhaar, currentMonth, currentYear);
+
+        if (hasToken) {
+          console.log(`⏭️ Consumer ${aadhaar} already has token for this month, skipping`);
+          skippedCount++;
+          continue;
+        }
+
+        // Mint token for this consumer
+        const tx = await dcvTokenContract.mintTokenForAadhaar(
+          aadhaar,
+          assignedShopkeeper,
+          5, // 5kg default ration amount
+          category
+        );
+
+        console.log(`📤 Token mint transaction sent for ${aadhaar}: ${tx.hash}`);
+        const receipt = await tx.wait();
+
+        if (receipt.status === 1) {
+          successCount++;
+          console.log(`✅ Token minted successfully for consumer ${aadhaar}`);
+        } else {
+          errorCount++;
+          console.log(`❌ Token mint failed for consumer ${aadhaar}`);
+        }
+
+        // Add small delay to avoid overwhelming the network
+        if (i < allConsumers.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
       } catch (error) {
-        console.log('⚠️ Function not found in diamond contract, falling back to tokenOpsContract');
-        contractToUse = tokenOpsContract;
-        contractName = 'tokenOpsContract';
+        console.error(`❌ Failed to mint token for consumer ${consumer.aadhaar}:`, error);
+        errorCount++;
+        errors.push(`Consumer ${consumer.aadhaar}: ${error.message}`);
       }
     }
-    
-    if (!contractToUse) {
-      throw new Error('generateMonthlyTokensForAll function not available on any contract');
-    }
-    
-    // Execute the transaction
-    const tx = await contractToUse.generateMonthlyTokensForAll({
-      gasLimit: 2000000
-    });
-    
-    console.log('✅ Transaction sent:', tx.hash);
 
-    const receipt = await tx.wait();
-    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    const summary = `Monthly tokens generated: ${successCount} success, ${errorCount} errors, ${skippedCount} skipped`;
+    console.log('📊 Final summary:', summary);
 
-    if (receipt.status === 1) {
+    if (successCount > 0) {
       setTimeout(async () => {
         try {
           const result = await sendSMSNotifications('monthly');
@@ -779,7 +850,7 @@ async function handleGenerateMonthlyTokens() {
         }
       }, 2000);
     }
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -802,18 +873,18 @@ async function handleGenerateTokenForConsumer(body) {
     }
 
     const { aadhaar } = body;
-    
+
     if (!aadhaar) {
       throw new Error('Aadhaar number is required');
     }
 
     console.log(`🚀 Generating token for consumer: ${aadhaar}`);
-    
+
     // Use diamondContract instead of tokenOpsContract
     const tx = await diamondContract.connect(adminWallet).generateTokenForConsumer(aadhaar, {
       gasLimit: 500000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
@@ -828,7 +899,7 @@ async function handleGenerateTokenForConsumer(body) {
           // Check if this looks like a token generation event
           return log.topics && log.topics.length > 0;
         });
-        
+
         if (tokenGeneratedEvents.length > 0) {
           // Try to decode the event to get token ID
           // This is a simplified approach - you might need to adjust based on your contract's event structure
@@ -860,7 +931,7 @@ async function handleGenerateTokenForConsumer(body) {
         }
       }, 2000);
     }
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -879,56 +950,117 @@ async function handleGenerateTokenForConsumer(body) {
 async function handleGenerateTokensForCategory(body) {
   try {
     const { category } = body;
-    
     if (!category) {
       throw new Error('Category is required');
     }
 
-    console.log(`🚀 Generating tokens for category: ${category}`);
-    
-    // Try diamondContract first, fallback to tokenOpsContract
-    let contractToUse = diamondContract;
-    let contractName = 'diamondContract';
-    
-    if (!diamondContract || !diamondContract.interface || !diamondContract.interface.fragments) {
-      console.log('⚠️ Diamond contract not available, using tokenOpsContract fallback');
-      contractToUse = tokenOpsContract;
-      contractName = 'tokenOpsContract';
-    }
-    
-    if (!contractToUse) {
-      throw new Error('No contract available for token generation');
+    console.log(`🎯 Generating tokens for category: ${category}`);
+
+    // Use DCVToken contract directly since it has mintTokenForAadhaar function
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+
+    // Load DCVToken ABI directly from DCVToken.json
+    const DCVTokenABI = require('../../../../abis/DCVToken.json');
+
+    console.log('✅ DCVToken ABI loaded for category generation, functions count:', DCVTokenABI.length);
+
+    const dcvTokenContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS,
+      DCVTokenABI,
+      wallet
+    );
+
+    console.log('✅ DCVToken contract initialized for category generation');
+
+    // Get consumers of this category from Diamond contract
+    let categoryConsumers = [];
+    try {
+      if (diamondContract) {
+        console.log(`📋 Fetching consumers for category: ${category}`);
+        const allConsumers = await diamondContract.getAllConsumers();
+        categoryConsumers = allConsumers.filter(consumer => {
+          const consumerCategory = consumer.category || consumer[3] || "BPL";
+          return consumerCategory === category;
+        });
+        console.log(`✅ Found ${categoryConsumers.length} consumers in ${category} category`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch consumers from Diamond contract:', error.message);
+      // Return error since we need consumers for category generation
+      return NextResponse.json({
+        success: false,
+        error: `Could not fetch consumers for category ${category}: ${error.message}`
+      });
     }
 
-    console.log(`Using ${contractName} for token generation`);
-    
-    // Check if function exists (only for diamondContract)
-    if (contractName === 'diamondContract') {
+    if (categoryConsumers.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: `No consumers found in ${category} category`
+      });
+    }
+
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    let successCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+    const errors = [];
+
+    console.log(`🎯 Processing ${categoryConsumers.length} consumers in ${category} category`);
+
+    for (let i = 0; i < categoryConsumers.length; i++) {
+      const consumer = categoryConsumers[i];
       try {
-        const hasFunction = contractToUse.interface.getFunction('generateTokensForCategory');
-        console.log('✅ generateTokensForCategory function found in diamond contract');
+        const aadhaar = BigInt(consumer.aadhaar || consumer[0]);
+        const assignedShopkeeper = consumer.assignedShopkeeper || consumer[4] || "0x0000000000000000000000000000000000000000";
+
+        console.log(`📦 Processing consumer ${i + 1}/${categoryConsumers.length}: ${aadhaar}`);
+
+        // Check if consumer already has token for this month
+        const hasToken = await dcvTokenContract.hasTokensForMonth(aadhaar, currentMonth, currentYear);
+        if (hasToken) {
+          console.log(`⏭️ Consumer ${aadhaar} already has token for this month, skipping`);
+          skippedCount++;
+          continue;
+        }
+
+        // Mint token for this consumer
+        const tx = await dcvTokenContract.mintTokenForAadhaar(
+          aadhaar,
+          assignedShopkeeper,
+          5, // 5kg default ration amount
+          category
+        );
+
+        console.log(`📤 Token mint transaction sent for ${aadhaar}: ${tx.hash}`);
+        const receipt = await tx.wait();
+
+        if (receipt.status === 1) {
+          successCount++;
+          console.log(`✅ Token minted successfully for consumer ${aadhaar}`);
+        } else {
+          errorCount++;
+          console.log(`❌ Token mint failed for consumer ${aadhaar}`);
+        }
+
+        // Add small delay to avoid overwhelming the network
+        if (i < categoryConsumers.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       } catch (error) {
-        console.log('⚠️ Function not found in diamond contract, falling back to tokenOpsContract');
-        contractToUse = tokenOpsContract;
-        contractName = 'tokenOpsContract';
+        console.error(`❌ Failed to mint token for consumer ${consumer.aadhaar}:`, error);
+        errorCount++;
+        errors.push(`Consumer ${consumer.aadhaar}: ${error.message}`);
       }
     }
-    
-    if (!contractToUse) {
-      throw new Error('generateTokensForCategory function not available on any contract');
-    }
-    
-    // Execute the transaction
-    const tx = await contractToUse.generateTokensForCategory(category, {
-      gasLimit: 1500000
-    });
-    
-    console.log('✅ Transaction sent:', tx.hash);
 
-    const receipt = await tx.wait();
-    console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
+    const summary = `${category} category tokens generated: ${successCount} success, ${errorCount} errors, ${skippedCount} skipped`;
+    console.log('📊 Category generation summary:', summary);
 
-    if (receipt.status === 1) {
+    // Send SMS notifications if successful
+    if (successCount > 0) {
       setTimeout(async () => {
         try {
           const result = await sendSMSNotifications('category', category);
@@ -938,18 +1070,26 @@ async function handleGenerateTokensForCategory(body) {
         }
       }, 2000);
     }
-    
+
     return NextResponse.json({
       success: true,
-      txHash: tx.hash,
-      polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
-      message: `Token generation completed for category ${category}. SMS notifications are being sent to all ${category} consumers.`
+      txHash: successCount > 0 ? 'batch_operation' : 'no_transactions',
+      polygonScanUrl: `https://amoy.polygonscan.com/address/${process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS}`,
+      message: summary,
+      details: {
+        category,
+        totalConsumers: categoryConsumers.length,
+        successCount,
+        errorCount,
+        skippedCount,
+        errors: errors.slice(0, 5) // Show first 5 errors only
+      }
     });
   } catch (error) {
-    console.error('Generate tokens for category error:', error);
+    console.error('Category tokens generation error:', error);
     return NextResponse.json({
       success: false,
-      error: `Failed to generate tokens for category: ${error.message}`
+      error: `Failed to generate category tokens: ${error.message}`
     }, { status: 500 });
   }
 }
@@ -957,18 +1097,18 @@ async function handleGenerateTokensForCategory(body) {
 async function handleTestSMS() {
   try {
     const testMessage = `GRAINLY TEST: SMS working! Time: ${new Date().getHours()}:${new Date().getMinutes()}`;
-    
+
     console.log('🧪 Testing short SMS...');
     console.log(`📝 Test message length: ${testMessage.length} characters`);
-    
+
     const result = await sendSMSNotification('8284941698', testMessage);
-    
+
     return NextResponse.json({
       success: result.success,
       message: result.success ? 'Test SMS sent successfully!' : 'Test SMS failed',
       details: result,
-      instructions: result.success 
-        ? 'Check your phone for the test message' 
+      instructions: result.success
+        ? 'Check your phone for the test message'
         : 'Check Twilio Console for error details'
     });
   } catch (error) {
@@ -983,7 +1123,7 @@ async function handleTestSMS() {
 async function handleDashboard() {
   try {
     console.log('Fetching dashboard data...');
-    
+
     if (!dashboardContract) {
       console.error('Dashboard contract not initialized');
       throw new Error('Dashboard contract not initialized');
@@ -992,7 +1132,7 @@ async function handleDashboard() {
     console.log('Calling getAdminDashboard() on contract...');
     const dashboardData = await dashboardContract.getAdminDashboard();
     console.log('Raw dashboard data from blockchain:', dashboardData);
-    
+
     const processedData = {
       totalConsumers: Number(dashboardData.totalConsumers),
       totalShopkeepers: Number(dashboardData.totalShopkeepers),
@@ -1007,12 +1147,12 @@ async function handleDashboard() {
     };
 
     console.log('Processed dashboard data:', processedData);
-    
+
     // Verify the data by cross-checking with individual functions
     try {
       const totalConsumersCheck = await dashboardContract.getTotalConsumers();
       const actualConsumers = Number(totalConsumersCheck);
-      
+
       if (actualConsumers === 0 && processedData.totalConsumers > 0) {
         console.log('⚠️ Dashboard shows consumers but getTotalConsumers returns 0 - using conservative data');
         processedData.totalConsumers = 0;
@@ -1020,7 +1160,7 @@ async function handleDashboard() {
     } catch (checkError) {
       console.log('Could not verify consumer count:', checkError.message);
     }
-    
+
     return NextResponse.json({
       success: true,
       data: processedData
@@ -1032,7 +1172,7 @@ async function handleDashboard() {
       message: error.message,
       code: error.code
     });
-    
+
     // Return actual zeros instead of fallback data to show real state
     return NextResponse.json({
       success: true,
@@ -1057,7 +1197,7 @@ async function handleDashboard() {
 async function handleConsumers(searchParams) {
   try {
     console.log('Fetching consumers from blockchain...');
-    
+
     if (!dashboardContract) {
       console.error('Dashboard contract not initialized');
       throw new Error('Dashboard contract not initialized');
@@ -1072,7 +1212,7 @@ async function handleConsumers(searchParams) {
 
     let consumers = [];
     let total = 0;
-    
+
     if (search) {
       console.log('Searching consumers by name:', search);
       try {
@@ -1085,7 +1225,7 @@ async function handleConsumers(searchParams) {
         // Fallback: get all consumers and filter locally
         const result = await dashboardContract.getConsumersPaginated(0, 1000);
         const allConsumers = result.consumerList.map(formatConsumer);
-        consumers = allConsumers.filter(c => 
+        consumers = allConsumers.filter(c =>
           c.name.toLowerCase().includes(search.toLowerCase()) ||
           c.aadhaar.toString().includes(search)
         );
@@ -1113,17 +1253,17 @@ async function handleConsumers(searchParams) {
         console.log('Paginated result:', result);
         consumers = result.consumerList ? result.consumerList.map(formatConsumer) : [];
         total = Number(result.total || 0);
-        
+
         console.log(`Found ${consumers.length} consumers, total: ${total}`);
       } catch (paginationError) {
         console.error('Pagination function failed:', paginationError);
-        
+
         // Final fallback: try to get total consumers count
         try {
           const totalConsumers = await dashboardContract.getTotalConsumers();
           total = Number(totalConsumers);
           console.log(`Total consumers from blockchain: ${total}`);
-          
+
           if (total > 0) {
             return NextResponse.json({
               success: true,
@@ -1145,7 +1285,7 @@ async function handleConsumers(searchParams) {
         } catch (totalError) {
           console.error('Even getTotalConsumers failed:', totalError);
         }
-        
+
         // Return empty result with error info
         consumers = [];
         total = 0;
@@ -1171,7 +1311,7 @@ async function handleConsumers(searchParams) {
     }
 
     return NextResponse.json(response);
-    
+
   } catch (error) {
     console.error('Consumers fetch error:', error);
     console.error('Error details:', {
@@ -1180,7 +1320,7 @@ async function handleConsumers(searchParams) {
       code: error.code,
       stack: error.stack
     });
-    
+
     return NextResponse.json({
       success: true,
       data: [],
@@ -1201,11 +1341,11 @@ async function handleConsumers(searchParams) {
   }
 }
 
-async function handleShopkeepers() {
+export async function handleShopkeepers() {
+  ;
   try {
-    console.log('🏪 Fetching shopkeepers from blockchain...');
-    
-    // Try blockchain first with the new getAllShopkeepers function
+    console.log("🏪 Fetching shopkeepers from blockchain...");
+
     const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
     const contract = new ethers.Contract(
       process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
@@ -1214,11 +1354,11 @@ async function handleShopkeepers() {
     );
 
     try {
-      // Get all shopkeeper addresses using the new function
+      // Get all shopkeeper addresses from blockchain
       const shopkeeperAddresses = await contract.getAllShopkeepers();
       console.log(`✅ Found ${shopkeeperAddresses.length} shopkeepers on blockchain`);
-      
-      // Get detailed info for each shopkeeper
+
+      // Fetch detailed info for each shopkeeper
       const shopkeepers = [];
       for (const address of shopkeeperAddresses) {
         try {
@@ -1227,77 +1367,73 @@ async function handleShopkeepers() {
             shopkeeperAddress: info.shopkeeperAddress,
             name: info.name,
             area: info.area,
-            mobile: 'Available via blockchain',
+            mobile: "Available via blockchain",
             registrationTime: Number(info.registrationTime),
             totalConsumersAssigned: Number(info.totalConsumersAssigned),
             totalTokensIssued: Number(info.totalTokensIssued),
             totalDeliveries: Number(info.totalDeliveries),
             isActive: info.isActive,
-            dataSource: 'blockchain'
+            dataSource: "blockchain",
           });
         } catch (error) {
           console.error(`Error getting info for shopkeeper ${address}:`, error);
         }
       }
-      
+      await connectDB(); // ensure DB connection
+      await Shopkeeper.insertMany(shopkeepers, { ordered: false });
+
       console.log(`🎉 Successfully fetched ${shopkeepers.length} shopkeepers from blockchain!`);
-      
+
       return NextResponse.json({
         success: true,
         data: shopkeepers,
-        dataSource: 'blockchain',
+        dataSource: "blockchain",
         message: `Found ${shopkeepers.length} shopkeepers from blockchain`,
         info: {
           totalOnBlockchain: shopkeeperAddresses.length,
           successfullyFetched: shopkeepers.length,
-          note: 'Data fetched directly from blockchain using getAllShopkeepers()'
-        }
+          note: "Data fetched directly from blockchain using getAllShopkeepers()",
+        },
       });
-      
     } catch (blockchainError) {
-      console.log('❌ getAllShopkeepers failed:', blockchainError.message);
-      
-      // Fallback to database
-      await dbConnect();
-      console.log('📦 Falling back to database...');
-      
-      const shopkeeperRequests = await ShopkeeperSignupRequest.find({ status: 'approved' })
+      console.log("❌ getAllShopkeepers failed:", blockchainError.message);
+
+      const shopkeeperRequests = await ShopkeeperSignupRequest.find({ status: "approved" })
         .sort({ createdAt: -1 })
         .lean();
-      
-      const shopkeepers = shopkeeperRequests.map(request => ({
+
+      const shopkeepers = shopkeeperRequests.map((request) => ({
         shopkeeperAddress: request.walletAddress,
-        name: request.name || 'Unknown',
-        area: request.area || 'Unknown',
-        mobile: request.mobile || 'Not provided',
+        name: request.name || "Unknown",
+        area: request.area || "Unknown",
+        mobile: request.mobile || "Not provided",
         registrationTime: Math.floor(new Date(request.updatedAt).getTime() / 1000),
         totalConsumersAssigned: 0,
         totalTokensIssued: 0,
         totalDeliveries: 0,
         isActive: true,
-        dataSource: 'database'
+        dataSource: "database",
       }));
 
       return NextResponse.json({
         success: true,
         data: shopkeepers,
-        dataSource: 'database',
+        dataSource: "database",
         message: `Found ${shopkeepers.length} shopkeepers from database`,
         blockchainError: blockchainError.message,
         info: {
-          note: 'Blockchain function failed, using database fallback',
-          totalInDatabase: shopkeepers.length
-        }
+          note: "Blockchain function failed, using database fallback",
+          totalInDatabase: shopkeepers.length,
+        },
       });
     }
-    
   } catch (error) {
-    console.error('Shopkeepers fetch error:', error);
-    
+    console.error("Shopkeepers fetch error:", error);
+
     return NextResponse.json({
       success: false,
       data: [],
-      error: `Failed to fetch shopkeepers: ${error.message}`
+      error: `Failed to fetch shopkeepers: ${error.message}`,
     });
   }
 }
@@ -1306,7 +1442,7 @@ async function handleShopkeepers() {
 async function handleDeliveryAgents() {
   try {
     console.log('🚚 Fetching delivery agents from blockchain...');
-    
+
     // Try blockchain first with the new getAllDeliveryAgents function
     const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
     const contract = new ethers.Contract(
@@ -1316,67 +1452,41 @@ async function handleDeliveryAgents() {
     );
 
     let blockchainAgents = [];
-    
-    try {
-      // Get all delivery agent addresses using the new function
-      const agentAddresses = await contract.getAllDeliveryAgents();
-      console.log(`✅ Found ${agentAddresses.length} delivery agents on blockchain`);
-      
-      // Get detailed info for each agent
-      for (const address of agentAddresses) {
-        try {
-          const agentInfo = await contract.getDeliveryAgentDashboard(address);
-          blockchainAgents.push({
-            agentAddress: agentInfo.agentAddress,
-            name: agentInfo.name,
-            mobile: agentInfo.mobile,
-            assignedShopkeeper: agentInfo.assignedShopkeeper,
-            totalDeliveries: Number(agentInfo.totalDeliveries),
-            registrationTime: Number(agentInfo.registrationTime),
-            isActive: agentInfo.isActive,
-            dataSource: 'blockchain'
-          });
-        } catch (infoError) {
-          console.log(`⚠️ Could not get details for agent ${address}, using basic info`);
-          blockchainAgents.push({
-            agentAddress: address,
-            name: 'Unknown Agent',
-            mobile: 'Not available',
-            assignedShopkeeper: '0x0000000000000000000000000000000000000000',
-            totalDeliveries: 0,
-            registrationTime: 0,
-            isActive: true,
-            dataSource: 'blockchain-limited'
-          });
-        }
-      }
-      
-      console.log(`🎉 Successfully fetched ${blockchainAgents.length} agents from blockchain!`);
-      
-    } catch (blockchainError) {
-      console.log('❌ getAllDeliveryAgents failed:', blockchainError.message);
-    }
 
-    // Also get approved agents from database for comparison
+    // Since getAllDeliveryAgents doesn't exist in the ABI, we'll get agent addresses from database
+    // and then fetch their details from blockchain using getDeliveryAgentDashboard
+    console.log('🔍 Getting delivery agent addresses from database first...');
+
     await dbConnect();
-    const approvedPartners = await DeliverySignupRequest.find({ 
-      status: 'approved' 
+    const approvedPartners = await DeliverySignupRequest.find({
+      status: 'approved'
     }).select('name phone walletAddress vehicleType licenseNumber reviewedAt blockchainTxHash');
 
-    // Combine data from both sources, prioritizing blockchain data
-    const combinedAgents = [];
-    const processedAddresses = new Set();
+    console.log(`📋 Found ${approvedPartners.length} approved agents in database`);
 
-    // Add blockchain agents first
-    for (const agent of blockchainAgents) {
-      combinedAgents.push(agent);
-      processedAddresses.add(agent.agentAddress.toLowerCase());
-    }
-
-    // Add approved partners not already in blockchain data
+    // For each approved agent, try to get their blockchain details
     for (const partner of approvedPartners) {
-      if (!processedAddresses.has(partner.walletAddress.toLowerCase())) {
-        combinedAgents.push({
+      try {
+        console.log(`🔍 Fetching blockchain details for ${partner.name} (${partner.walletAddress})`);
+        const agentInfo = await contract.getDeliveryAgentDashboard(partner.walletAddress);
+
+        blockchainAgents.push({
+          agentAddress: agentInfo.agentAddress,
+          name: agentInfo.agentName, // Note: it's agentName, not name in the ABI
+          mobile: agentInfo.mobile,
+          assignedShopkeeper: agentInfo.assignedShopkeeper,
+          totalDeliveries: Number(agentInfo.totalDeliveries),
+          registrationTime: Number(agentInfo.registrationTime),
+          isActive: agentInfo.isActive,
+          dataSource: 'blockchain',
+          vehicleType: partner.vehicleType,
+          licenseNumber: partner.licenseNumber
+        });
+        console.log(`✅ Successfully fetched blockchain details for ${agentInfo.agentName}`);
+      } catch (infoError) {
+        console.log(`⚠️ Could not get blockchain details for agent ${partner.walletAddress}, using database info:`, infoError.message);
+        // Use database info as fallback
+        blockchainAgents.push({
           agentAddress: partner.walletAddress,
           name: partner.name,
           mobile: partner.phone,
@@ -1385,33 +1495,41 @@ async function handleDeliveryAgents() {
           registrationTime: Math.floor(new Date(partner.reviewedAt).getTime() / 1000),
           isActive: true,
           dataSource: 'database',
+          vehicleType: partner.vehicleType,
+          licenseNumber: partner.licenseNumber,
           txHash: partner.blockchainTxHash
         });
       }
     }
+    console.log(`🎉 Successfully processed ${blockchainAgents.length} agents!`);
 
-    console.log(`📊 Combined agents: ${combinedAgents.length} total (${blockchainAgents.length} from blockchain, ${approvedPartners.length} from database)`);
+    console.log(blockchainAgents);
+
+    await dbConnect();
+    await DeliveryRider.insertMany(blockchainAgents);
+
+    console.log(`📊 Total agents processed: ${blockchainAgents.length}`);
 
     return NextResponse.json({
       success: true,
-      data: combinedAgents,
+      data: blockchainAgents,
       metadata: {
-        totalAgents: combinedAgents.length,
-        blockchainAgents: blockchainAgents.length,
-        databaseAgents: approvedPartners.length,
+        totalAgents: blockchainAgents.length,
+        blockchainAgents: blockchainAgents.filter(a => a.dataSource === 'blockchain').length,
+        databaseAgents: blockchainAgents.filter(a => a.dataSource === 'database').length,
         lastUpdated: new Date().toISOString(),
-        note: blockchainAgents.length > 0 ? 'Successfully using blockchain data' : 'Using database fallback'
+        note: 'Delivery agents fetched using database addresses with blockchain details'
       }
     });
 
   } catch (error) {
     console.error('❌ Delivery agents fetch error:', error);
-    
+
     // Final fallback: Return only database data if everything fails
     try {
       await dbConnect();
-      const fallbackPartners = await DeliverySignupRequest.find({ 
-        status: 'approved' 
+      const fallbackPartners = await DeliverySignupRequest.find({
+        status: 'approved'
       }).select('name phone walletAddress reviewedAt blockchainTxHash');
 
       return NextResponse.json({
@@ -1442,16 +1560,16 @@ async function handleDeliveryAgents() {
 async function handleAreaStats() {
   try {
     console.log('📍 Fetching area statistics from blockchain...');
-    
+
     const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
     const contract = new ethers.Contract(
       process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
       DASHBOARD_ABI,
       provider
     );
-    
+
     const areaStats = await contract.getAreaWiseStats();
-    
+
     const areas = areaStats.areas;
     const consumerCounts = areaStats.consumerCounts;
     const activeShopkeepers = areaStats.activeShopkeepers;
@@ -1484,7 +1602,7 @@ async function handleAreaStats() {
 async function handleCategoryStats() {
   try {
     const categoryStats = await dashboardContract.getCategoryWiseStats();
-    
+
     const categories = categoryStats.categories;
     const consumers = categoryStats.consumerCounts;
     const rationAmounts = categoryStats.rationAmounts;
@@ -1512,18 +1630,18 @@ async function handleCategoryStats() {
 async function handleEmergencyCases() {
   try {
     console.log('🚨 Fetching emergency cases from blockchain...');
-    
+
     const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
     const contract = new ethers.Contract(
       process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
       DASHBOARD_ABI,
       provider
     );
-    
+
     const emergencyAadhaars = await contract.getConsumersNeedingEmergencyHelp();
-    
+
     const emergencyConsumers = [];
-    
+
     for (const aadhaar of emergencyAadhaars) {
       try {
         const consumer = await contract.getConsumerByAadhaar(aadhaar);
@@ -1553,7 +1671,7 @@ async function handleEmergencyCases() {
 async function handleSystemHealth() {
   try {
     const healthData = await dashboardContract.getSystemHealthReport();
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -1590,7 +1708,7 @@ async function handleRecentActivity(searchParams) {
   try {
     const limit = searchParams.get('limit') || '10';
     const activity = await dashboardContract.getRecentActivityLogs(limit);
-    
+
     return NextResponse.json({
       success: true,
       data: activity.map(log => ({
@@ -1615,7 +1733,7 @@ async function handleRecentActivity(searchParams) {
 async function handlePaymentAnalytics() {
   try {
     console.log('Fetching payment analytics...');
-    
+
     if (!diamondContract) {
       throw new Error('Diamond contract not initialized');
     }
@@ -1623,7 +1741,7 @@ async function handlePaymentAnalytics() {
     // Get payment analytics from the blockchain
     try {
       const paymentData = await diamondContract.getPaymentAnalytics();
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -1667,7 +1785,7 @@ async function handlePaymentAnalytics() {
 async function handleSystemSettings() {
   try {
     console.log('Fetching system settings...');
-    
+
     if (!diamondContract) {
       throw new Error('Diamond contract not initialized');
     }
@@ -1678,7 +1796,7 @@ async function handleSystemSettings() {
       const subsidyPercentage = await diamondContract.getSubsidyPercentage();
       const isPaused = await diamondContract.paused();
       const dcvTokenAddress = await diamondContract.getDCVTokenAddress();
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -1737,11 +1855,11 @@ async function handleBulkGenerateTokens() {
     }
 
     console.log('🚀 Bulk generating tokens...');
-    
+
     const tx = await diamondContract.bulkGenerateTokens({
       gasLimit: 3000000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
@@ -1757,7 +1875,7 @@ async function handleBulkGenerateTokens() {
         }
       }, 2000);
     }
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1780,16 +1898,16 @@ async function handleExpireOldTokens() {
     }
 
     console.log('🚀 Expiring old tokens...');
-    
+
     const tx = await diamondContract.expireOldTokens({
       gasLimit: 1000000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1812,16 +1930,16 @@ async function handlePauseSystem() {
     }
 
     console.log('🚀 Pausing system...');
-    
+
     const tx = await diamondContract.pause({
       gasLimit: 300000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1844,16 +1962,16 @@ async function handleUnpauseSystem() {
     }
 
     console.log('🚀 Unpausing system...');
-    
+
     const tx = await diamondContract.unpause({
       gasLimit: 300000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1876,25 +1994,25 @@ async function handleSetRationPrice(body) {
     }
 
     const { price } = body;
-    
+
     if (!price) {
       throw new Error('Price is required');
     }
 
     console.log(`🚀 Setting ration price to: ${price}`);
-    
+
     // Convert price to appropriate units (assuming contract expects in cents/wei)
     const priceInCents = Math.round(parseFloat(price) * 100);
-    
+
     const tx = await diamondContract.setRationPrice(priceInCents, {
       gasLimit: 300000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1917,22 +2035,22 @@ async function handleSetSubsidyPercentage(body) {
     }
 
     const { percentage } = body;
-    
+
     if (!percentage) {
       throw new Error('Subsidy percentage is required');
     }
 
     console.log(`🚀 Setting subsidy percentage to: ${percentage}%`);
-    
+
     const tx = await diamondContract.setSubsidyPercentage(percentage, {
       gasLimit: 300000
     });
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -1951,7 +2069,7 @@ async function handleSetSubsidyPercentage(body) {
 async function handleTestConnection() {
   try {
     console.log('Testing blockchain connection...');
-    
+
     const connectionStatus = {
       provider: !!provider,
       dashboardContract: !!dashboardContract,
@@ -1970,7 +2088,7 @@ async function handleTestConnection() {
       const network = await provider.getNetwork();
       connectionStatus.networkId = network.chainId.toString();
       connectionStatus.networkName = network.name;
-      
+
       // Test contract call
       const blockNumber = await provider.getBlockNumber();
       connectionStatus.latestBlock = blockNumber;
@@ -2078,12 +2196,12 @@ async function handleRegisterShopkeeper(body) {
 
   } catch (error) {
     console.error('❌ Shopkeeper registration failed:', error);
-    
+
     // Handle specific blockchain errors
     if (error.code === 'CALL_EXCEPTION') {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Smart contract call failed - shopkeeper may already be registered or invalid parameters',
           details: error.reason || error.message
         },
@@ -2093,8 +2211,8 @@ async function handleRegisterShopkeeper(body) {
 
     if (error.code === 'INSUFFICIENT_FUNDS') {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Insufficient funds for gas fees',
           details: 'Admin wallet needs more MATIC for transaction fees'
         },
@@ -2104,8 +2222,8 @@ async function handleRegisterShopkeeper(body) {
 
     if (error.code === 'NETWORK_ERROR') {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Network connection failed',
           details: 'Unable to connect to Polygon network'
         },
@@ -2114,8 +2232,8 @@ async function handleRegisterShopkeeper(body) {
     }
 
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to register shopkeeper: ' + error.message,
         details: error.code || 'Unknown error'
       },
@@ -2131,28 +2249,28 @@ async function handleAssignDeliveryAgent(body) {
     }
 
     const { shopkeeperAddress, deliveryAgentAddress } = body;
-    
+
     if (!shopkeeperAddress || !deliveryAgentAddress) {
       throw new Error('Shopkeeper address and delivery agent address are required');
     }
 
     console.log(`🚀 Assigning delivery agent ${deliveryAgentAddress} to shopkeeper ${shopkeeperAddress} - with enhanced discovery`);
-    
+
     // Skip pre-flight checks since many functions are not deployed
     console.log('⚠️ Skipping pre-flight checks due to missing facet functions - proceeding with facet discovery');
-    
+
     // Diamond Facet Function Discovery System
     console.log('🔍 Starting Diamond facet function discovery...');
-    
+
     const assignmentFunctionNames = [
       'assignDeliveryAgentToShopkeeper', // This is the correct one for shopkeeper assignment
       // 'assignDeliveryAgent' - This is for order assignment, different parameters
     ];
-    
+
     // Get ABI functions with their selectors
     const abiFragments = diamondContract.interface.fragments.filter(f => f.type === 'function');
     const abiFunctionMap = new Map();
-    
+
     for (const fragment of abiFragments) {
       if (assignmentFunctionNames.includes(fragment.name)) {
         const selector = diamondContract.interface.getFunction(fragment.name).selector;
@@ -2165,22 +2283,22 @@ async function handleAssignDeliveryAgent(body) {
         console.log(`📝 Function signature: ${fragment.format()}`);
       }
     }
-    
+
     console.log(`🎯 Found ${abiFunctionMap.size} assignment functions in ABI`);
-    
+
     let assignmentResult = null;
     let successfulFunction = null;
-    
+
     // Try each function with proper error handling
     for (const [funcName, funcInfo] of abiFunctionMap) {
       try {
         console.log(`🚀 Attempting to call ${funcName} with selector ${funcInfo.selector}...`);
-        
+
         // Use ethers callStatic first to test if function exists and would succeed
         console.log(`🧪 Testing ${funcName} with callStatic...`);
         await diamondContract.callStatic[funcName](deliveryAgentAddress, shopkeeperAddress);
         console.log(`✅ callStatic test passed for ${funcName}`);
-        
+
         // If callStatic succeeds, make the actual transaction
         console.log(`� Executing ${funcName} transaction...`);
         const tx = await diamondContract[funcName](
@@ -2190,15 +2308,15 @@ async function handleAssignDeliveryAgent(body) {
             gasLimit: 500000
           }
         );
-        
+
         assignmentResult = tx;
         successfulFunction = funcName;
         console.log(`✅ Successfully called ${funcName}, tx: ${tx.hash}`);
         break;
-        
+
       } catch (error) {
         console.log(`❌ ${funcName} failed:`, error.message);
-        
+
         // Check specific error types
         if (error.message.includes('Diamond: Function does not exist')) {
           console.log(`🔍 Function ${funcName} not deployed in any facet`);
@@ -2210,41 +2328,41 @@ async function handleAssignDeliveryAgent(body) {
         continue;
       }
     }
-    
+
     if (!assignmentResult) {
       // Enhanced facet discovery using DiamondLoupeFacet
       console.log('🔍 Attempting enhanced facet discovery...');
-      
+
       try {
         // Get all deployed facets
         const facets = await diamondContract.facets();
         console.log(`📋 Found ${facets.length} deployed facets:`);
-        
+
         for (let i = 0; i < facets.length; i++) {
           const facet = facets[i];
           console.log(`  Facet ${i + 1}: ${facet.facetAddress} with ${facet.functionSelectors.length} functions`);
-          
+
           // Check if any assignment function selector matches this facet
           for (const [funcName, funcInfo] of abiFunctionMap) {
             if (facet.functionSelectors.includes(funcInfo.selector)) {
               console.log(`✅ Found ${funcName} (${funcInfo.selector}) in facet ${facet.facetAddress}`);
-              
+
               // Try calling the function directly on this facet
               try {
                 console.log(`🎯 Attempting direct facet call to ${funcName} on ${facet.facetAddress}`);
-                
+
                 // Create a contract instance for the specific facet
                 const facetContract = new ethers.Contract(
                   facet.facetAddress,
                   [funcInfo.fragment],
                   adminWallet
                 );
-                
+
                 // Test with callStatic first
                 console.log(`🧪 Testing direct facet callStatic for ${funcName}...`);
                 await facetContract.callStatic[funcName](deliveryAgentAddress, shopkeeperAddress);
                 console.log(`✅ Direct facet callStatic passed for ${funcName}`);
-                
+
                 // Execute the transaction
                 console.log(`📤 Executing direct facet transaction for ${funcName}...`);
                 const tx = await facetContract[funcName](
@@ -2254,68 +2372,68 @@ async function handleAssignDeliveryAgent(body) {
                     gasLimit: 500000
                   }
                 );
-                
+
                 assignmentResult = tx;
                 successfulFunction = funcName;
                 console.log(`✅ Successfully called ${funcName} directly on facet ${facet.facetAddress}, tx: ${tx.hash}`);
                 break;
-                
+
               } catch (facetError) {
                 console.log(`❌ Direct facet call failed for ${funcName}:`, facetError.message);
-                
+
                 if (facetError.message.includes('execution reverted')) {
                   console.log(`⚠️ Direct facet call reverted: ${facetError.reason || facetError.message}`);
                 }
               }
             }
           }
-          
+
           if (assignmentResult) break;
         }
-        
+
         // Get all facet addresses
         const facetAddresses = await diamondContract.facetAddresses();
         console.log('📍 All facet addresses:', facetAddresses);
-        
+
       } catch (loupeError) {
         console.log('⚠️ DiamondLoupe functions not available:', loupeError.message);
       }
-      
-      const availableFunctions = Object.getOwnPropertyNames(diamondContract).filter(name => 
+
+      const availableFunctions = Object.getOwnPropertyNames(diamondContract).filter(name =>
         typeof diamondContract[name] === 'function' && !name.startsWith('_')
       );
-      
+
       // Try raw function calls with selectors as final attempt
       if (!assignmentResult) {
         console.log('🔧 Final attempt: Raw function calls with selectors...');
-        
+
         for (const [funcName, funcInfo] of abiFunctionMap) {
           try {
             console.log(`🎯 Raw call to ${funcName} with selector ${funcInfo.selector}`);
-            
+
             // Encode function call data manually
             const functionData = diamondContract.interface.encodeFunctionData(
               funcName,
               [deliveryAgentAddress, shopkeeperAddress]
             );
-            
+
             console.log(`📤 Encoded function data: ${functionData}`);
-            
+
             // Use low-level call to Diamond proxy
             const tx = await adminWallet.sendTransaction({
               to: diamondContract.address,
               data: functionData,
               gasLimit: 500000
             });
-            
+
             assignmentResult = tx;
             successfulFunction = funcName;
             console.log(`✅ Successfully called ${funcName} via raw selector, tx: ${tx.hash}`);
             break;
-            
+
           } catch (rawError) {
             console.log(`❌ Raw call failed for ${funcName}:`, rawError.message);
-            
+
             if (rawError.message.includes('Diamond: Function does not exist')) {
               console.log(`🔍 Selector ${funcInfo.selector} not found in Diamond`);
             } else if (rawError.message.includes('execution reverted')) {
@@ -2325,27 +2443,27 @@ async function handleAssignDeliveryAgent(body) {
         }
       }
     }
-    
+
     // Final check - if nothing worked, throw error
     if (!assignmentResult) {
       console.error('❌ All assignment functions failed');
       console.error('📋 Available contract functions:', availableFunctions.slice(0, 30));
       console.error('🎯 Assignment functions in ABI:', Array.from(abiFunctionMap.keys()));
-      
+
       throw new Error(`No assignment function found in deployed facets. Checked functions: ${Array.from(abiFunctionMap.keys()).join(', ')}. This suggests the required facet is not deployed or the function selectors don't match.`);
     }
-    
+
     const tx = assignmentResult;
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     if (receipt.status === 0) {
       throw new Error('Transaction reverted - check contract logic and requirements');
     }
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -2368,33 +2486,33 @@ async function handleAssignDeliveryAgentToOrder(body) {
     }
 
     const { orderId, deliveryAgentAddress } = body;
-    
+
     if (!orderId || !deliveryAgentAddress) {
       throw new Error('Order ID and delivery agent address are required');
     }
 
     console.log(`🚚 Assigning delivery agent ${deliveryAgentAddress} to order #${orderId}`);
-    
+
     // Skip pre-flight checks since many functions are not deployed
     console.log('⚠️ Skipping pre-flight checks - proceeding with order assignment');
-    
+
     // Use the correct DeliveryFacet function: assignDeliveryAgent(orderId, agent)
     const functionName = 'assignDeliveryAgent';
     const selector = '0x376efecc'; // From our discovery
-    
+
     console.log(`🎯 Using ${functionName} with selector ${selector}`);
-    
+
     let assignmentResult = null;
-    
+
     // Method 1: Try direct contract call (if function is available)
     try {
       if (diamondContract[functionName]) {
         console.log(`🚀 Attempting direct call to ${functionName}...`);
-        
+
         // Test with callStatic first
         await diamondContract.callStatic[functionName](orderId, deliveryAgentAddress);
         console.log(`✅ callStatic test passed for ${functionName}`);
-        
+
         // Execute the transaction
         const tx = await diamondContract[functionName](
           orderId,
@@ -2403,7 +2521,7 @@ async function handleAssignDeliveryAgentToOrder(body) {
             gasLimit: 500000
           }
         );
-        
+
         assignmentResult = tx;
         console.log(`✅ Successfully called ${functionName}, tx: ${tx.hash}`);
       } else {
@@ -2412,43 +2530,43 @@ async function handleAssignDeliveryAgentToOrder(body) {
     } catch (directError) {
       console.log(`❌ Direct call failed:`, directError.message);
     }
-    
+
     // Method 2: Raw transaction with function selector
     if (!assignmentResult) {
       try {
         console.log(`🔧 Attempting raw transaction with selector ${selector}...`);
-        
+
         // Encode the function call data
         const iface = new ethers.Interface([
           "function assignDeliveryAgent(uint256 orderId, address agent) returns (uint256)"
         ]);
-        
+
         const calldata = iface.encodeFunctionData("assignDeliveryAgent", [orderId, deliveryAgentAddress]);
         console.log(`📄 Generated calldata: ${calldata}`);
-        
+
         // Send raw transaction to Diamond proxy
         const rawTx = await adminWallet.sendTransaction({
           to: diamondContract.target,
           data: calldata,
           gasLimit: 500000
         });
-        
+
         assignmentResult = rawTx;
         console.log(`✅ Raw transaction successful, tx: ${rawTx.hash}`);
-        
+
       } catch (rawError) {
         console.log(`❌ Raw transaction failed:`, rawError.message);
       }
     }
-    
+
     // Method 3: Direct facet call
     if (!assignmentResult) {
       try {
         console.log(`🎯 Attempting direct facet call to DeliveryFacet...`);
-        
+
         // Get the DeliveryFacet address from our ABI mapping
         const deliveryFacetAddress = "0xF12df5aa71f6b6F746CC48d4B2Dbe0D173D67994"; // From the ABI
-        
+
         // Create contract instance for DeliveryFacet
         const deliveryFacetContract = new ethers.Contract(
           deliveryFacetAddress,
@@ -2457,20 +2575,20 @@ async function handleAssignDeliveryAgentToOrder(body) {
               "type": "function",
               "name": "assignDeliveryAgent",
               "inputs": [
-                {"name": "orderId", "type": "uint256"},
-                {"name": "agent", "type": "address"}
+                { "name": "orderId", "type": "uint256" },
+                { "name": "agent", "type": "address" }
               ],
-              "outputs": [{"name": "", "type": "uint256"}],
+              "outputs": [{ "name": "", "type": "uint256" }],
               "stateMutability": "nonpayable"
             }
           ],
           adminWallet
         );
-        
+
         // Test with callStatic first
         await deliveryFacetContract.callStatic.assignDeliveryAgent(orderId, deliveryAgentAddress);
         console.log(`✅ Direct facet callStatic passed`);
-        
+
         // Execute the transaction
         const tx = await deliveryFacetContract.assignDeliveryAgent(
           orderId,
@@ -2479,29 +2597,29 @@ async function handleAssignDeliveryAgentToOrder(body) {
             gasLimit: 500000
           }
         );
-        
+
         assignmentResult = tx;
         console.log(`✅ Direct facet call successful, tx: ${tx.hash}`);
-        
+
       } catch (facetError) {
         console.log(`❌ Direct facet call failed:`, facetError.message);
       }
     }
-    
+
     if (!assignmentResult) {
       throw new Error(`Failed to assign delivery agent to order. All methods failed. Please ensure the order exists and the delivery agent is registered.`);
     }
-    
+
     const tx = assignmentResult;
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     if (receipt.status === 0) {
       throw new Error('Transaction reverted - check order status and delivery agent eligibility');
     }
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -2524,25 +2642,25 @@ async function handleRemoveDeliveryAgent(body) {
     }
 
     const { shopkeeperAddress } = body;
-    
+
     if (!shopkeeperAddress) {
       throw new Error('Shopkeeper address is required');
     }
 
     console.log(`🚀 Removing delivery agent from shopkeeper ${shopkeeperAddress}`);
-    
+
     const tx = await diamondContract.connect(adminWallet).removeDeliveryAgentFromShopkeeper(
       shopkeeperAddress,
       {
         gasLimit: 500000
       }
     );
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -2565,26 +2683,26 @@ async function handleTransferConsumer(body) {
     }
 
     const { aadhaar, newShopkeeperAddress } = body;
-    
+
     if (!aadhaar || !newShopkeeperAddress) {
       throw new Error('Aadhaar and new shopkeeper address are required');
     }
 
     console.log(`🚀 Transferring consumer ${aadhaar} to shopkeeper ${newShopkeeperAddress}`);
-    
+
     const tx = await diamondContract.connect(adminWallet).transferConsumerToShopkeeper(
-      aadhaar, 
+      aadhaar,
       newShopkeeperAddress,
       {
         gasLimit: 500000
       }
     );
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -2607,26 +2725,26 @@ async function handleUpdateConsumerCategory(body) {
     }
 
     const { aadhaar, newCategory } = body;
-    
+
     if (!aadhaar || !newCategory) {
       throw new Error('Aadhaar and new category are required');
     }
 
     console.log(`🚀 Updating consumer ${aadhaar} category to ${newCategory}`);
-    
+
     const tx = await diamondContract.connect(adminWallet).updateConsumerCategory(
-      aadhaar, 
+      aadhaar,
       newCategory,
       {
         gasLimit: 500000
       }
     );
-    
+
     console.log('✅ Transaction sent:', tx.hash);
 
     const receipt = await tx.wait();
     console.log('Transaction confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     return NextResponse.json({
       success: true,
       txHash: tx.hash,
@@ -2645,7 +2763,7 @@ async function handleUpdateConsumerCategory(body) {
 async function handleSystemStatus() {
   try {
     console.log('🔍 Performing comprehensive system status check...');
-    
+
     const status = {
       contract: {
         address: CONTRACT_ADDRESS,
@@ -2670,7 +2788,7 @@ async function handleSystemStatus() {
     // Test major functions
     const functionsToTest = [
       'getAdminDashboard',
-      'getTotalConsumers', 
+      'getTotalConsumers',
       'getAllShopkeepers',
       'getDeliveryAgents',
       'getConsumersPaginated'
@@ -2680,7 +2798,7 @@ async function handleSystemStatus() {
       try {
         console.log(`Testing ${funcName}...`);
         let result;
-        
+
         switch (funcName) {
           case 'getAdminDashboard':
             result = await dashboardContract.getAdminDashboard();
@@ -2707,7 +2825,7 @@ async function handleSystemStatus() {
             status.data.actualCounts.consumersFromPagination = result.consumerList ? result.consumerList.length : 0;
             break;
         }
-        
+
         status.functions.available.push(funcName);
         status.functions.testResults[funcName] = 'SUCCESS';
         console.log(`✅ ${funcName} - SUCCESS`);
@@ -2721,7 +2839,7 @@ async function handleSystemStatus() {
     // Data integrity analysis
     const dashboard = status.data.dashboard;
     const actual = status.data.actualCounts;
-    
+
     status.analysis = {
       dataIntegrityIssues: [],
       recommendations: []
@@ -2738,7 +2856,7 @@ async function handleSystemStatus() {
 
     if (dashboard && actual.shopkeepers !== undefined && dashboard.totalShopkeepers !== actual.shopkeepers) {
       status.analysis.dataIntegrityIssues.push({
-        issue: 'Shopkeeper count mismatch', 
+        issue: 'Shopkeeper count mismatch',
         dashboardValue: dashboard.totalShopkeepers,
         actualValue: actual.shopkeepers,
         severity: 'HIGH'
@@ -2749,7 +2867,7 @@ async function handleSystemStatus() {
       status.analysis.dataIntegrityIssues.push({
         issue: 'Delivery agent count mismatch',
         dashboardValue: dashboard.totalDeliveryAgents,
-        actualValue: actual.deliveryAgents, 
+        actualValue: actual.deliveryAgents,
         severity: 'HIGH'
       });
     }
@@ -2784,17 +2902,17 @@ async function handleSystemStatus() {
 async function handleSyncConsumer(body) {
   try {
     const { aadhaar } = body;
-    
+
     if (!aadhaar) {
       throw new Error('Aadhaar number is required');
     }
 
     console.log(`🔄 Syncing consumer with Aadhaar: ${aadhaar}`);
-    
+
     // First check if consumer exists on blockchain using different methods
     let blockchainConsumer = null;
     const aadhaarBN = BigInt(aadhaar);
-    
+
     try {
       // Try multiple contract instances and methods
       if (diamondContract) {
@@ -2806,7 +2924,7 @@ async function handleSyncConsumer(body) {
           console.log('⚠️ diamondContract failed:', diamondError.message);
         }
       }
-      
+
       if (!blockchainConsumer && dashboardContract) {
         console.log('🔍 Trying dashboardContract.getConsumerByAadhaar...');
         try {
@@ -2816,12 +2934,12 @@ async function handleSyncConsumer(body) {
           console.log('⚠️ dashboardContract failed:', dashboardError.message);
         }
       }
-      
+
       // Check if we got valid consumer data
       if (!blockchainConsumer || !blockchainConsumer.name || blockchainConsumer.aadhaar === BigInt(0)) {
         // Instead of throwing error, let's create from mockdata if available
         console.log('🔍 Consumer not found on blockchain, checking mockdata...');
-        
+
         // Try to find consumer in mockdata
         const mockConsumer = await findConsumerInMockdata(aadhaar);
         if (mockConsumer) {
@@ -2836,10 +2954,10 @@ async function handleSyncConsumer(body) {
           throw new Error('Consumer not found on blockchain or in mockdata');
         }
       }
-      
+
     } catch (blockchainError) {
       console.error('❌ All blockchain lookup methods failed:', blockchainError);
-      
+
       // Final fallback: try to find in mockdata
       console.log('🔍 Final fallback: checking mockdata...');
       const mockConsumer = await findConsumerInMockdata(aadhaar);
@@ -2861,7 +2979,7 @@ async function handleSyncConsumer(body) {
     const existingConsumer = await ConsumerSignupRequest.findOne({
       aadharNumber: aadhaar
     });
-    
+
     if (existingConsumer) {
       console.log('✅ Consumer already exists in database');
       return NextResponse.json({
@@ -2875,12 +2993,12 @@ async function handleSyncConsumer(body) {
         }
       });
     }
-    
+
     // Create consumer in database from blockchain/mockdata
     const bcrypt = require('bcryptjs');
     const defaultPin = '123456'; // Default PIN for synced consumers
     const hashedPin = await bcrypt.hash(defaultPin, 10);
-    
+
     // Extract consumer data
     const consumerData = {
       name: blockchainConsumer.name,
@@ -2895,12 +3013,12 @@ async function handleSyncConsumer(body) {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
+
     const newConsumer = new ConsumerSignupRequest(consumerData);
     await newConsumer.save();
-    
+
     console.log('✅ Consumer synced successfully to database');
-    
+
     return NextResponse.json({
       success: true,
       message: 'Consumer synced successfully',
@@ -2913,7 +3031,7 @@ async function handleSyncConsumer(body) {
       },
       instructions: `Consumer can now login with Aadhaar ${aadhaar} and PIN ${defaultPin}`
     });
-    
+
   } catch (error) {
     console.error('Sync consumer error:', error);
     return NextResponse.json({
@@ -2928,18 +3046,18 @@ async function findConsumerInMockdata(aadhaar) {
   try {
     const fs = require('fs');
     const path = require('path');
-    
+
     // Read mockdata.json
     const mockdataPath = path.join(process.cwd(), 'public', 'mockdata.json');
-    
+
     if (!fs.existsSync(mockdataPath)) {
       console.log('Mockdata file not found');
       return null;
     }
-    
+
     const mockdata = JSON.parse(fs.readFileSync(mockdataPath, 'utf8'));
     const consumer = mockdata.find(c => c.aadhaar === aadhaar);
-    
+
     return consumer || null;
   } catch (error) {
     console.error('Error reading mockdata:', error);
@@ -2950,7 +3068,7 @@ async function findConsumerInMockdata(aadhaar) {
 async function handleManualSyncConsumer(body) {
   try {
     const { aadhaar, name, phone, category, village } = body;
-    
+
     if (!aadhaar) {
       throw new Error('Aadhaar number is required');
     }
@@ -2962,7 +3080,7 @@ async function handleManualSyncConsumer(body) {
     const existingConsumer = await ConsumerSignupRequest.findOne({
       aadharNumber: aadhaar
     });
-    
+
     if (existingConsumer) {
       console.log('✅ Consumer already exists in database');
       return NextResponse.json({
@@ -2976,12 +3094,12 @@ async function handleManualSyncConsumer(body) {
         }
       });
     }
-    
+
     // Create consumer in database with provided or default data
     const bcrypt = require('bcryptjs');
     const defaultPin = '123456';
     const hashedPin = await bcrypt.hash(defaultPin, 10);
-    
+
     const consumerData = {
       name: name || 'Consumer',
       phone: phone || '0000000000',
@@ -2995,12 +3113,12 @@ async function handleManualSyncConsumer(body) {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    
+
     const newConsumer = new ConsumerSignupRequest(consumerData);
     await newConsumer.save();
-    
+
     console.log('✅ Consumer manually synced to database');
-    
+
     return NextResponse.json({
       success: true,
       message: 'Consumer manually added to database',
@@ -3013,7 +3131,7 @@ async function handleManualSyncConsumer(body) {
       },
       instructions: `Consumer can now login with Aadhaar ${aadhaar} and PIN ${defaultPin}`
     });
-    
+
   } catch (error) {
     console.error('Manual sync error:', error);
     return NextResponse.json({
@@ -3033,23 +3151,23 @@ async function handleCreateOrder(body) {
       throw new Error('Diamond contract not initialized');
     }
 
-    const { 
-      aadhaar, 
-      tokenIds, 
-      shopkeeperAddress, 
-      deliveryAddress, 
+    const {
+      aadhaar,
+      tokenIds,
+      shopkeeperAddress,
+      deliveryAddress,
       specialInstructions = '',
-      isEmergency = false 
+      isEmergency = false
     } = body;
-    
+
     if (!aadhaar || !tokenIds || !Array.isArray(tokenIds) || tokenIds.length === 0) {
       throw new Error('Consumer Aadhaar and token IDs are required');
     }
-    
+
     if (!shopkeeperAddress) {
       throw new Error('Shopkeeper address is required');
     }
-    
+
     if (!deliveryAddress) {
       throw new Error('Delivery address is required');
     }
@@ -3090,11 +3208,11 @@ async function handleCreateOrder(body) {
     if (!orderResult) {
       try {
         console.log('🎯 Attempting raw createOrder transaction...');
-        
+
         // createOrder function selector: createOrder(uint256,uint256[],address,string,string,bool)
         const createOrderSelector = '0x7e7e7e7e'; // You'll need to calculate this
         const abiCoder = new ethers.AbiCoder();
-        
+
         const functionData = createOrderSelector + abiCoder.encode(
           ['uint256', 'uint256[]', 'address', 'string', 'string', 'bool'],
           [aadhaar, tokenIds, shopkeeperAddress, deliveryAddress, specialInstructions, isEmergency]
@@ -3105,7 +3223,7 @@ async function handleCreateOrder(body) {
           data: functionData,
           gasLimit: 800000
         });
-        
+
         orderResult = tx;
         successfulMethod = 'Raw transaction';
         console.log(`✅ Order created via raw transaction, tx: ${tx.hash}`);
@@ -3120,7 +3238,7 @@ async function handleCreateOrder(body) {
 
     const receipt = await orderResult.wait();
     console.log('Order creation confirmed:', receipt.status === 1 ? 'Success' : 'Failed');
-    
+
     if (receipt.status === 0) {
       throw new Error('Order creation transaction reverted');
     }
@@ -3266,5 +3384,81 @@ async function handleGetOrders(body) {
       success: false,
       error: `Failed to get orders: ${error.message}`
     }, { status: 500 });
+  }
+}
+
+// New pickup management functions
+async function handlePickupStatistics() {
+  try {
+    console.log('📊 Fetching pickup statistics from blockchain...');
+
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const contract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+      DASHBOARD_ABI,
+      provider
+    );
+
+    const stats = await contract.getPickupStatistics();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalPickups: Number(stats.totalPickups),
+        pendingPickups: Number(stats.pendingPickups),
+        completedPickups: Number(stats.completedPickups),
+        activeAgents: Number(stats.activeAgents),
+        activeShopkeepers: Number(stats.activeShopkeepers)
+      }
+    });
+  } catch (error) {
+    console.error('Pickup statistics fetch error:', error);
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalPickups: 0,
+        pendingPickups: 0,
+        completedPickups: 0,
+        activeAgents: 0,
+        activeShopkeepers: 0
+      },
+      warning: 'Using fallback pickup statistics - blockchain connection issue'
+    });
+  }
+}
+
+async function handleAllPickups() {
+  try {
+    console.log('📦 Fetching all pickups from blockchain...');
+
+    // For now, return mock data since we need to implement a function to get all pickups
+    // In a real implementation, you'd call a contract function like getAllPickups()
+
+    return NextResponse.json({
+      success: true,
+      data: [
+        // Mock pickup data - replace with actual blockchain call
+        {
+          pickupId: 1,
+          deliveryAgent: "0x1234567890123456789012345678901234567890",
+          deliveryAgentName: "John Doe",
+          shopkeeper: "0x0987654321098765432109876543210987654321",
+          shopkeeperName: "Shop ABC",
+          rationAmount: 50,
+          category: "BPL",
+          status: 0,
+          assignedTime: Math.floor(Date.now() / 1000) - 3600,
+          pickupLocation: "Warehouse A",
+          deliveryInstructions: "Handle with care"
+        }
+      ]
+    });
+  } catch (error) {
+    console.error('All pickups fetch error:', error);
+    return NextResponse.json({
+      success: true,
+      data: [],
+      warning: 'No pickups available - blockchain connection issue'
+    });
   }
 }

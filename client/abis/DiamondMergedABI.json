@@ -1,15 +1,20 @@
 {
   "metadata": {
     "name": "Grainly Blockchain System - Complete ABI",
-    "description": "Comprehensive ABI for all contracts in the Grainly Blockchain system",
-    "version": "1.0.0",
+    "description": "Comprehensive ABI for all contracts in the Grainly Blockchain system with RationPickup functionality",
+    "version": "2.0.0",
     "network": "Polygon Amoy Testnet",
     "chainId": 80002,
-    "generatedAt": "2025-08-02T12:03:58.061Z"
+    "generatedAt": "2025-01-23T00:00:00.000Z",
+    "deploymentAddresses": {
+      "Diamond": "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C",
+      "DCVToken": "0xC336869ac6f9D51888ab27615a086524C281D3Aa",
+      "DiamondInit": "0x807134146B5D02bDE4E00a44AF944F44B2c6C1f1"
+    }
   },
   "contracts": {
     "Diamond": {
-      "address": "0xBD331E9eCD73f554768ea919Ae542BD1675e7E24",
+      "address": "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C",
       "abi": [
         {
           "type": "constructor",
@@ -8106,7 +8111,8 @@
     "AnalyticsFacet": "0x1364F8B86B3a1A316984c98Accacc6B2c77c1483",
     "WorkflowFacet": "0xa8709fB8F4f29833dF911282166d40D3a30547fa",
     "LocationFacet": "0xC6a46663ad819118E4658A741aEdF9357f4a0D81",
-    "AuthenticationFacet": "0x12aA6C50Ca362229Acffb885469D48D6fb43E800"
+    "AuthenticationFacet": "0x12aA6C50Ca362229Acffb885469D48D6fb43E800",
+    "RationPickupFacet": "0x94E4239BFc3796950DE6BE07c163E24c7C5e1693"
   },
   "abiMap": {
     "Diamond": [
@@ -16119,6 +16125,662 @@
           }
         ],
         "stateMutability": "view"
+      }
+    ],
+    "RationPickupFacet": [
+      {
+        "type": "function",
+        "name": "assignRationPickup",
+        "inputs": [
+          {
+            "name": "deliveryAgent",
+            "type": "address"
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address"
+          },
+          {
+            "name": "rationAmount",
+            "type": "uint256"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "pickupLocation",
+            "type": "string"
+          },
+          {
+            "name": "deliveryInstructions",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "type": "function",
+        "name": "bulkAssignRationPickups",
+        "inputs": [
+          {
+            "name": "deliveryAgents",
+            "type": "address[]"
+          },
+          {
+            "name": "shopkeepers",
+            "type": "address[]"
+          },
+          {
+            "name": "rationAmounts",
+            "type": "uint256[]"
+          },
+          {
+            "name": "categories",
+            "type": "string[]"
+          },
+          {
+            "name": "pickupLocation",
+            "type": "string"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "pickupIds",
+            "type": "uint256[]"
+          }
+        ],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "type": "function",
+        "name": "markRationPickedUp",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "type": "function",
+        "name": "markRationDeliveredToShop",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "type": "function",
+        "name": "confirmRationReceipt",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256"
+          }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+      },
+      {
+        "type": "function",
+        "name": "getMyPickups",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "pickupId",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveryAgent",
+                "type": "address"
+              },
+              {
+                "name": "shopkeeper",
+                "type": "address"
+              },
+              {
+                "name": "rationAmount",
+                "type": "uint256"
+              },
+              {
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "uint8"
+              },
+              {
+                "name": "assignedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickedUpTime",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveredTime",
+                "type": "uint256"
+              },
+              {
+                "name": "confirmedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickupLocation",
+                "type": "string"
+              },
+              {
+                "name": "deliveryInstructions",
+                "type": "string"
+              },
+              {
+                "name": "isCompleted",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getMyPendingPickups",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "pickupId",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveryAgent",
+                "type": "address"
+              },
+              {
+                "name": "shopkeeper",
+                "type": "address"
+              },
+              {
+                "name": "rationAmount",
+                "type": "uint256"
+              },
+              {
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "uint8"
+              },
+              {
+                "name": "assignedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickedUpTime",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveredTime",
+                "type": "uint256"
+              },
+              {
+                "name": "confirmedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickupLocation",
+                "type": "string"
+              },
+              {
+                "name": "deliveryInstructions",
+                "type": "string"
+              },
+              {
+                "name": "isCompleted",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getMyShopPickups",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "pickupId",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveryAgent",
+                "type": "address"
+              },
+              {
+                "name": "shopkeeper",
+                "type": "address"
+              },
+              {
+                "name": "rationAmount",
+                "type": "uint256"
+              },
+              {
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "uint8"
+              },
+              {
+                "name": "assignedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickedUpTime",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveredTime",
+                "type": "uint256"
+              },
+              {
+                "name": "confirmedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickupLocation",
+                "type": "string"
+              },
+              {
+                "name": "deliveryInstructions",
+                "type": "string"
+              },
+              {
+                "name": "isCompleted",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getMyPendingDeliveries",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple[]",
+            "components": [
+              {
+                "name": "pickupId",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveryAgent",
+                "type": "address"
+              },
+              {
+                "name": "shopkeeper",
+                "type": "address"
+              },
+              {
+                "name": "rationAmount",
+                "type": "uint256"
+              },
+              {
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "uint8"
+              },
+              {
+                "name": "assignedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickedUpTime",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveredTime",
+                "type": "uint256"
+              },
+              {
+                "name": "confirmedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickupLocation",
+                "type": "string"
+              },
+              {
+                "name": "deliveryInstructions",
+                "type": "string"
+              },
+              {
+                "name": "isCompleted",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getPickupDetails",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "",
+            "type": "tuple",
+            "components": [
+              {
+                "name": "pickupId",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveryAgent",
+                "type": "address"
+              },
+              {
+                "name": "shopkeeper",
+                "type": "address"
+              },
+              {
+                "name": "rationAmount",
+                "type": "uint256"
+              },
+              {
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "name": "status",
+                "type": "uint8"
+              },
+              {
+                "name": "assignedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickedUpTime",
+                "type": "uint256"
+              },
+              {
+                "name": "deliveredTime",
+                "type": "uint256"
+              },
+              {
+                "name": "confirmedTime",
+                "type": "uint256"
+              },
+              {
+                "name": "pickupLocation",
+                "type": "string"
+              },
+              {
+                "name": "deliveryInstructions",
+                "type": "string"
+              },
+              {
+                "name": "isCompleted",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getAllDeliveryAgents",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "agents",
+            "type": "address[]"
+          },
+          {
+            "name": "names",
+            "type": "string[]"
+          },
+          {
+            "name": "activeStatus",
+            "type": "bool[]"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getAllShopkeepers",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "shopkeepers",
+            "type": "address[]"
+          },
+          {
+            "name": "names",
+            "type": "string[]"
+          },
+          {
+            "name": "areas",
+            "type": "string[]"
+          },
+          {
+            "name": "activeStatus",
+            "type": "bool[]"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getActiveDeliveryAgents",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "agents",
+            "type": "address[]"
+          },
+          {
+            "name": "names",
+            "type": "string[]"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getActiveShopkeepers",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "shopkeepers",
+            "type": "address[]"
+          },
+          {
+            "name": "names",
+            "type": "string[]"
+          },
+          {
+            "name": "areas",
+            "type": "string[]"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "getPickupStatistics",
+        "inputs": [],
+        "outputs": [
+          {
+            "name": "totalPickups",
+            "type": "uint256"
+          },
+          {
+            "name": "pendingPickups",
+            "type": "uint256"
+          },
+          {
+            "name": "completedPickups",
+            "type": "uint256"
+          },
+          {
+            "name": "activeAgents",
+            "type": "uint256"
+          },
+          {
+            "name": "activeShopkeepers",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view"
+      },
+      {
+        "type": "event",
+        "name": "RationPickupAssigned",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256",
+            "indexed": true
+          },
+          {
+            "name": "deliveryAgent",
+            "type": "address",
+            "indexed": true
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "indexed": true
+          },
+          {
+            "name": "rationAmount",
+            "type": "uint256",
+            "indexed": false
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "indexed": false
+          }
+        ]
+      },
+      {
+        "type": "event",
+        "name": "RationPickedUp",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256",
+            "indexed": true
+          },
+          {
+            "name": "deliveryAgent",
+            "type": "address",
+            "indexed": true
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "indexed": false
+          }
+        ]
+      },
+      {
+        "type": "event",
+        "name": "RationDeliveredToShop",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256",
+            "indexed": true
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "indexed": true
+          },
+          {
+            "name": "timestamp",
+            "type": "uint256",
+            "indexed": false
+          }
+        ]
+      },
+      {
+        "type": "event",
+        "name": "RationReceiptConfirmed",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256",
+            "indexed": true
+          },
+          {
+            "name": "shopkeeper",
+            "type": "address",
+            "indexed": true
+          }
+        ]
+      },
+      {
+        "type": "event",
+        "name": "PickupStatusUpdated",
+        "inputs": [
+          {
+            "name": "pickupId",
+            "type": "uint256",
+            "indexed": true
+          },
+          {
+            "name": "status",
+            "type": "uint8",
+            "indexed": false
+          }
+        ]
       }
     ]
   }

@@ -93,9 +93,6 @@ const Navigation = () => {
               Log In
             </Button>
           </Link>
-          {/* <Button className="bg-green-600 hover:bg-green-800">
-              Get Started
-            </Button> */}
           <DropdownMenu>
             <DropdownMenuTrigger className="bg-green-600 px-5 py-1.5 rounded-sm text-white hover:bg-green-700 hover:cursor-pointer">
               Get Started

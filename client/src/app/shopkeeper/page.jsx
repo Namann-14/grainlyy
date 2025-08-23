@@ -12,14 +12,15 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { 
-  RefreshCw, 
-  Users, 
-  Package, 
-  CreditCard, 
-  Truck, 
+import {
+  RefreshCw,
+  Users,
+  Package,
+  CreditCard,
+  Truck,
   TrendingUp,
   Check,
+  CheckCircle,
   X,
   AlertTriangle,
   Calendar,
@@ -30,20 +31,34 @@ import {
 import DiamondMergedABI from "../../../abis/DiamondMergedABI.json";
 
 // Contract configuration - Using the correct contract address from your admin API
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x3329CA690f619bae73b9f36eb43839892D20045f";
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C";
 
 // ABI import helper - Merge all contract ABIs
 function getMergedABI() {
   try {
     console.log("📄 DiamondMergedABI structure:", Object.keys(DiamondMergedABI));
-    
-    const mergedABI = [];
-    
-    // Check if we have the contracts structure
-    if (DiamondMergedABI.contracts && typeof DiamondMergedABI.contracts === 'object') {
+
+    let mergedABI = [];
+
+    // Method 1: Check if we have the abiMap structure (new format)
+    if (DiamondMergedABI.abiMap && typeof DiamondMergedABI.abiMap === 'object') {
+      console.log("📄 Found abiMap structure, merging all ABIs...");
+      console.log("📄 Available contracts in abiMap:", Object.keys(DiamondMergedABI.abiMap));
+
+      // Merge ABIs from all contracts in abiMap
+      Object.keys(DiamondMergedABI.abiMap).forEach(contractName => {
+        const abi = DiamondMergedABI.abiMap[contractName];
+        if (Array.isArray(abi)) {
+          console.log(`📄 Adding ${abi.length} functions from ${contractName}`);
+          mergedABI.push(...abi);
+        }
+      });
+    }
+    // Method 2: Check if we have the contracts structure (old format)
+    else if (DiamondMergedABI.contracts && typeof DiamondMergedABI.contracts === 'object') {
       console.log("📄 Found contracts structure, merging all ABIs...");
       console.log("📄 Available contracts:", Object.keys(DiamondMergedABI.contracts));
-      
+
       // Merge ABIs from all contracts
       Object.keys(DiamondMergedABI.contracts).forEach(contractName => {
         const contractData = DiamondMergedABI.contracts[contractName];
@@ -52,29 +67,40 @@ function getMergedABI() {
           mergedABI.push(...contractData.abi);
         }
       });
-      
-      if (mergedABI.length > 0) {
-        console.log(`📄 Total merged ABI functions: ${mergedABI.length}`);
-        
-        // Check if getShopkeeperDashboard exists
-        const hasShopkeeperDashboard = mergedABI.some(item => 
-          item.type === 'function' && item.name === 'getShopkeeperDashboard'
-        );
-        console.log("📄 getShopkeeperDashboard function found:", hasShopkeeperDashboard);
-        
-        return mergedABI;
-      }
     }
-    
-    // Fallback checks
-    if (DiamondMergedABI.abi && Array.isArray(DiamondMergedABI.abi)) {
-      console.log("📄 Using DiamondMergedABI.abi as fallback");
-      return DiamondMergedABI.abi;
-    } else if (Array.isArray(DiamondMergedABI)) {
+    // Method 3: Direct ABI array
+    else if (DiamondMergedABI.abi && Array.isArray(DiamondMergedABI.abi)) {
+      console.log("📄 Using DiamondMergedABI.abi as direct array");
+      mergedABI = DiamondMergedABI.abi;
+    }
+    // Method 4: DiamondMergedABI is itself an array
+    else if (Array.isArray(DiamondMergedABI)) {
       console.log("📄 Using DiamondMergedABI as array fallback");
-      return DiamondMergedABI;
+      mergedABI = DiamondMergedABI;
     }
-    
+
+    if (mergedABI.length > 0) {
+      console.log(`📄 Total merged ABI functions: ${mergedABI.length}`);
+
+      // Check for specific functions we need
+      const hasShopkeeperDashboard = mergedABI.some(item =>
+        item.type === 'function' && item.name === 'getShopkeeperDashboard'
+      );
+      const hasMyShopPickups = mergedABI.some(item =>
+        item.type === 'function' && item.name === 'getMyShopPickups'
+      );
+      const hasConfirmReceipt = mergedABI.some(item =>
+        item.type === 'function' && item.name === 'confirmRationReceipt'
+      );
+
+      console.log("📄 Function availability check:");
+      console.log("  - getShopkeeperDashboard:", hasShopkeeperDashboard);
+      console.log("  - getMyShopPickups:", hasMyShopPickups);
+      console.log("  - confirmRationReceipt:", hasConfirmReceipt);
+
+      return mergedABI;
+    }
+
     throw new Error("Could not find any valid ABI structure in DiamondMergedABI");
   } catch (error) {
     console.error('❌ Error loading merged ABI:', error);
@@ -88,7 +114,7 @@ function getWorkingProvider() {
     'https://rpc-amoy.polygon.technology/',
     'https://polygon-amoy-bor-rpc.publicnode.com'
   ];
-  
+
   // Try each provider in sequence
   for (const rpcUrl of providers) {
     try {
@@ -97,7 +123,7 @@ function getWorkingProvider() {
       console.warn(`Provider ${rpcUrl} failed:`, error);
     }
   }
-  
+
   throw new Error('All RPC providers failed');
 }
 
@@ -125,7 +151,7 @@ export default function ShopkeeperDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+
   // Dashboard data
   const [dashboardData, setDashboardData] = useState(null);
   const [shopkeeperInfo, setShopkeeperInfo] = useState(null);
@@ -135,19 +161,21 @@ export default function ShopkeeperDashboard() {
   const [deliveries, setDeliveries] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [contract, setContract] = useState(null);
-  
+
   // UI states
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
   const [selectedConsumerTokens, setSelectedConsumerTokens] = useState(null);
   const [showTokensModal, setShowTokensModal] = useState(false);
+  const [generatedReceipt, setGeneratedReceipt] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   // Initialize contract and fetch data
   useEffect(() => {
     const initializeDashboard = async () => {
       console.log("🚀 Initializing shopkeeper dashboard...");
       console.log("Connected:", connected, "Account:", account);
-      
+
       if (!connected || !account) {
         console.log("⚠️ Wallet not connected, showing error");
         setError("Please connect your wallet to access the shopkeeper dashboard");
@@ -165,7 +193,7 @@ export default function ShopkeeperDashboard() {
         // Get working provider and create contract instance
         const workingProvider = getWorkingProvider();
         let signer = null;
-        
+
         // Handle MetaMask provider properly
         if (provider && connected) {
           try {
@@ -178,22 +206,22 @@ export default function ShopkeeperDashboard() {
             signer = null;
           }
         }
-        
+
         const mergedABI = getMergedABI();
         console.log("📄 ABI loaded, type:", typeof mergedABI);
         console.log("📄 ABI is array:", Array.isArray(mergedABI));
         console.log("📄 ABI length:", mergedABI?.length || 0);
-        
+
         if (!Array.isArray(mergedABI) || mergedABI.length === 0) {
           throw new Error("Invalid ABI: Expected non-empty array, got " + typeof mergedABI);
         }
-        
+
         const contractInstance = new ethers.Contract(
-          CONTRACT_ADDRESS, 
-          mergedABI, 
+          CONTRACT_ADDRESS,
+          mergedABI,
           signer || workingProvider
         );
-        
+
         console.log("✅ Contract instance created");
         setContract(contractInstance);
 
@@ -204,8 +232,42 @@ export default function ShopkeeperDashboard() {
           console.log("✅ Contract connection successful");
         } catch (testError) {
           console.log("⚠️ Contract test failed:", testError.message);
-          if (testError.message.includes("Invalid shopkeeper")) {
-            setError("Your wallet address is not registered as a shopkeeper. Please contact the admin.");
+          if (testError.message.includes("Invalid shopkeeper") ||
+            testError.message.includes("missing revert data") ||
+            testError.code === "CALL_EXCEPTION") {
+            console.log("🔧 Attempting to register shopkeeper automatically...");
+
+            // Try to auto-register the shopkeeper
+            try {
+              const registerResponse = await fetch('/api/admin/register-shopkeeper', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  address: account,
+                  name: `Shopkeeper ${account.slice(-4).toUpperCase()}`,
+                  area: "Auto-Registered Area"
+                })
+              });
+
+              const registerResult = await registerResponse.json();
+              if (registerResult.success || registerResult.alreadyRegistered) {
+                console.log("✅ Shopkeeper auto-registration successful");
+                // Continue with dashboard initialization
+              } else {
+                throw new Error(registerResult.error || "Auto-registration failed");
+              }
+            } catch (regError) {
+              console.error("❌ Auto-registration failed:", regError);
+              setError(`Your wallet address (${account}) is not registered as a shopkeeper. Please contact the admin to register your address.`);
+              setLoading(false);
+              return;
+            }
+          } else {
+            // Other contract errors
+            console.error("❌ Contract connection error:", testError);
+            setError(`Contract connection failed: ${testError.message}`);
             setLoading(false);
             return;
           }
@@ -213,7 +275,7 @@ export default function ShopkeeperDashboard() {
 
         // Fetch all dashboard data
         await fetchDashboardData(contractInstance, account);
-        
+
         setLoading(false);
         console.log("🎉 Dashboard initialization complete");
       } catch (err) {
@@ -232,9 +294,27 @@ export default function ShopkeeperDashboard() {
       console.log("🏪 Fetching dashboard for shopkeeper:", shopkeeperAddress);
 
       // Fetch shopkeeper dashboard data - returns tuple with specific structure
-      const dashboardResult = await contractInstance.getShopkeeperDashboard(shopkeeperAddress);
-      console.log('📊 Raw Dashboard Result:', dashboardResult);
-      
+      let dashboardResult;
+      try {
+        dashboardResult = await contractInstance.getShopkeeperDashboard(shopkeeperAddress);
+        console.log('📊 Raw Dashboard Result:', dashboardResult);
+      } catch (dashboardError) {
+        console.error('❌ getShopkeeperDashboard failed:', dashboardError);
+
+        // If the function fails, create default dashboard data
+        console.log('🔧 Creating default dashboard data...');
+        dashboardResult = [
+          shopkeeperAddress, // shopkeeperAddress
+          0, // assignedConsumers
+          0, // activeConsumers
+          0, // monthlyTokensIssued
+          0, // totalTokensIssued
+          0, // totalDeliveries
+          true, // isActive
+          Math.floor(Date.now() / 1000) // registrationTime
+        ];
+      }
+
       // Parse the returned tuple according to your contract function
       const dashboardData = {
         shopkeeperAddress: dashboardResult[0],
@@ -246,7 +326,7 @@ export default function ShopkeeperDashboard() {
         isActive: dashboardResult[6],
         registrationTime: Number(dashboardResult[7])
       };
-      
+
       console.log('✅ Parsed Dashboard Data:', dashboardData);
       setDashboardData(dashboardData);
 
@@ -254,7 +334,7 @@ export default function ShopkeeperDashboard() {
       try {
         const shopkeeperData = await contractInstance.getShopkeeperInfo(shopkeeperAddress);
         console.log('👨‍💼 Raw Shopkeeper Data:', shopkeeperData);
-        
+
         const shopkeeperInfo = {
           shopkeeperAddress: shopkeeperData[0],
           name: shopkeeperData[1] || "Shopkeeper",
@@ -299,31 +379,7 @@ export default function ShopkeeperDashboard() {
         setInventory({ unclaimedTokens: unclaimedTokens || [] });
       } catch (err) {
         console.log('⚠️ Unclaimed tokens function not available:', err);
-        
-        // Create mock unclaimed tokens based on dashboard data
-        const unclaimedCount = Math.max(0, dashboardData.totalTokensIssued - dashboardData.totalDeliveries);
-        console.log(`🔄 Creating ${unclaimedCount} mock unclaimed tokens`);
-        
-        const mockUnclaimedTokens = [];
-        for (let i = 1; i <= unclaimedCount; i++) {
-          mockUnclaimedTokens.push({
-            tokenId: `TKN-${Date.now()}-${i}`,
-            id: i,
-            aadhaar: `****-****-${String(1000 + i).slice(-4)}`,
-            rationAmount: Math.floor(Math.random() * 15) + 5, // 5-20 kg
-            issueDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'pending',
-            consumerAddress: `0x${Math.random().toString(16).slice(2, 42)}`
-          });
-        }
-        
-        console.log('📝 Generated mock tokens:', mockUnclaimedTokens);
-        setInventory({ 
-          unclaimedTokens: mockUnclaimedTokens,
-          totalUnclaimed: mockUnclaimedTokens.length,
-          lastUpdated: new Date().toISOString(),
-          source: 'mock_data'
-        });
+        setInventory({ unclaimedTokens: [] });
       }
 
       // Set basic metrics for payments and deliveries from dashboard data
@@ -338,14 +394,14 @@ export default function ShopkeeperDashboard() {
       });
 
       setAnalytics({
-        deliveryRate: dashboardData.totalTokensIssued > 0 ? 
+        deliveryRate: dashboardData.totalTokensIssued > 0 ?
           ((dashboardData.totalDeliveries / dashboardData.totalTokensIssued) * 100).toFixed(1) : '0',
-        activeRate: dashboardData.assignedConsumers > 0 ? 
+        activeRate: dashboardData.assignedConsumers > 0 ?
           ((dashboardData.activeConsumers / dashboardData.assignedConsumers) * 100).toFixed(1) : '0',
         monthlyTokens: dashboardData.monthlyTokensIssued || 0,
         pendingDeliveries: Math.max(0, dashboardData.totalTokensIssued - dashboardData.totalDeliveries),
-        performance: dashboardData.totalTokensIssued > 0 && dashboardData.totalDeliveries >= dashboardData.totalTokensIssued * 0.8 ? 'Excellent' : 
-                    dashboardData.totalDeliveries >= dashboardData.totalTokensIssued * 0.6 ? 'Good' : 'Needs Improvement'
+        performance: dashboardData.totalTokensIssued > 0 && dashboardData.totalDeliveries >= dashboardData.totalTokensIssued * 0.8 ? 'Excellent' :
+          dashboardData.totalDeliveries >= dashboardData.totalTokensIssued * 0.6 ? 'Good' : 'Needs Improvement'
       });
 
       console.log('📊 Final State Summary:');
@@ -363,7 +419,7 @@ export default function ShopkeeperDashboard() {
   // Refresh dashboard data
   const refreshDashboard = async () => {
     if (!contract) return;
-    
+
     setRefreshing(true);
     try {
       await fetchDashboardData(contract, account);
@@ -381,9 +437,9 @@ export default function ShopkeeperDashboard() {
     try {
       setLoading(true);
       setError("");
-      
+
       console.log("🎯 Marking ration delivered for Aadhaar:", aadhaar, "TokenId:", tokenId);
-      
+
       if (!connected || !account || !contract) {
         throw new Error("Wallet not connected or contract not initialized");
       }
@@ -402,7 +458,7 @@ export default function ShopkeeperDashboard() {
             area: "Local Area"
           })
         });
-        
+
         const registerResult = await registerResponse.json();
         if (registerResult.success || registerResult.alreadyRegistered) {
           console.log("✅ Shopkeeper registration confirmed");
@@ -418,10 +474,10 @@ export default function ShopkeeperDashboard() {
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
       const contractWithSigner = contract.connect(signer);
-      
+
       console.log("📞 Using SHOPKEEPER'S wallet to mark delivery...");
       console.log("👨‍💼 Shopkeeper address:", account);
-      
+
       // Try markRationDeliveredByAadhaar with shopkeeper's own wallet
       let tx;
       try {
@@ -432,7 +488,7 @@ export default function ShopkeeperDashboard() {
         console.log("✅ Used markRationDeliveredByAadhaar with shopkeeper wallet");
       } catch (firstError) {
         console.log("⚠️ markRationDeliveredByAadhaar failed:", firstError.message);
-        
+
         // Fallback to claimRationByConsumer
         try {
           tx = await contractWithSigner.claimRationByConsumer(
@@ -445,24 +501,24 @@ export default function ShopkeeperDashboard() {
           throw new Error(`Failed to mark delivery: ${firstError.message}. Make sure your wallet is registered as a shopkeeper.`);
         }
       }
-      
+
       console.log("📝 Transaction sent:", tx.hash);
       setSuccess("Transaction sent! Waiting for confirmation...");
-      
+
       // Wait for confirmation
       const receipt = await tx.wait();
       console.log("✅ Transaction confirmed:", receipt.hash);
-      
+
       setSuccess("Ration delivery marked successfully! Refreshing dashboard...");
-      
+
       // Refresh dashboard data AND close token modal
       if (contract) {
         console.log("🔄 Refreshing dashboard data after delivery...");
         await fetchDashboardData(contract, account);
-        
+
         // Force a manual refresh to ensure UI updates
         await refreshDashboard();
-        
+
         // Also refresh unclaimed tokens for the specific consumer
         if (selectedConsumerTokens) {
           console.log("🔄 Refreshing consumer tokens...");
@@ -489,7 +545,7 @@ export default function ShopkeeperDashboard() {
           }
         }
       }
-      
+
       setTimeout(() => setSuccess(""), 5000);
     } catch (error) {
       console.error("❌ Error marking delivery:", error);
@@ -503,10 +559,10 @@ export default function ShopkeeperDashboard() {
     try {
       console.log(`🔍 Checking tokens for Aadhaar: ${aadhaar}, Include claimed: ${includeClaimedTokens}`);
       setError(""); // Clear previous errors
-      
+
       // Convert aadhaar to string to avoid BigInt serialization issues
       const aadhaarString = aadhaar.toString();
-      
+
       // Make API call to backend
       const response = await fetch('/api/admin/get-unclaimed-tokens', {
         method: 'POST',
@@ -518,15 +574,15 @@ export default function ShopkeeperDashboard() {
           includeClaimedTokens: includeClaimedTokens
         })
       });
-      
+
       // Check if response is ok before parsing JSON
       if (!response.ok) {
         throw new Error(`API request failed with status: ${response.status}`);
       }
-      
+
       const result = await response.json();
       console.log("🎫 Tokens response:", result);
-      
+
       if (result.success && result.tokens && result.tokens.length > 0) {
         if (!skipModalDisplay) {
           // Store tokens for display
@@ -536,7 +592,7 @@ export default function ShopkeeperDashboard() {
             includeClaimedTokens: includeClaimedTokens
           });
           setShowTokensModal(true);
-          
+
           const tokenTypeText = includeClaimedTokens ? "tokens (claimed + unclaimed)" : "unclaimed tokens";
           setSuccess(`Found ${result.tokens.length} ${tokenTypeText} for consumer with Aadhaar: ${aadhaarString}`);
           setTimeout(() => setSuccess(""), 5000);
@@ -564,9 +620,9 @@ export default function ShopkeeperDashboard() {
     try {
       setLoading(true);
       setError("");
-      
+
       console.log("🚚 Requesting delivery agent for consumer:", consumerAddress);
-      
+
       // Use backend API with admin wallet instead of MetaMask
       const response = await fetch('/api/admin/request-delivery', {
         method: 'POST',
@@ -579,19 +635,19 @@ export default function ShopkeeperDashboard() {
           shopkeeperAddress: account
         })
       });
-      
+
       const result = await response.json();
       console.log("📝 Delivery request response:", result);
-      
+
       if (result.success) {
         setSuccess("Delivery agent requested successfully!");
         console.log("✅ Delivery request confirmed:", result.transactionHash);
-        
+
         // Refresh dashboard data
         if (contract) {
           await fetchDashboardData(contract, account);
         }
-        
+
         setTimeout(() => setSuccess(""), 3000);
       } else {
         throw new Error(result.error || "Failed to request delivery");
@@ -610,6 +666,187 @@ export default function ShopkeeperDashboard() {
     return new Date(Number(timestamp) * 1000).toLocaleDateString();
   };
 
+  // Receipt generation function
+  const generateDeliveryReceipt = (delivery, transactionHash) => {
+    const now = new Date();
+    const receiptId = `RCP-${delivery.pickupId}-${now.getTime()}`;
+
+    return {
+      receiptId,
+      pickupId: delivery.pickupId,
+      transactionHash,
+      shopkeeperName: shopkeeperInfo?.name || "Shopkeeper",
+      shopkeeperAddress: account,
+      deliveryAgentName: delivery.deliveryAgentName || `Agent ${delivery.deliveryAgent?.slice(-4).toUpperCase()}`,
+      deliveryAgentAddress: delivery.deliveryAgent,
+      rationAmount: delivery.rationAmount,
+      category: delivery.category,
+      pickupLocation: delivery.pickupLocation,
+      deliveryInstructions: delivery.deliveryInstructions,
+      assignedTime: delivery.assignedTime,
+      pickedUpTime: delivery.pickedUpTime,
+      deliveredTime: delivery.deliveredTime,
+      confirmedTime: Math.floor(Date.now() / 1000),
+      generatedAt: now.toISOString(),
+      estimatedValue: delivery.rationAmount * 25, // ₹25 per kg estimate
+      status: "CONFIRMED",
+      blockchainNetwork: "Polygon Amoy Testnet",
+      contractAddress: CONTRACT_ADDRESS
+    };
+  };
+
+  // Print receipt function
+  const printReceipt = (receiptData) => {
+    const printWindow = window.open('', '_blank');
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Delivery Receipt - ${receiptData.receiptId}</title>
+        <style>
+          body { font-family: 'Courier New', monospace; margin: 20px; background: white; }
+          .receipt { max-width: 400px; margin: 0 auto; border: 2px solid #000; padding: 20px; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+          .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+          .subtitle { font-size: 12px; color: #666; }
+          .section { margin: 15px 0; }
+          .label { font-weight: bold; display: inline-block; width: 120px; }
+          .value { display: inline-block; }
+          .divider { border-top: 1px dashed #000; margin: 10px 0; }
+          .footer { text-align: center; font-size: 10px; color: #666; margin-top: 20px; }
+          .blockchain { background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 10px; }
+          .status { background: #d4edda; color: #155724; padding: 5px 10px; text-align: center; font-weight: bold; }
+          @media print { body { margin: 0; } .receipt { border: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="header">
+            <div class="title">🏪 GRAINLY PDS SYSTEM</div>
+            <div class="subtitle">Ration Delivery Receipt</div>
+            <div class="subtitle">Receipt ID: ${receiptData.receiptId}</div>
+          </div>
+          
+          <div class="status">✅ DELIVERY CONFIRMED</div>
+          
+          <div class="section">
+            <div><span class="label">Pickup ID:</span> <span class="value">#${receiptData.pickupId}</span></div>
+            <div><span class="label">Date & Time:</span> <span class="value">${new Date(receiptData.generatedAt).toLocaleString()}</span></div>
+          </div>
+          
+          <div class="divider"></div>
+          
+          <div class="section">
+            <div><span class="label">Shopkeeper:</span> <span class="value">${receiptData.shopkeeperName}</span></div>
+            <div><span class="label">Shop Address:</span> <span class="value">${receiptData.shopkeeperAddress.slice(0, 10)}...${receiptData.shopkeeperAddress.slice(-8)}</span></div>
+          </div>
+          
+          <div class="section">
+            <div><span class="label">Delivery Agent:</span> <span class="value">${receiptData.deliveryAgentName}</span></div>
+            <div><span class="label">Agent Address:</span> <span class="value">${receiptData.deliveryAgentAddress.slice(0, 10)}...${receiptData.deliveryAgentAddress.slice(-8)}</span></div>
+          </div>
+          
+          <div class="divider"></div>
+          
+          <div class="section">
+            <div><span class="label">Ration Amount:</span> <span class="value">${receiptData.rationAmount} kg</span></div>
+            <div><span class="label">Category:</span> <span class="value">${receiptData.category}</span></div>
+            <div><span class="label">Pickup Location:</span> <span class="value">${receiptData.pickupLocation}</span></div>
+            <div><span class="label">Est. Value:</span> <span class="value">₹${receiptData.estimatedValue.toLocaleString()}</span></div>
+          </div>
+          
+          ${receiptData.deliveryInstructions ? `
+          <div class="section">
+            <div><span class="label">Instructions:</span></div>
+            <div style="margin-left: 10px; font-style: italic;">${receiptData.deliveryInstructions}</div>
+          </div>
+          ` : ''}
+          
+          <div class="divider"></div>
+          
+          <div class="section">
+            <div><span class="label">Assigned:</span> <span class="value">${new Date(receiptData.assignedTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Picked Up:</span> <span class="value">${new Date(receiptData.pickedUpTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Delivered:</span> <span class="value">${new Date(receiptData.deliveredTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Confirmed:</span> <span class="value">${new Date(receiptData.confirmedTime * 1000).toLocaleString()}</span></div>
+          </div>
+          
+          <div class="blockchain">
+            <div><strong>Blockchain Verification:</strong></div>
+            <div>Network: ${receiptData.blockchainNetwork}</div>
+            <div>Contract: ${receiptData.contractAddress}</div>
+            <div>Tx Hash: ${receiptData.transactionHash}</div>
+          </div>
+          
+          <div class="footer">
+            <div>This receipt is digitally verified on the blockchain</div>
+            <div>Generated by Grainly PDS System</div>
+            <div>${new Date().toLocaleString()}</div>
+          </div>
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+  };
+
+  // Download receipt as PDF (simplified version)
+  const downloadReceipt = (receiptData) => {
+    const receiptText = `
+GRAINLY PDS SYSTEM - RATION DELIVERY RECEIPT
+===========================================
+
+Receipt ID: ${receiptData.receiptId}
+Status: ✅ DELIVERY CONFIRMED
+Generated: ${new Date(receiptData.generatedAt).toLocaleString()}
+
+DELIVERY DETAILS:
+- Pickup ID: #${receiptData.pickupId}
+- Shopkeeper: ${receiptData.shopkeeperName}
+- Shop Address: ${receiptData.shopkeeperAddress}
+- Delivery Agent: ${receiptData.deliveryAgentName}
+- Agent Address: ${receiptData.deliveryAgentAddress}
+
+RATION INFORMATION:
+- Amount: ${receiptData.rationAmount} kg
+- Category: ${receiptData.category}
+- Pickup Location: ${receiptData.pickupLocation}
+- Estimated Value: ₹${receiptData.estimatedValue.toLocaleString()}
+
+TIMELINE:
+- Assigned: ${new Date(receiptData.assignedTime * 1000).toLocaleString()}
+- Picked Up: ${new Date(receiptData.pickedUpTime * 1000).toLocaleString()}
+- Delivered: ${new Date(receiptData.deliveredTime * 1000).toLocaleString()}
+- Confirmed: ${new Date(receiptData.confirmedTime * 1000).toLocaleString()}
+
+BLOCKCHAIN VERIFICATION:
+- Network: ${receiptData.blockchainNetwork}
+- Contract: ${receiptData.contractAddress}
+- Transaction Hash: ${receiptData.transactionHash}
+
+This receipt is digitally verified on the blockchain.
+Generated by Grainly PDS System.
+    `;
+
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${receiptData.receiptId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
@@ -624,7 +861,7 @@ export default function ShopkeeperDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
-        
+
         {/* Header */}
         <motion.div
           variants={containerVariants}
@@ -692,10 +929,11 @@ export default function ShopkeeperDashboard() {
 
         {/* Dashboard Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="consumers">Consumers</TabsTrigger>
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="incoming">Incoming</TabsTrigger>
             <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -825,8 +1063,8 @@ export default function ShopkeeperDashboard() {
                 <CardHeader>
                   <CardTitle>Assigned Consumers</CardTitle>
                   <CardDescription>
-                    Manage your assigned consumers and their ration distribution. 
-                    Total: {dashboardData?.assignedConsumers || 0} | 
+                    Manage your assigned consumers and their ration distribution.
+                    Total: {dashboardData?.assignedConsumers || 0} |
                     Active: {dashboardData?.activeConsumers || 0}
                   </CardDescription>
                 </CardHeader>
@@ -886,7 +1124,7 @@ export default function ShopkeeperDashboard() {
                                     // Use the first available token
                                     const tokenToDeliver = tokens[0];
                                     console.log("📦 Delivering token:", tokenToDeliver);
-                                    
+
                                     // Extract token ID (adjust based on your token structure)
                                     const tokenId = tokenToDeliver.tokenId || tokenToDeliver.id || tokenToDeliver;
                                     await markRationDelivered(consumer.aadhaar, tokenId);
@@ -955,7 +1193,7 @@ export default function ShopkeeperDashboard() {
                       ))
                     )}
                   </div>
-                  
+
                   {dashboardData && (
                     <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                       <h4 className="font-medium text-blue-900 mb-2">Quick Stats</h4>
@@ -975,7 +1213,7 @@ export default function ShopkeeperDashboard() {
                         <div>
                           <span className="text-blue-600">Completion Rate:</span>
                           <p className="font-bold text-blue-900">
-                            {dashboardData.assignedConsumers > 0 ? 
+                            {dashboardData.assignedConsumers > 0 ?
                               Math.round((dashboardData.totalDeliveries / dashboardData.assignedConsumers) * 100) : 0}%
                           </p>
                         </div>
@@ -1008,7 +1246,7 @@ export default function ShopkeeperDashboard() {
                         </p>
                         <p className="text-sm text-green-700">Issued this month</p>
                       </div>
-                      
+
                       <div className="p-4 bg-blue-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <CreditCard className="h-5 w-5 text-blue-600" />
@@ -1019,7 +1257,7 @@ export default function ShopkeeperDashboard() {
                         </p>
                         <p className="text-sm text-blue-700">Lifetime total</p>
                       </div>
-                      
+
                       <div className="p-4 bg-orange-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Truck className="h-5 w-5 text-orange-600" />
@@ -1036,7 +1274,7 @@ export default function ShopkeeperDashboard() {
 
                     <div>
                       <h4 className="font-medium mb-4">Token Status & Management</h4>
-                      
+
                       {/* Debug Info */}
                       <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
                         <h5 className="text-sm font-medium text-yellow-800 mb-2">Debug Information:</h5>
@@ -1080,8 +1318,8 @@ export default function ShopkeeperDashboard() {
                           <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                           <p className="text-gray-500">No unclaimed tokens found</p>
                           <p className="text-sm text-gray-400">
-                            {dashboardData ? 
-                              `All ${dashboardData.totalTokensIssued} tokens have been delivered` : 
+                            {dashboardData ?
+                              `All ${dashboardData.totalTokensIssued} tokens have been delivered` :
                               'Loading token information...'
                             }
                           </p>
@@ -1109,19 +1347,48 @@ export default function ShopkeeperDashboard() {
                           <div className="flex justify-between">
                             <span className="text-sm text-gray-600">Claim Rate</span>
                             <span className="text-sm font-medium">
-                              {dashboardData.assignedConsumers > 0 ? 
+                              {dashboardData.assignedConsumers > 0 ?
                                 Math.round((dashboardData.totalDeliveries / dashboardData.assignedConsumers) * 100) : 0}%
                             </span>
                           </div>
-                          <Progress 
-                            value={dashboardData.assignedConsumers > 0 ? 
-                              (dashboardData.totalDeliveries / dashboardData.assignedConsumers) * 100 : 0} 
+                          <Progress
+                            value={dashboardData.assignedConsumers > 0 ?
+                              (dashboardData.totalDeliveries / dashboardData.assignedConsumers) * 100 : 0}
                             className="h-2"
                           />
                         </div>
                       </div>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Incoming Deliveries Tab */}
+          <TabsContent value="incoming">
+            <motion.div variants={containerVariants} initial="hidden" animate="show">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Incoming Deliveries
+                  </CardTitle>
+                  <CardDescription>
+                    Track ration deliveries coming to your shop
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <IncomingDeliveriesSection
+                    contract={contract}
+                    account={account}
+                    provider={provider}
+                    refreshDashboard={refreshDashboard}
+                    generateDeliveryReceipt={generateDeliveryReceipt}
+                    setGeneratedReceipt={setGeneratedReceipt}
+                    setShowReceiptModal={setShowReceiptModal}
+                    shopkeeperInfo={shopkeeperInfo}
+                  />
                 </CardContent>
               </Card>
             </motion.div>
@@ -1174,7 +1441,7 @@ export default function ShopkeeperDashboard() {
                           {dashboardData.totalDeliveries} of {dashboardData.assignedConsumers} consumers
                         </p>
                       </div>
-                      
+
                       <div className="p-4 bg-green-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Users className="h-5 w-5 text-green-600" />
@@ -1187,7 +1454,7 @@ export default function ShopkeeperDashboard() {
                           {dashboardData.activeConsumers} active consumers
                         </p>
                       </div>
-                      
+
                       <div className="p-4 bg-purple-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <Package className="h-5 w-5 text-purple-600" />
@@ -1269,7 +1536,7 @@ export default function ShopkeeperDashboard() {
                   ×
                 </button>
               </div>
-              
+
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse border border-gray-300">
                   <thead>
@@ -1288,15 +1555,14 @@ export default function ShopkeeperDashboard() {
                     {selectedConsumerTokens.tokens.map((token) => {
                       const issuedDate = token.issuedDate || new Date(token.issuedTime * 1000).toLocaleDateString();
                       const expiryDate = token.expiryDate || new Date(token.expiryTime * 1000).toLocaleDateString();
-                      const claimedDate = token.claimedDate || (token.isClaimed && token.claimTime > 0 ? 
+                      const claimedDate = token.claimedDate || (token.isClaimed && token.claimTime > 0 ?
                         new Date(token.claimTime * 1000).toLocaleDateString() : null);
                       const isExpired = token.isExpired || new Date() > new Date(token.expiryTime * 1000);
                       const status = token.status || (token.isClaimed ? 'Claimed' : (isExpired ? 'Expired' : 'Available'));
-                      
+
                       return (
-                        <tr key={token.tokenId} className={`hover:bg-gray-50 ${
-                          token.isClaimed ? 'bg-green-50' : isExpired ? 'bg-red-50' : 'bg-yellow-50'
-                        }`}>
+                        <tr key={token.tokenId} className={`hover:bg-gray-50 ${token.isClaimed ? 'bg-green-50' : isExpired ? 'bg-red-50' : 'bg-yellow-50'
+                          }`}>
                           <td className="border border-gray-300 px-3 py-3 font-mono text-center">
                             <Badge variant="outline">
                               #{token.tokenId}
@@ -1322,11 +1588,11 @@ export default function ShopkeeperDashboard() {
                             )}
                           </td>
                           <td className="border border-gray-300 px-3 py-3 text-center">
-                            <Badge 
+                            <Badge
                               variant={
-                                token.isClaimed ? "default" : 
-                                isExpired ? "destructive" : 
-                                "secondary"
+                                token.isClaimed ? "default" :
+                                  isExpired ? "destructive" :
+                                    "secondary"
                               }
                             >
                               {status}
@@ -1369,7 +1635,7 @@ export default function ShopkeeperDashboard() {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-semibold text-blue-800 mb-2">Summary</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -1412,7 +1678,951 @@ export default function ShopkeeperDashboard() {
             </div>
           </div>
         )}
+
+        {/* Receipt Modal */}
+        {showReceiptModal && generatedReceipt && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-2xl font-bold text-green-800">🧾 Delivery Receipt Generated</h3>
+                  <p className="text-gray-600">Receipt ID: {generatedReceipt.receiptId}</p>
+                </div>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Receipt Preview */}
+              <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
+                <div className="text-center mb-4">
+                  <h4 className="text-lg font-bold">🏪 GRAINLY PDS SYSTEM</h4>
+                  <p className="text-sm text-gray-600">Ration Delivery Receipt</p>
+                  <p className="text-xs text-gray-500">Receipt ID: {generatedReceipt.receiptId}</p>
+                </div>
+
+                <div className="bg-green-100 text-green-800 text-center py-2 rounded mb-4 font-bold">
+                  ✅ DELIVERY CONFIRMED
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                  <div>
+                    <span className="font-medium text-gray-700">Pickup ID:</span>
+                    <p>#{generatedReceipt.pickupId}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Date & Time:</span>
+                    <p>{new Date(generatedReceipt.generatedAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Shopkeeper:</span>
+                    <p>{generatedReceipt.shopkeeperName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Delivery Agent:</span>
+                    <p>{generatedReceipt.deliveryAgentName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Ration Amount:</span>
+                    <p className="font-bold text-green-600">{generatedReceipt.rationAmount} kg</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Category:</span>
+                    <p>{generatedReceipt.category}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Est. Value:</span>
+                    <p className="font-bold text-green-600">₹{generatedReceipt.estimatedValue.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Status:</span>
+                    <p className="font-bold text-green-600">{generatedReceipt.status}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-300 pt-4 mt-4">
+                  <h5 className="font-medium text-gray-700 mb-2">Delivery Timeline:</h5>
+                  <div className="text-xs space-y-1">
+                    <div>Assigned: {new Date(generatedReceipt.assignedTime * 1000).toLocaleString()}</div>
+                    <div>Picked Up: {new Date(generatedReceipt.pickedUpTime * 1000).toLocaleString()}</div>
+                    <div>Delivered: {new Date(generatedReceipt.deliveredTime * 1000).toLocaleString()}</div>
+                    <div>Confirmed: {new Date(generatedReceipt.confirmedTime * 1000).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-300 pt-4 mt-4 text-xs text-gray-600">
+                  <div><strong>Blockchain Verification:</strong></div>
+                  <div>Network: {generatedReceipt.blockchainNetwork}</div>
+                  <div>Contract: {generatedReceipt.contractAddress}</div>
+                  <div className="break-all">Tx Hash: {generatedReceipt.transactionHash}</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 justify-center">
+                <Button
+                  onClick={() => printReceipt(generatedReceipt)}
+                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                >
+                  🖨️ Print Receipt
+                </Button>
+                <Button
+                  onClick={() => downloadReceipt(generatedReceipt)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  📥 Download Receipt
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`Receipt ID: ${generatedReceipt.receiptId}\nTransaction: ${generatedReceipt.transactionHash}\nAmount: ${generatedReceipt.rationAmount} kg ${generatedReceipt.category}\nStatus: CONFIRMED`);
+                    setSuccess("Receipt details copied to clipboard!");
+                    setTimeout(() => setSuccess(""), 3000);
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  📋 Copy Details
+                </Button>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h5 className="font-medium text-blue-800 mb-2">📋 What happens next?</h5>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• The delivery has been confirmed on the blockchain</li>
+                  <li>• This receipt serves as proof of successful delivery</li>
+                  <li>• The delivery agent's task is now complete</li>
+                  <li>• You can print or download this receipt for your records</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+// Incoming Deliveries Section Component
+function IncomingDeliveriesSection({
+  contract,
+  account,
+  provider,
+  refreshDashboard,
+  generateDeliveryReceipt,
+  setGeneratedReceipt,
+  setShowReceiptModal,
+  shopkeeperInfo
+}) {
+  const [incomingDeliveries, setIncomingDeliveries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (contract && account) {
+      fetchIncomingDeliveries();
+    }
+  }, [contract, account]);
+
+  const fetchIncomingDeliveries = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      console.log("📦 Fetching incoming deliveries for shopkeeper:", account);
+      console.log("📦 Contract available:", !!contract);
+      console.log("📦 Contract address:", contract?.target || contract?.address);
+
+      // Try multiple methods to get incoming deliveries
+      let deliveries = [];
+
+      // Method 1: Try getMyShopPickups (for deliveries coming to this shop)
+      try {
+        console.log("📋 Calling getMyShopPickups...");
+        const shopPickups = await contract.getMyShopPickups();
+        console.log("📋 Raw shop pickups:", shopPickups);
+
+        if (shopPickups && Array.isArray(shopPickups)) {
+          deliveries = shopPickups.map(pickup => ({
+            pickupId: Number(pickup.pickupId || pickup[0]),
+            deliveryAgent: pickup.deliveryAgent || pickup[1],
+            shopkeeper: pickup.shopkeeper || pickup[2],
+            rationAmount: Number(pickup.rationAmount || pickup[3]),
+            category: pickup.category || pickup[4] || "Unknown",
+            status: Number(pickup.status || pickup[5]),
+            assignedTime: Number(pickup.assignedTime || pickup[6]),
+            pickedUpTime: Number(pickup.pickedUpTime || pickup[7]),
+            deliveredTime: Number(pickup.deliveredTime || pickup[8]),
+            confirmedTime: Number(pickup.confirmedTime || pickup[9]),
+            pickupLocation: pickup.pickupLocation || pickup[10] || "Unknown Location",
+            deliveryInstructions: pickup.deliveryInstructions || pickup[11] || "",
+            isCompleted: Boolean(pickup.isCompleted !== undefined ? pickup.isCompleted : pickup[12])
+          }));
+
+          console.log("✅ Found", deliveries.length, "shop pickups");
+
+          // Filter for deliveries that need shopkeeper action
+          const needsConfirmation = deliveries.filter(d => d.status === 3 && !d.isCompleted);
+          const inTransit = deliveries.filter(d => d.status === 2);
+          const confirmed = deliveries.filter(d => d.status === 4 || d.isCompleted);
+
+          console.log("📊 Delivery status breakdown:");
+          console.log("- Needs confirmation (status 3):", needsConfirmation.length);
+          console.log("- In transit (status 2):", inTransit.length);
+          console.log("- Confirmed (status 4):", confirmed.length);
+        }
+      } catch (shopPickupsError) {
+        console.warn("⚠️ getMyShopPickups failed:", shopPickupsError.message);
+        console.log("🔍 Trying alternative methods to fetch deliveries...");
+
+        // Method 2: Try calling the function with the shopkeeper's wallet context
+        try {
+          console.log("📋 Trying getMyShopPickups with signer...");
+
+          if (provider) {
+            const ethersProvider = new ethers.BrowserProvider(provider);
+            const signer = await ethersProvider.getSigner();
+            const contractWithSigner = contract.connect(signer);
+
+            const shopPickupsWithSigner = await contractWithSigner.getMyShopPickups();
+            console.log("📋 Shop pickups with signer:", shopPickupsWithSigner);
+
+            if (shopPickupsWithSigner && Array.isArray(shopPickupsWithSigner)) {
+              deliveries = shopPickupsWithSigner.map(pickup => ({
+                pickupId: Number(pickup.pickupId || pickup[0]),
+                deliveryAgent: pickup.deliveryAgent || pickup[1],
+                shopkeeper: pickup.shopkeeper || pickup[2],
+                rationAmount: Number(pickup.rationAmount || pickup[3]),
+                category: pickup.category || pickup[4] || "Unknown",
+                status: Number(pickup.status || pickup[5]),
+                assignedTime: Number(pickup.assignedTime || pickup[6]),
+                pickedUpTime: Number(pickup.pickedUpTime || pickup[7]),
+                deliveredTime: Number(pickup.deliveredTime || pickup[8]),
+                confirmedTime: Number(pickup.confirmedTime || pickup[9]),
+                pickupLocation: pickup.pickupLocation || pickup[10] || "Unknown Location",
+                deliveryInstructions: pickup.deliveryInstructions || pickup[11] || "",
+                isCompleted: Boolean(pickup.isCompleted !== undefined ? pickup.isCompleted : pickup[12])
+              }));
+
+              console.log(`📋 Found ${deliveries.length} pickups with signer`);
+            }
+          }
+        } catch (signerError) {
+          console.warn("⚠️ getMyShopPickups with signer also failed:", signerError.message);
+        }
+      }
+
+      // If still no deliveries found from blockchain, that's it - no mock data
+      if (deliveries.length === 0) {
+        console.log("📝 No deliveries found from blockchain - showing empty state");
+        console.log("🔍 This could mean:");
+        console.log("  - No deliveries have been assigned to this shopkeeper");
+        console.log("  - The contract functions getMyShopPickups/getAllPickups don't exist");
+        console.log("  - The shopkeeper address is not registered in the system");
+        console.log("  - Network/contract connection issues");
+      }
+
+      // Enhance deliveries with additional info
+      const enhancedDeliveries = await Promise.all(deliveries.map(async (delivery) => {
+        // Try to get delivery agent name if not available
+        if (!delivery.deliveryAgentName && delivery.deliveryAgent) {
+          try {
+            const agentInfo = await contract.getDeliveryAgentInfo(delivery.deliveryAgent);
+            delivery.deliveryAgentName = agentInfo.agentName || agentInfo.name || agentInfo[1] ||
+              `Agent ${delivery.deliveryAgent.slice(-4).toUpperCase()}`;
+            delivery.deliveryAgentMobile = agentInfo.mobile || agentInfo[2] || "Not Available";
+          } catch (agentError) {
+            delivery.deliveryAgentName = `Agent ${delivery.deliveryAgent.slice(-4).toUpperCase()}`;
+            delivery.deliveryAgentMobile = "Not Available";
+          }
+        }
+
+        // Calculate ETA if not set
+        if (!delivery.estimatedArrival && delivery.status === 2) {
+          // If in transit, estimate 30-60 minutes
+          delivery.estimatedArrival = Math.floor(Date.now() / 1000) + (Math.random() * 1800 + 1800);
+        }
+
+        return delivery;
+      }));
+
+      console.log("✅ Final enhanced deliveries:", enhancedDeliveries);
+      setIncomingDeliveries(enhancedDeliveries);
+
+    } catch (error) {
+      console.error("❌ Error fetching incoming deliveries:", error);
+      setError("Failed to fetch incoming deliveries: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmReceipt = async (pickupId) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      if (!contract) {
+        throw new Error("Contract not initialized");
+      }
+
+      console.log("✅ Confirming receipt for pickup ID:", pickupId);
+
+      // Get the delivery details before confirming
+      const delivery = incomingDeliveries.find(d => d.pickupId === pickupId);
+      if (!delivery) {
+        throw new Error("Delivery not found");
+      }
+
+      // Get signer from MetaMask
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      const contractWithSigner = contract.connect(signer);
+
+      // Validate pickup ID
+      if (!pickupId || pickupId <= 0) {
+        throw new Error("Invalid pickup ID");
+      }
+
+      // Estimate gas first
+      let gasEstimate;
+      try {
+        gasEstimate = await contractWithSigner.confirmRationReceipt.estimateGas(BigInt(pickupId));
+        console.log("⛽ Gas estimate:", gasEstimate.toString());
+      } catch (gasError) {
+        console.warn("⚠️ Gas estimation failed:", gasError.message);
+        gasEstimate = BigInt(300000); // Default gas limit
+      }
+
+      // Send transaction with proper gas settings
+      const tx = await contractWithSigner.confirmRationReceipt(BigInt(pickupId), {
+        gasLimit: gasEstimate + BigInt(50000), // Add buffer
+        gasPrice: ethers.parseUnits("30", "gwei") // Set reasonable gas price for Polygon
+      });
+
+      setSuccess("Transaction sent! Confirming receipt...");
+      console.log("📤 Transaction hash:", tx.hash);
+
+      const receipt = await tx.wait();
+      console.log("✅ Transaction confirmed:", receipt);
+
+      // Generate and show receipt if functions are available
+      if (generateDeliveryReceipt && setGeneratedReceipt && setShowReceiptModal) {
+        const receiptData = generateDeliveryReceipt(delivery, receipt.hash);
+        setGeneratedReceipt(receiptData);
+        setShowReceiptModal(true);
+      }
+
+      setSuccess("Receipt confirmed successfully! Refreshing dashboard...");
+
+      // Update the specific delivery in state immediately for better UX
+      setIncomingDeliveries(prevDeliveries =>
+        prevDeliveries.map(d =>
+          d.pickupId === pickupId
+            ? { ...d, confirmedTime: Math.floor(Date.now() / 1000), isCompleted: true, status: 4 }
+            : d
+        )
+      );
+
+      // Refresh data from blockchain
+      await fetchIncomingDeliveries();
+      if (refreshDashboard) {
+        await refreshDashboard();
+      }
+
+      setTimeout(() => setSuccess(""), 5000);
+    } catch (error) {
+      console.error("❌ Error confirming receipt:", error);
+
+      let errorMessage = "Failed to confirm receipt";
+
+      if (error.message.includes("user rejected")) {
+        errorMessage = "Transaction was rejected by user";
+      } else if (error.message.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees";
+      } else if (error.message.includes("execution reverted")) {
+        errorMessage = "Transaction failed - pickup may already be confirmed or invalid";
+      } else if (error.message.includes("Internal JSON-RPC error")) {
+        errorMessage = "Network error - please check your connection and try again";
+      } else {
+        errorMessage = error.message || "Unknown error occurred";
+      }
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      0: { label: "Assigned", color: "bg-blue-100 text-blue-800", icon: "📋" },
+      1: { label: "Picked Up", color: "bg-yellow-100 text-yellow-800", icon: "📦" },
+      2: { label: "In Transit", color: "bg-orange-100 text-orange-800", icon: "🚚" },
+      3: { label: "Delivered", color: "bg-green-100 text-green-800", icon: "✅" },
+      4: { label: "Confirmed", color: "bg-green-100 text-green-800", icon: "✅" }
+    };
+
+    const statusInfo = statusMap[status] || { label: "Unknown", color: "bg-gray-100 text-gray-800", icon: "❓" };
+    return (
+      <Badge className={statusInfo.color}>
+        {statusInfo.icon} {statusInfo.label}
+      </Badge>
+    );
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp || timestamp === 0) return "Not set";
+    return new Date(Number(timestamp) * 1000).toLocaleString();
+  };
+
+  if (loading && incomingDeliveries.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+        <span>Loading incoming deliveries...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Error/Success Messages */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Header and Summary */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Expected Deliveries</h3>
+        <div className="flex gap-2">
+          <Button
+            onClick={fetchIncomingDeliveries}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
+            onClick={async () => {
+              console.log("🔍 DEBUG: Comprehensive ABI and Contract Analysis...");
+              console.log("Contract:", contract);
+              console.log("Account:", account);
+
+              try {
+                // Initialize debug results first
+                let debugResults = {
+                  abiMapInfo: {},
+                  abiLength: 0,
+                  totalFunctions: 0,
+                  pickupFunctions: [],
+                  functionTests: {}
+                };
+
+                // 1. Check ABI structure
+                console.log("=== ABI STRUCTURE DEBUG ===");
+                console.log("DiamondMergedABI keys:", Object.keys(DiamondMergedABI));
+
+                // Check abiMap specifically
+                if (DiamondMergedABI.abiMap) {
+                  debugResults.abiMapInfo.exists = true;
+                  debugResults.abiMapInfo.contracts = Object.keys(DiamondMergedABI.abiMap);
+                  debugResults.abiMapInfo.hasRationPickupFacet = !!DiamondMergedABI.abiMap.RationPickupFacet;
+
+                  console.log("abiMap contracts:", Object.keys(DiamondMergedABI.abiMap));
+                  console.log("RationPickupFacet exists in abiMap:", !!DiamondMergedABI.abiMap.RationPickupFacet);
+
+                  if (DiamondMergedABI.abiMap.RationPickupFacet) {
+                    console.log("RationPickupFacet ABI length:", DiamondMergedABI.abiMap.RationPickupFacet.length);
+                    const pickupFunctions = DiamondMergedABI.abiMap.RationPickupFacet.filter(item =>
+                      item.type === 'function' && item.name && (
+                        item.name.includes('pickup') ||
+                        item.name.includes('Pickup') ||
+                        item.name.includes('confirm') ||
+                        item.name.includes('Confirm')
+                      )
+                    );
+                    console.log("Pickup functions in RationPickupFacet:", pickupFunctions.map(f => f.name));
+                    debugResults.abiMapInfo.rationPickupFunctions = pickupFunctions.map(f => f.name);
+                  }
+                } else {
+                  debugResults.abiMapInfo.exists = false;
+                }
+
+                const mergedABI = getMergedABI();
+                console.log("Merged ABI length:", mergedABI.length);
+                debugResults.abiLength = mergedABI.length;
+
+                // 2. List all available functions
+                const functions = mergedABI.filter(item => item.type === 'function');
+                console.log("Available functions:", functions.map(f => f.name));
+                debugResults.totalFunctions = functions.length;
+
+                // 3. Search for pickup-related functions
+                const pickupFunctions = functions.filter(f =>
+                  f.name.toLowerCase().includes('pickup') ||
+                  f.name.toLowerCase().includes('shop') ||
+                  f.name.toLowerCase().includes('delivery')
+                );
+                console.log("Pickup/Shop/Delivery related functions:", pickupFunctions.map(f => f.name));
+                debugResults.pickupFunctions = pickupFunctions.map(f => f.name);
+
+                // 4. Test specific functions
+                const hasGetMyShopPickups = contract.getMyShopPickups !== undefined;
+                const hasConfirmReceipt = contract.confirmRationReceipt !== undefined;
+                const hasGetShopkeeperDashboard = contract.getShopkeeperDashboard !== undefined;
+
+                console.log("Function availability:");
+                console.log("- getMyShopPickups:", hasGetMyShopPickups);
+                console.log("- confirmRationReceipt:", hasConfirmReceipt);
+                console.log("- getShopkeeperDashboard:", hasGetShopkeeperDashboard);
+
+                // Update function tests
+                debugResults.functionTests = {
+                  getMyShopPickups: hasGetMyShopPickups,
+                  confirmRationReceipt: hasConfirmReceipt,
+                  getShopkeeperDashboard: hasGetShopkeeperDashboard
+                };
+
+                if (hasGetMyShopPickups) {
+                  try {
+                    console.log("Testing getMyShopPickups...");
+                    const result = await contract.getMyShopPickups();
+
+                    // Convert result to a serializable format
+                    if (Array.isArray(result)) {
+                      debugResults.getMyShopPickupsResult = {
+                        type: 'array',
+                        length: result.length,
+                        sample: result.length > 0 ? 'Has data' : 'Empty array'
+                      };
+                    } else {
+                      debugResults.getMyShopPickupsResult = {
+                        type: typeof result,
+                        value: result ? 'Has value' : 'No value'
+                      };
+                    }
+
+                    console.log("getMyShopPickups result:", result);
+                  } catch (callError) {
+                    debugResults.getMyShopPickupsError = callError.message;
+                    console.error("getMyShopPickups call error:", callError);
+                  }
+                }
+
+                // Convert BigInt values to strings for JSON serialization
+                const serializableResults = JSON.parse(JSON.stringify(debugResults, (key, value) =>
+                  typeof value === 'bigint' ? value.toString() + 'n' : value
+                ));
+
+                alert(`Debug Results:\n${JSON.stringify(serializableResults, null, 2)}`);
+
+              } catch (error) {
+                console.error("Debug error:", error);
+                alert(`Debug Error: ${error.message}`);
+              }
+            }}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            Debug ABI
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Summary */}
+      {incomingDeliveries.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {incomingDeliveries.length}
+            </div>
+            <div className="text-sm text-blue-700">Total Deliveries</div>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-orange-600">
+              {incomingDeliveries.filter(d => d.status === 2).length}
+            </div>
+            <div className="text-sm text-orange-700">In Transit</div>
+          </div>
+          <div className={`border rounded-lg p-3 text-center ${incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length > 0
+            ? 'bg-red-50 border-red-200 animate-pulse'
+            : 'bg-yellow-50 border-yellow-200'
+            }`}>
+            <div className={`text-2xl font-bold ${incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length > 0
+              ? 'text-red-600'
+              : 'text-yellow-600'
+              }`}>
+              {incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length}
+            </div>
+            <div className={`text-sm ${incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length > 0
+              ? 'text-red-700 font-semibold'
+              : 'text-yellow-700'
+              }`}>
+              {incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length > 0
+                ? '🚨 Need Confirmation'
+                : 'Awaiting Delivery'
+              }
+            </div>
+          </div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {incomingDeliveries.reduce((sum, d) => sum + d.rationAmount, 0)} kg
+            </div>
+            <div className="text-sm text-green-700">Total Ration</div>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              ₹{incomingDeliveries.reduce((sum, d) => sum + (d.rationAmount * 25), 0).toLocaleString()}
+            </div>
+            <div className="text-sm text-purple-700">Est. Value</div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Required Alert */}
+      {incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length > 0 && (
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <strong>🚨 ACTION REQUIRED:</strong> You have {incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length} delivery(s)
+                that have arrived and need your confirmation. Please scroll down and click "CONFIRM RECEIPT" for each delivered item.
+              </div>
+              <Button
+                onClick={() => {
+                  // Scroll to first delivery that needs confirmation
+                  const firstDeliveryElement = document.querySelector('[data-needs-confirmation="true"]');
+                  if (firstDeliveryElement) {
+                    firstDeliveryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 ml-4"
+              >
+                Show Deliveries
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Debug Info */}
+      <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+        <h5 className="text-sm font-medium text-yellow-800 mb-2">Debug Information:</h5>
+        <div className="text-xs text-yellow-700 space-y-1">
+          <p>• Total deliveries found: {incomingDeliveries.length}</p>
+          <p>• Deliveries needing confirmation: {incomingDeliveries.filter(d => d.status === 3 && !d.isCompleted && d.confirmedTime === 0).length}</p>
+          <p>• Contract available: {contract ? 'Yes' : 'No'}</p>
+          <p>• Account: {account ? account.slice(0, 10) + '...' : 'None'}</p>
+          {incomingDeliveries.length > 0 && (
+            <div>
+              <p>• Sample delivery statuses:</p>
+              {incomingDeliveries.slice(0, 3).map((d, i) => (
+                <p key={i} className="ml-4">
+                  - Pickup #{d.pickupId}: Status {d.status}, Completed: {d.isCompleted ? 'Yes' : 'No'}, ConfirmedTime: {d.confirmedTime}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Deliveries List */}
+      {incomingDeliveries.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p className="text-lg font-medium">No incoming deliveries</p>
+          <p className="text-sm">All deliveries have been completed or none are scheduled</p>
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg text-left">
+            <h6 className="font-medium text-blue-800 mb-2">Possible reasons:</h6>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• No deliveries have been assigned to this shopkeeper</li>
+              <li>• The contract function getMyShopPickups() is not available</li>
+              <li>• The shopkeeper address is not registered in the system</li>
+              <li>• Network/contract connection issues</li>
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {incomingDeliveries.map((delivery) => (
+            <div
+              key={delivery.pickupId}
+              data-needs-confirmation={delivery.status === 3 && !delivery.isCompleted && !delivery.confirmedTime ? "true" : "false"}
+              className={`border-2 rounded-xl p-6 space-y-4 transition-all hover:shadow-lg ${delivery.status === 3 && !delivery.isCompleted && !delivery.confirmedTime ? 'border-red-300 bg-red-50 shadow-lg' :
+                (delivery.isCompleted || delivery.status === 4 || delivery.confirmedTime > 0) ? 'border-green-200 bg-green-50' :
+                  delivery.status === 2 ? 'border-orange-200 bg-orange-50' :
+                    delivery.status === 1 ? 'border-yellow-200 bg-yellow-50' :
+                      'border-blue-200 bg-blue-50'
+                }`}>
+
+              {/* Header with Delivery Agent Info */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                    🚚
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-900">
+                      {delivery.deliveryAgentName || `Agent ${delivery.deliveryAgent?.slice(-4).toUpperCase()}`}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      📱 {delivery.deliveryAgentMobile || "Contact via admin"}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {delivery.deliveryAgent?.slice(0, 10)}...{delivery.deliveryAgent?.slice(-8)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="bg-white">Pickup #{delivery.pickupId}</Badge>
+                    {getStatusBadge(delivery.status)}
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Delivery Details */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h5 className="font-semibold text-gray-800 mb-3">📦 Delivery Details</h5>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-700">Ration Amount:</span>
+                    <p className="text-lg font-bold text-green-600">{delivery.rationAmount} kg</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Category:</span>
+                    <p className="font-semibold">
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        {delivery.category}
+                      </Badge>
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">From Location:</span>
+                    <p className="font-semibold">{delivery.pickupLocation}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Delivery Value:</span>
+                    <p className="font-bold text-green-600">
+                      ₹{(delivery.rationAmount * 25).toLocaleString()} {/* Estimated value */}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline and Status */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h5 className="font-semibold text-gray-800 mb-3">⏰ Delivery Timeline</h5>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">Assigned</span>
+                      <p className="text-xs text-gray-600">{formatDate(delivery.assignedTime)}</p>
+                    </div>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800">✓ Done</Badge>
+                  </div>
+
+                  {delivery.pickedUpTime > 0 && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">Picked Up from {delivery.pickupLocation}</span>
+                        <p className="text-xs text-gray-600">{formatDate(delivery.pickedUpTime)}</p>
+                      </div>
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800">✓ Done</Badge>
+                    </div>
+                  )}
+
+                  {delivery.status === 2 && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">In Transit to Your Shop</span>
+                        <p className="text-xs text-gray-600">
+                          {delivery.estimatedArrival ?
+                            `ETA: ${formatDate(delivery.estimatedArrival)}` :
+                            "Arriving soon..."
+                          }
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-orange-100 text-orange-800 animate-pulse">
+                        🚚 On the way
+                      </Badge>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${delivery.deliveredTime > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">Delivered to Shop</span>
+                      <p className="text-xs text-gray-600">
+                        {delivery.deliveredTime > 0 ? formatDate(delivery.deliveredTime) : "Pending delivery"}
+                      </p>
+                    </div>
+                    {delivery.deliveredTime > 0 ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800">✓ Done</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600">Pending</Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${(delivery.confirmedTime > 0 || delivery.isCompleted || delivery.status === 4) ? 'bg-green-600' : 'bg-gray-300'}`}></div>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium">Receipt Confirmed</span>
+                      <p className="text-xs text-gray-600">
+                        {(delivery.confirmedTime > 0 || delivery.isCompleted || delivery.status === 4) ?
+                          formatDate(delivery.confirmedTime > 0 ? delivery.confirmedTime : delivery.deliveredTime) :
+                          "Awaiting confirmation"}
+                      </p>
+                    </div>
+                    {(delivery.confirmedTime > 0 || delivery.isCompleted || delivery.status === 4) ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800">✓ Confirmed</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600">Pending</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Special Instructions */}
+              {delivery.deliveryInstructions && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                    <div>
+                      <h5 className="font-semibold text-amber-800">Special Instructions</h5>
+                      <p className="text-amber-700 text-sm mt-1">{delivery.deliveryInstructions}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ETA and Contact Info */}
+              {delivery.status === 2 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="font-semibold text-green-800">🕒 Expected Arrival</h5>
+                      <p className="text-green-700">
+                        {delivery.estimatedArrival ?
+                          `${Math.ceil((delivery.estimatedArrival - Date.now() / 1000) / 60)} minutes` :
+                          "Within 1 hour"
+                        }
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-green-600">📞 Contact Agent:</p>
+                      <p className="font-semibold text-green-800">
+                        {delivery.deliveryAgentMobile || "Via Admin"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  {delivery.status === 0 && "⏳ Waiting for pickup"}
+                  {delivery.status === 1 && "📦 Agent has collected the ration"}
+                  {delivery.status === 2 && "🚚 Agent is on the way to your shop"}
+                  {delivery.status === 3 && !delivery.isCompleted && delivery.confirmedTime === 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="font-semibold text-red-600">📍 DELIVERED - ACTION REQUIRED: Please confirm receipt!</span>
+                    </div>
+                  )}
+                  {(delivery.status === 4 || delivery.isCompleted || delivery.confirmedTime > 0) && "✅ Delivery completed and confirmed"}
+                </div>
+
+                <div className="flex gap-2">
+                  {delivery.status === 3 && !delivery.isCompleted && delivery.confirmedTime === 0 && (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={() => confirmReceipt(delivery.pickupId)}
+                        disabled={loading}
+                        className="bg-green-600 hover:bg-green-700 animate-pulse"
+                        size="lg"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        {loading ? "Confirming..." : "✅ CONFIRM RECEIPT"}
+                      </Button>
+                      <p className="text-xs text-center text-gray-500">
+                        Click to complete delivery
+                      </p>
+                    </div>
+                  )}
+
+                  {(delivery.isCompleted || delivery.status === 4 || delivery.confirmedTime > 0) && (
+                    <Badge className="bg-green-100 text-green-800 px-4 py-2 text-lg">
+                      ✅ Receipt Confirmed
+                    </Badge>
+                  )}
+
+                  {delivery.status < 3 && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Refresh this specific delivery
+                          fetchIncomingDeliveries();
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        Update Status
+                      </Button>
+
+                      {/* Test button to simulate delivery agent marking as delivered */}
+                      {delivery.status === 2 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-orange-100 text-orange-700 border-orange-300"
+                          onClick={() => {
+                            // Simulate delivery agent marking as delivered (Status 3)
+                            setIncomingDeliveries(prevDeliveries =>
+                              prevDeliveries.map(d =>
+                                d.pickupId === delivery.pickupId
+                                  ? { ...d, status: 3, deliveredTime: Math.floor(Date.now() / 1000) }
+                                  : d
+                              )
+                            );
+                          }}
+                        >
+                          🚚 Simulate "Delivered" (Test)
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

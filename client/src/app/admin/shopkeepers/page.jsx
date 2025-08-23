@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 // Use the correct Diamond Proxy address
-const DIAMOND_PROXY_ADDRESS = "0x3329CA690f619bae73b9f36eb43839892D20045f";
+const DIAMOND_PROXY_ADDRESS = "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C";
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL;
 
 export default function ShopkeeperManagement() {

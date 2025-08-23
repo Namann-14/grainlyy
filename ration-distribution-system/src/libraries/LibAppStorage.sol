@@ -37,6 +37,7 @@ library LibAppStorage {
         uint256 registrationTime;
         address assignedShopkeeper;
         uint256 totalDeliveries;
+        uint256 totalPickupsAssigned;  // New field for pickup assignments
         bool isActive;
     }
     
@@ -142,6 +143,13 @@ library LibAppStorage {
         CONFIRMED,         // Delivery confirmed by all parties
         FAILED,            // Delivery failed
         CANCELLED          // Delivery cancelled
+    }
+
+    enum PickupStatus {
+        ASSIGNED,           // Pickup assigned to delivery agent
+        PICKED_UP,         // Agent picked up from warehouse
+        DELIVERED_TO_SHOP, // Delivered to shopkeeper
+        CONFIRMED          // Shopkeeper confirmed receipt
     }
 
     enum OrderStatus { 
@@ -254,6 +262,22 @@ library LibAppStorage {
         uint256 lastUpdated;
     }
 
+    struct RationPickup {
+        uint256 pickupId;
+        address deliveryAgent;
+        address shopkeeper;
+        uint256 rationAmount;
+        string category;
+        PickupStatus status;
+        uint256 assignedTime;
+        uint256 pickedUpTime;
+        uint256 deliveredTime;
+        uint256 confirmedTime;
+        string pickupLocation;
+        string deliveryInstructions;
+        bool isCompleted;
+    }
+
     struct AppStorage {
         // ============ OWNERSHIP & ACCESS CONTROL ============
         address owner;                      // Contract owner/admin address
@@ -359,6 +383,12 @@ library LibAppStorage {
         mapping(address => string) userLocations;      // user -> location coordinates
         mapping(uint256 => string[]) deliveryRoute;    // deliveryId -> route coordinates
         
+        // ============ RATION PICKUP SYSTEM ============
+        uint256 nextPickupId;                          // Pickup ID counter
+        mapping(uint256 => RationPickup) rationPickups; // pickupId -> RationPickup
+        mapping(address => uint256[]) agentPickups;     // agent -> pickupIds[]
+        mapping(address => uint256[]) shopkeeperPickups; // shopkeeper -> pickupIds[]
+
         // ============ SYSTEM SETTINGS ============
         uint256 maxDeliveryTime;                       // Maximum delivery time in seconds
         uint256 emergencyResponseTime;                 // Emergency response time

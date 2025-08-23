@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import TransactionMonitor from '@/components/TransactionMonitor';
 import { motion } from "framer-motion";
-import { 
-  ArrowUpRight, CheckCircle2, Clock, Package, 
+import {
+  ArrowUpRight, CheckCircle2, Clock, Package,
   Truck, Users, Wallet, Building, UserCheck,
   AlertTriangle, TrendingUp, MapPin, Calendar,
   Zap, Activity, Database, RefreshCw, DollarSign,
@@ -25,11 +25,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 export default function AdminDashboard() {
   const router = useRouter();
-  
+
   // Backend Connection States - No MetaMask needed
   const [isConnected, setIsConnected] = useState(false);
   const [adminWalletAddress] = useState('0x37470c74Cc2Cb55AB1CC23b16a05F2DC657E25aa'); // From env
-  
+
   // Core Dashboard States
   const [dashboardData, setDashboardData] = useState({
     totalConsumers: 0,
@@ -43,12 +43,12 @@ export default function AdminDashboard() {
     currentMonth: 0,
     currentYear: 0
   });
-  
+
   const [systemAnalytics, setSystemAnalytics] = useState(null);
   const [paymentAnalytics, setPaymentAnalytics] = useState(null);
   const [areaStats, setAreaStats] = useState(null);
   const [categoryStats, setCategoryStats] = useState(null);
-  
+
   // User Management States
   const [allConsumers, setAllConsumers] = useState([]);
   const [consumersByCategory, setConsumersByCategory] = useState({
@@ -62,14 +62,14 @@ export default function AdminDashboard() {
   const [activeDeliveries, setActiveDeliveries] = useState([]);
   const [emergencyCases, setEmergencyCases] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  
+
   // UI States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   // Loading States for Actions
   const [actionLoading, setActionLoading] = useState({
     generateMonthlyTokens: false,
@@ -83,13 +83,13 @@ export default function AdminDashboard() {
     assigningAgent: false,
     updatingSystem: false
   });
-  
+
   // Form States
   const [priceSettings, setPriceSettings] = useState({
     rationPrice: '',
     subsidyPercentage: ''
   });
-  
+
   const [assignAgentForm, setAssignAgentForm] = useState({
     deliveryAgent: '',
     shopkeeper: '',
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
     orderId: '',
     showDialog: false
   });
-  
+
   const [bulkTokenForm, setBulkTokenForm] = useState({
     aadhaars: '',
     showDialog: false
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
   });
 
   // ========== BACKEND API INITIALIZATION ==========
-  
+
   useEffect(() => {
     initializeBackendConnection();
   }, []);
@@ -126,16 +126,16 @@ export default function AdminDashboard() {
   const initializeBackendConnection = async () => {
     try {
       setLoading(true);
-      
+
       // Test backend connection
       const response = await fetch('/api/admin?endpoint=test-connection');
       const data = await response.json();
-      
+
       if (data.success) {
         setIsConnected(true);
         setSuccess('✅ Backend wallet connected successfully!');
         console.log('Backend connection established:', data.data);
-        
+
         // Fetch all dashboard data
         await fetchAllDashboardData();
       } else {
@@ -150,16 +150,16 @@ export default function AdminDashboard() {
   };
 
   // ========== DATA FETCHING FUNCTIONS ==========
-  
+
   const fetchAllDashboardData = async () => {
     try {
       setRefreshing(true);
       setError('');
-      
+
       // Fetch all data in parallel
       const promises = [
         fetchDashboardStats(),
-        fetchPaymentAnalytics(), 
+        fetchPaymentAnalytics(),
         fetchSystemSettings(),
         fetchUsers(),
         fetchActiveDeliveries(),
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
         fetchEmergencyCases(),
         fetchNotifications()
       ];
-      
+
       await Promise.allSettled(promises);
       setSuccess('✅ Dashboard data refreshed successfully!');
     } catch (error) {
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=dashboard');
       const data = await response.json();
-      
+
       if (data.success) {
         setDashboardData(prev => ({
           ...prev,
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
           currentMonth: data.data.currentMonth || new Date().getMonth() + 1,
           currentYear: data.data.currentYear || new Date().getFullYear()
         }));
-        
+
         if (data.warning) {
           console.warn('Dashboard warning:', data.warning);
         }
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=payment-analytics');
       const data = await response.json();
-      
+
       if (data.success) {
         setPaymentAnalytics(data.data);
       }
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=system-settings');
       const data = await response.json();
-      
+
       if (data.success) {
         setDashboardData(prev => ({
           ...prev,
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
           subsidyPercentage: data.data.subsidyPercentage || 0,
           systemStatus: data.data.isPaused ? 'Paused' : 'Active'
         }));
-        
+
         setPriceSettings({
           rationPrice: data.data.rationPrice?.toString() || '',
           subsidyPercentage: data.data.subsidyPercentage?.toString() || ''
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
         const consumersData = await consumersResponse.json();
         if (consumersData.success) {
           setAllConsumers(consumersData.data);
-          
+
           // Group by category
           const grouped = {
             BPL: consumersData.data.filter(c => c.category === 'BPL' || c.category === 0),
@@ -279,6 +279,7 @@ export default function AdminDashboard() {
           setAllDeliveryAgents(agentsData.data);
         }
       }
+
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -288,7 +289,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=get-active-deliveries');
       const data = await response.json();
-      
+
       if (data.success) {
         setActiveDeliveries(data.data);
       }
@@ -301,7 +302,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=area-stats');
       const data = await response.json();
-      
+
       if (data.success) {
         setAreaStats(data.data);
       }
@@ -314,7 +315,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=category-stats');
       const data = await response.json();
-      
+
       if (data.success) {
         setCategoryStats(data.data);
       }
@@ -327,7 +328,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=emergency-cases');
       const data = await response.json();
-      
+
       if (data.success) {
         setEmergencyCases(data.data);
       }
@@ -340,7 +341,7 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin?endpoint=get-notifications');
       const data = await response.json();
-      
+
       if (data.success) {
         setNotifications(data.data);
       }
@@ -350,23 +351,23 @@ export default function AdminDashboard() {
   };
 
   // ========== TOKEN MANAGEMENT FUNCTIONS ==========
-  
+
   const generateMonthlyTokensForAll = async () => {
     try {
       setActionLoading(prev => ({ ...prev, generateMonthlyTokens: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=generate-monthly-tokens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Monthly tokens generation started! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Monthly Token Generation',
@@ -374,7 +375,7 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
+
         // Refresh data after some time
         setTimeout(() => fetchAllDashboardData(), 30000);
       } else {
@@ -391,19 +392,19 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, generateCategoryTokens: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=generate-category-tokens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Tokens generation started for ${category} category! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Category Token Generation',
@@ -425,29 +426,29 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, bulkGenerateTokens: true }));
       setError('');
-      
+
       // Parse comma-separated Aadhaar numbers
       const aadhaars = bulkTokenForm.aadhaars.split(',').map(a => a.trim()).filter(a => a);
-      
+
       if (aadhaars.length === 0) {
         setError('❌ Please enter at least one Aadhaar number');
         return;
       }
-      
+
       const response = await fetch('/api/admin?endpoint=bulk-generate-tokens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aadhaars })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Bulk token generation started for ${aadhaars.length} consumers! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         setBulkTokenForm({ aadhaars: '', showDialog: false });
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Bulk Token Generation',
@@ -469,18 +470,18 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, expireOldTokens: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=expire-old-tokens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Old tokens expiration started! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Expire Old Tokens',
@@ -499,23 +500,23 @@ export default function AdminDashboard() {
   };
 
   // ========== SYSTEM MANAGEMENT FUNCTIONS ==========
-  
+
   const pauseSystem = async () => {
     try {
       setActionLoading(prev => ({ ...prev, pauseSystem: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=pause-system', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ System paused successfully! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Pause System',
@@ -523,7 +524,7 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
+
         // Update system status
         setDashboardData(prev => ({ ...prev, systemStatus: 'Paused' }));
       } else {
@@ -540,18 +541,18 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, unpauseSystem: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=unpause-system', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ System resumed successfully! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Unpause System',
@@ -559,7 +560,7 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
+
         // Update system status
         setDashboardData(prev => ({ ...prev, systemStatus: 'Active' }));
       } else {
@@ -576,24 +577,24 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, settingPrice: true }));
       setError('');
-      
+
       if (!priceSettings.rationPrice || isNaN(priceSettings.rationPrice)) {
         setError('❌ Please enter a valid ration price');
         return;
       }
-      
+
       const response = await fetch('/api/admin?endpoint=set-ration-price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ price: priceSettings.rationPrice })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Ration price updated to ₹${priceSettings.rationPrice}! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Set Ration Price',
@@ -615,24 +616,24 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, settingSubsidy: true }));
       setError('');
-      
+
       if (!priceSettings.subsidyPercentage || isNaN(priceSettings.subsidyPercentage)) {
         setError('❌ Please enter a valid subsidy percentage');
         return;
       }
-      
+
       const response = await fetch('/api/admin?endpoint=set-subsidy-percentage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ percentage: priceSettings.subsidyPercentage })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Subsidy percentage updated to ${priceSettings.subsidyPercentage}%! 
           <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Set Subsidy Percentage',
@@ -651,7 +652,7 @@ export default function AdminDashboard() {
   };
 
   // ========== DELIVERY MANAGEMENT FUNCTIONS ==========
-  
+
   const assignDeliveryAgentToShopkeeper = async () => {
     try {
       setActionLoading(prev => ({ ...prev, assigningAgent: true }));
@@ -661,42 +662,24 @@ export default function AdminDashboard() {
         setError('❌ Please select both delivery agent and shopkeeper');
         return;
       }
-      if (!assignAgentForm.orderId || isNaN(Number(assignAgentForm.orderId))) {
-        setError('❌ Please enter a valid numeric Order ID');
-        return;
-      }
-      if (!/^0x[a-fA-F0-9]{40}$/.test(assignAgentForm.deliveryAgent)) {
-        setError('❌ Invalid delivery agent address');
-        return;
-      }
-      if (!/^0x[a-fA-F0-9]{40}$/.test(assignAgentForm.shopkeeper)) {
-        setError('❌ Invalid shopkeeper address');
-        return;
-      }
 
-      // Call backend API to assign delivery agent using backend wallet
       const response = await fetch('/api/admin?endpoint=assign-delivery-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId: Number(assignAgentForm.orderId),
-          shopkeeperAddress: assignAgentForm.shopkeeper,
           deliveryAgentAddress: assignAgentForm.deliveryAgent,
-          rationDetails: assignAgentForm.rationDetails || "Assigned via Admin"
+          shopkeeperAddress: assignAgentForm.shopkeeper
         })
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonErr) {
-        setError('❌ Backend error: Could not parse response.');
-        return;
-      }
+      const data = await response.json();
 
       if (data.success) {
-        setSuccess(`✅ Delivery agent assigned successfully! <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
-        setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', rationDetails: '', orderId: '', showDialog: false });
+        setSuccess(`✅ Delivery agent assigned successfully! 
+          <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+
+        setAssignAgentForm({ deliveryAgent: '', shopkeeper: '', showDialog: false });
+
         addTransactionToMonitor({
           hash: data.txHash,
           type: 'Assign Delivery Agent',
@@ -704,6 +687,8 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
+
+        // Refresh data
         setTimeout(() => fetchUsers(), 10000);
       } else {
         // Show more details if available
@@ -717,7 +702,7 @@ export default function AdminDashboard() {
   }
 
   // ========== UTILITY FUNCTIONS ==========
-  
+
   const addTransactionToMonitor = (txData) => {
     const event = new CustomEvent('addTransaction', { detail: txData });
     window.dispatchEvent(event);
@@ -745,20 +730,20 @@ export default function AdminDashboard() {
   };
 
   // ========== ADDITIONAL ADMIN FUNCTIONS ==========
-  
+
   const generateTokenForConsumer = async (aadhaar) => {
     try {
       setActionLoading(prev => ({ ...prev, updatingSystem: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=generate-token-consumer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ aadhaar })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ Token generated successfully for consumer ${aadhaar}!`);
         addTransactionToMonitor({
@@ -782,15 +767,15 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, updatingSystem: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=deactivate-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userType, identifier })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ ${userType} deactivated successfully!`);
         addTransactionToMonitor({
@@ -800,7 +785,7 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
+
         // Refresh users
         fetchUsers();
       } else {
@@ -817,15 +802,15 @@ export default function AdminDashboard() {
     try {
       setActionLoading(prev => ({ ...prev, updatingSystem: true }));
       setError('');
-      
+
       const response = await fetch('/api/admin?endpoint=reactivate-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userType, identifier })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccess(`✅ ${userType} reactivated successfully!`);
         addTransactionToMonitor({
@@ -835,7 +820,7 @@ export default function AdminDashboard() {
           status: 'pending',
           polygonScanUrl: data.polygonScanUrl
         });
-        
+
         // Refresh users
         fetchUsers();
       } else {
@@ -1031,7 +1016,7 @@ export default function AdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center">
-                      <Badge 
+                      <Badge
                         variant={dashboardData.systemStatus === 'Active' ? 'default' : 'destructive'}
                         className="text-sm"
                       >
@@ -1239,7 +1224,7 @@ export default function AdminDashboard() {
                     <Package className="h-4 w-4 mr-2" />
                     Bulk Generate Tokens
                   </Button>
-                  
+
                   <Button
                     onClick={expireOldTokens}
                     disabled={actionLoading.expireOldTokens}
@@ -1443,7 +1428,7 @@ export default function AdminDashboard() {
                 </>
               )}
             </div>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Payment Management</CardTitle>
@@ -1480,7 +1465,7 @@ export default function AdminDashboard() {
                       placeholder="Enter price"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium">Subsidy Percentage (%)</label>
                     <Input
@@ -1490,7 +1475,7 @@ export default function AdminDashboard() {
                       placeholder="Enter percentage"
                     />
                   </div>
-                  
+
                   <div className="flex space-x-2">
                     <Button
                       onClick={setRationPrice}
@@ -1504,7 +1489,7 @@ export default function AdminDashboard() {
                       )}
                       Set Price
                     </Button>
-                    
+
                     <Button
                       onClick={setSubsidyPercentage}
                       disabled={actionLoading.settingSubsidy}
@@ -1533,13 +1518,13 @@ export default function AdminDashboard() {
                       <h4 className="font-medium">System Status</h4>
                       <p className="text-sm text-gray-600">Current operational status</p>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={dashboardData.systemStatus === 'Active' ? 'default' : 'destructive'}
                     >
                       {dashboardData.systemStatus}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex space-x-2">
                     <Button
                       onClick={pauseSystem}
@@ -1554,7 +1539,7 @@ export default function AdminDashboard() {
                       )}
                       Pause System
                     </Button>
-                    
+
                     <Button
                       onClick={unpauseSystem}
                       disabled={actionLoading.unpauseSystem || dashboardData.systemStatus === 'Active'}
@@ -1596,7 +1581,7 @@ export default function AdminDashboard() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <span className="font-medium">Admin Wallet:</span>
                     <div className="flex items-center mt-1">
@@ -1611,12 +1596,12 @@ export default function AdminDashboard() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <span className="font-medium">Network:</span>
                     <p className="text-xs mt-1">Polygon Amoy Testnet</p>
                   </div>
-                  
+
                   <div>
                     <span className="font-medium">Connection Status:</span>
                     <div className="flex items-center mt-1">
@@ -1631,9 +1616,9 @@ export default function AdminDashboard() {
         </Tabs>
 
         {/* Dialogs */}
-        
+
         {/* Assign Delivery Agent Dialog */}
-        <Dialog open={assignAgentForm.showDialog} onOpenChange={(open) => 
+        <Dialog open={assignAgentForm.showDialog} onOpenChange={(open) =>
           setAssignAgentForm({ ...assignAgentForm, showDialog: open })
         }>
           <DialogContent>
@@ -1643,7 +1628,7 @@ export default function AdminDashboard() {
                 Select a delivery agent and shopkeeper to create an assignment
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Order ID</label>
@@ -1667,8 +1652,8 @@ export default function AdminDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {allDeliveryAgents.map((agent, index) => (
-                      <SelectItem 
-                        key={agent.agentAddress || agent.address || `agent-${index}`} 
+                      <SelectItem
+                        key={agent.agentAddress || agent.address || `agent-${index}`}
                         value={agent.agentAddress || agent.address}
                       >
                         {agent.name} ({formatAddress(agent.agentAddress || agent.address)})
@@ -1689,8 +1674,8 @@ export default function AdminDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {allShopkeepers.map((shopkeeper, index) => (
-                      <SelectItem 
-                        key={shopkeeper.address || shopkeeper.shopkeeperAddress || `shopkeeper-${index}`} 
+                      <SelectItem
+                        key={shopkeeper.address || shopkeeper.shopkeeperAddress || `shopkeeper-${index}`}
                         value={shopkeeper.address || shopkeeper.shopkeeperAddress}
                       >
                         {shopkeeper.name} ({formatAddress(shopkeeper.address || shopkeeper.shopkeeperAddress)})
@@ -1711,7 +1696,7 @@ export default function AdminDashboard() {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button
                 variant="outline"
@@ -1735,7 +1720,7 @@ export default function AdminDashboard() {
         </Dialog>
 
         {/* Bulk Token Generation Dialog */}
-        <Dialog open={bulkTokenForm.showDialog} onOpenChange={(open) => 
+        <Dialog open={bulkTokenForm.showDialog} onOpenChange={(open) =>
           setBulkTokenForm({ ...bulkTokenForm, showDialog: open })
         }>
           <DialogContent>
@@ -1745,7 +1730,7 @@ export default function AdminDashboard() {
                 Enter Aadhaar numbers separated by commas to generate tokens in bulk
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Aadhaar Numbers</label>
@@ -1760,7 +1745,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button
                 variant="outline"

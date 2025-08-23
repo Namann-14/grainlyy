@@ -10,7 +10,8 @@ import {
   Settings,
   ShoppingCart,
   Users,
-  LayoutDashboardIcon
+  LayoutDashboardIcon,
+  Truck
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -76,6 +77,12 @@ const navLinks = {
       icon: Users,
       label: "Register Shopkeeper",
       iconColor: "text-blue-700"
+    },
+    {
+      href: "/admin/pickup-management",
+      icon: Truck,
+      label: "Pickup Management",
+      iconColor: "text-green-700"
     },
     {
       href: "/admin/debug-shopkeepers",

@@ -23,6 +23,7 @@ import "../src/facets/AnalyticsFacet.sol";
 import "../src/facets/WorkflowFacet.sol";
 import "../src/facets/LocationFacet.sol";
 import "../src/facets/AuthenticationFacet.sol";
+import "../src/facets/RationPickupFacet.sol";
 import "../src/libraries/LibDiamond.sol";
 
 contract DeployCompletePDS is Script {
@@ -111,9 +112,9 @@ contract DeployCompletePDS is Script {
         string[] memory facetNames,
         bytes4[][] memory selectors
     ) {
-        facets = new address[](16);
-        facetNames = new string[](16);
-        selectors = new bytes4[][](16);
+        facets = new address[](17);
+        facetNames = new string[](17);
+        selectors = new bytes4[][](17);
         
         // DiamondCutFacet
         DiamondCutFacet diamondCutFacet = new DiamondCutFacet();
@@ -226,6 +227,13 @@ contract DeployCompletePDS is Script {
         facetNames[15] = "AuthenticationFacet";
         selectors[15] = getAuthenticationSelectors();
         console.log("AuthenticationFacet deployed at:", address(authenticationFacet));
+        
+        // RationPickupFacet
+        RationPickupFacet rationPickupFacet = new RationPickupFacet();
+        facets[16] = address(rationPickupFacet);
+        facetNames[16] = "RationPickupFacet";
+        selectors[16] = getRationPickupSelectors();
+        console.log("RationPickupFacet deployed at:", address(rationPickupFacet));
         
         return (facets, facetNames, selectors);
     }
@@ -511,6 +519,26 @@ contract DeployCompletePDS is Script {
         selectors[4] = AuthenticationFacet.isRegisteredUser.selector;
         selectors[5] = AuthenticationFacet.isRegisteredAadhaar.selector;
         // Note: getConsumerByAadhaar is only in DashboardFacetCore to avoid conflicts
+        return selectors;
+    }
+    
+    function getRationPickupSelectors() internal pure returns (bytes4[] memory) {
+        bytes4[] memory selectors = new bytes4[](15);
+        selectors[0] = RationPickupFacet.assignRationPickup.selector;
+        selectors[1] = RationPickupFacet.bulkAssignRationPickups.selector;
+        selectors[2] = RationPickupFacet.markRationPickedUp.selector;
+        selectors[3] = RationPickupFacet.markRationDeliveredToShop.selector;
+        selectors[4] = RationPickupFacet.confirmRationReceipt.selector;
+        selectors[5] = RationPickupFacet.getMyPickups.selector;
+        selectors[6] = RationPickupFacet.getMyPendingPickups.selector;
+        selectors[7] = RationPickupFacet.getMyShopPickups.selector;
+        selectors[8] = RationPickupFacet.getMyPendingDeliveries.selector;
+        selectors[9] = RationPickupFacet.getPickupDetails.selector;
+        selectors[10] = RationPickupFacet.getAllDeliveryAgents.selector;
+        selectors[11] = RationPickupFacet.getAllShopkeepers.selector;
+        selectors[12] = RationPickupFacet.getActiveDeliveryAgents.selector;
+        selectors[13] = RationPickupFacet.getActiveShopkeepers.selector;
+        selectors[14] = RationPickupFacet.getPickupStatistics.selector;
         return selectors;
     }
 }

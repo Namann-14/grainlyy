@@ -96,6 +96,7 @@ contract RegistrationFacet {
             registrationTime: block.timestamp,
             assignedShopkeeper: address(0),
             totalDeliveries: 0,
+            totalPickupsAssigned: 0,
             isActive: true
         });
         

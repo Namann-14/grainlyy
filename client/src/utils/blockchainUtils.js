@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import contractABI from '../../abis/DiamondMergedABI.json';
 
 // Contract configuration - using environment variables
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x3329CA690f619bae73b9f36eb43839892D20045f';
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C';
 const POLYGON_RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://polygon-amoy.g.alchemy.com/v2/xMcrrdg5q8Pdtqa6itPOK';
 
 // Function to merge all facet ABIs for Diamond proxy

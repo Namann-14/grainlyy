@@ -3,8 +3,8 @@ import { ethers } from 'ethers';
 import DiamondMergedABI from "../../../../../abis/DiamondMergedABI.json";
 import DCVTokenABI from "../../../../../abis/DCVToken.json";
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x3329CA690f619bae73b9f36eb43839892D20045f";
-const DCVTOKEN_ADDRESS = process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS || "0xf0905E91c81888E921AD14C1e1393d44112912dc";
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xc0301e242BC846Df68a121bFe7FcE8B52AaA3d4C";
+const DCVTOKEN_ADDRESS = process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS || "0xC336869ac6f9D51888ab27615a086524C281D3Aa";
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://polygon-amoy.g.alchemy.com/v2/xMcrrdg5q8Pdtqa6itPOKpCaYjFCdQ9";
 
 export async function POST(request) {

@@ -1,0 +1,1052 @@
+[
+  {
+    "type": "function",
+    "name": "assignRationPickup",
+    "inputs": [
+      {"name": "deliveryAgent", "type": "address"},
+      {"name": "shopkeeper", "type": "address"},
+      {"name": "rationAmount", "type": "uint256"},
+      {"name": "category", "type": "string"},
+      {"name": "pickupLocation", "type": "string"},
+      {"name": "deliveryInstructions", "type": "string"}
+    ],
+    "outputs": [{"name": "pickupId", "type": "uint256"}],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkAssignRationPickups",
+    "inputs": [
+      {"name": "deliveryAgents", "type": "address[]"},
+      {"name": "shopkeepers", "type": "address[]"},
+      {"name": "rationAmounts", "type": "uint256[]"},
+      {"name": "categories", "type": "string[]"},
+      {"name": "pickupLocation", "type": "string"}
+    ],
+    "outputs": [{"name": "pickupIds", "type": "uint256[]"}],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markRationPickedUp",
+    "inputs": [{"name": "pickupId", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markRationDeliveredToShop",
+    "inputs": [{"name": "pickupId", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmRationReceipt",
+    "inputs": [{"name": "pickupId", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getMyPickups",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "pickupId", "type": "uint256"},
+          {"name": "deliveryAgent", "type": "address"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "status", "type": "uint8"},
+          {"name": "assignedTime", "type": "uint256"},
+          {"name": "pickedUpTime", "type": "uint256"},
+          {"name": "deliveredTime", "type": "uint256"},
+          {"name": "confirmedTime", "type": "uint256"},
+          {"name": "pickupLocation", "type": "string"},
+          {"name": "deliveryInstructions", "type": "string"},
+          {"name": "isCompleted", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMyPendingPickups",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "pickupId", "type": "uint256"},
+          {"name": "deliveryAgent", "type": "address"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "status", "type": "uint8"},
+          {"name": "assignedTime", "type": "uint256"},
+          {"name": "pickedUpTime", "type": "uint256"},
+          {"name": "deliveredTime", "type": "uint256"},
+          {"name": "confirmedTime", "type": "uint256"},
+          {"name": "pickupLocation", "type": "string"},
+          {"name": "deliveryInstructions", "type": "string"},
+          {"name": "isCompleted", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMyShopPickups",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "pickupId", "type": "uint256"},
+          {"name": "deliveryAgent", "type": "address"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "status", "type": "uint8"},
+          {"name": "assignedTime", "type": "uint256"},
+          {"name": "pickedUpTime", "type": "uint256"},
+          {"name": "deliveredTime", "type": "uint256"},
+          {"name": "confirmedTime", "type": "uint256"},
+          {"name": "pickupLocation", "type": "string"},
+          {"name": "deliveryInstructions", "type": "string"},
+          {"name": "isCompleted", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMyPendingDeliveries",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "pickupId", "type": "uint256"},
+          {"name": "deliveryAgent", "type": "address"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "status", "type": "uint8"},
+          {"name": "assignedTime", "type": "uint256"},
+          {"name": "pickedUpTime", "type": "uint256"},
+          {"name": "deliveredTime", "type": "uint256"},
+          {"name": "confirmedTime", "type": "uint256"},
+          {"name": "pickupLocation", "type": "string"},
+          {"name": "deliveryInstructions", "type": "string"},
+          {"name": "isCompleted", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPickupDetails",
+    "inputs": [{"name": "pickupId", "type": "uint256"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "pickupId", "type": "uint256"},
+          {"name": "deliveryAgent", "type": "address"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "status", "type": "uint8"},
+          {"name": "assignedTime", "type": "uint256"},
+          {"name": "pickedUpTime", "type": "uint256"},
+          {"name": "deliveredTime", "type": "uint256"},
+          {"name": "confirmedTime", "type": "uint256"},
+          {"name": "pickupLocation", "type": "string"},
+          {"name": "deliveryInstructions", "type": "string"},
+          {"name": "isCompleted", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllDeliveryAgents",
+    "inputs": [],
+    "outputs": [
+      {"name": "agents", "type": "address[]"},
+      {"name": "names", "type": "string[]"},
+      {"name": "activeStatus", "type": "bool[]"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllShopkeepers",
+    "inputs": [],
+    "outputs": [
+      {"name": "shopkeepers", "type": "address[]"},
+      {"name": "names", "type": "string[]"},
+      {"name": "areas", "type": "string[]"},
+      {"name": "activeStatus", "type": "bool[]"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveDeliveryAgents",
+    "inputs": [],
+    "outputs": [
+      {"name": "agents", "type": "address[]"},
+      {"name": "names", "type": "string[]"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getActiveShopkeepers",
+    "inputs": [],
+    "outputs": [
+      {"name": "shopkeepers", "type": "address[]"},
+      {"name": "names", "type": "string[]"},
+      {"name": "areas", "type": "string[]"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPickupStatistics",
+    "inputs": [],
+    "outputs": [
+      {"name": "totalPickups", "type": "uint256"},
+      {"name": "pendingPickups", "type": "uint256"},
+      {"name": "completedPickups", "type": "uint256"},
+      {"name": "activeAgents", "type": "uint256"},
+      {"name": "activeShopkeepers", "type": "uint256"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerConsumer",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "name", "type": "string"},
+      {"name": "mobile", "type": "string"},
+      {"name": "category", "type": "string"},
+      {"name": "assignedShopkeeper", "type": "address"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerShopkeeper",
+    "inputs": [
+      {"name": "shopkeeper", "type": "address"},
+      {"name": "name", "type": "string"},
+      {"name": "area", "type": "string"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerDeliveryAgent",
+    "inputs": [
+      {"name": "agent", "type": "address"},
+      {"name": "name", "type": "string"},
+      {"name": "mobile", "type": "string"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkRegisterConsumers",
+    "inputs": [
+      {"name": "aadhaars", "type": "uint256[]"},
+      {"name": "names", "type": "string[]"},
+      {"name": "mobiles", "type": "string[]"},
+      {"name": "categories", "type": "string[]"},
+      {"name": "assignedShopkeepers", "type": "address[]"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "assignDeliveryAgentToShopkeeper",
+    "inputs": [
+      {"name": "deliveryAgent", "type": "address"},
+      {"name": "shopkeeper", "type": "address"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "linkConsumerWallet",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "wallet", "type": "address"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "generateMonthlyTokensForAll",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "generateTokenForConsumer",
+    "inputs": [{"name": "aadhaar", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "generateTokensForCategory",
+    "inputs": [{"name": "category", "type": "string"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "generateTokensForShopkeeper",
+    "inputs": [{"name": "shopkeeper", "type": "address"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "bulkGenerateTokens",
+    "inputs": [{"name": "aadhaars", "type": "uint256[]"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markRationDeliveredByAadhaar",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "tokenId", "type": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmDeliveryByAgent",
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimRationByConsumer",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "tokenId", "type": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimRationByWallet",
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "expireOldTokens",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getTokensForShopkeeper",
+    "inputs": [{"name": "shopkeeper", "type": "address"}],
+    "outputs": [{"name": "", "type": "uint256[]"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "canShopkeeperMarkDelivery",
+    "inputs": [
+      {"name": "shopkeeper", "type": "address"},
+      {"name": "tokenId", "type": "uint256"}
+    ],
+    "outputs": [
+      {"name": "", "type": "bool"},
+      {"name": "reason", "type": "string"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "bulkMarkDeliveries",
+    "inputs": [
+      {"name": "aadhaars", "type": "uint256[]"},
+      {"name": "tokenIds", "type": "uint256[]"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRationAmount",
+    "inputs": [
+      {"name": "category", "type": "string"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getRationAmount",
+    "inputs": [{"name": "category", "type": "string"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDashboardData",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "totalConsumers", "type": "uint256"},
+          {"name": "totalShopkeepers", "type": "uint256"},
+          {"name": "totalDeliveryAgents", "type": "uint256"},
+          {"name": "totalTokensIssued", "type": "uint256"},
+          {"name": "totalTokensClaimed", "type": "uint256"},
+          {"name": "totalTokensExpired", "type": "uint256"},
+          {"name": "pendingTokens", "type": "uint256"},
+          {"name": "currentMonth", "type": "uint256"},
+          {"name": "currentYear", "type": "uint256"},
+          {"name": "lastUpdateTime", "type": "uint256"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumerDashboard",
+    "inputs": [{"name": "aadhaar", "type": "uint256"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "name", "type": "string"},
+          {"name": "category", "type": "string"},
+          {"name": "assignedShopkeeperName", "type": "string"},
+          {"name": "totalTokensReceived", "type": "uint256"},
+          {"name": "totalTokensClaimed", "type": "uint256"},
+          {"name": "activeTokensCount", "type": "uint256"},
+          {"name": "hasCurrentMonthToken", "type": "bool"},
+          {"name": "monthlyRationAmount", "type": "uint256"},
+          {"name": "lastTokenIssuedTime", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumerByAadhaar",
+    "inputs": [{"name": "aadhaar", "type": "uint256"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "name", "type": "string"},
+          {"name": "mobile", "type": "string"},
+          {"name": "category", "type": "string"},
+          {"name": "registrationTime", "type": "uint256"},
+          {"name": "assignedShopkeeper", "type": "address"},
+          {"name": "totalTokensReceived", "type": "uint256"},
+          {"name": "totalTokensClaimed", "type": "uint256"},
+          {"name": "lastTokenIssuedTime", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumersByCategory",
+    "inputs": [{"name": "category", "type": "string"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "name", "type": "string"},
+          {"name": "mobile", "type": "string"},
+          {"name": "category", "type": "string"},
+          {"name": "registrationTime", "type": "uint256"},
+          {"name": "assignedShopkeeper", "type": "address"},
+          {"name": "totalTokensReceived", "type": "uint256"},
+          {"name": "totalTokensClaimed", "type": "uint256"},
+          {"name": "lastTokenIssuedTime", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumersByShopkeeper",
+    "inputs": [{"name": "shopkeeper", "type": "address"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "components": [
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "name", "type": "string"},
+          {"name": "mobile", "type": "string"},
+          {"name": "category", "type": "string"},
+          {"name": "registrationTime", "type": "uint256"},
+          {"name": "assignedShopkeeper", "type": "address"},
+          {"name": "totalTokensReceived", "type": "uint256"},
+          {"name": "totalTokensClaimed", "type": "uint256"},
+          {"name": "lastTokenIssuedTime", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasConsumerReceivedMonthlyToken",
+    "inputs": [{"name": "aadhaar", "type": "uint256"}],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConsumersWithoutMonthlyTokens",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256[]"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSystemHealthReport",
+    "inputs": [],
+    "outputs": [
+      {"name": "totalRegisteredConsumers", "type": "uint256"},
+      {"name": "activeConsumers", "type": "uint256"},
+      {"name": "inactiveConsumers", "type": "uint256"},
+      {"name": "consumersWithCurrentMonthToken", "type": "uint256"},
+      {"name": "consumersWithoutCurrentMonthToken", "type": "uint256"},
+      {"name": "totalShopkeepers", "type": "uint256"},
+      {"name": "totalDeliveryAgents", "type": "uint256"},
+      {"name": "systemEfficiencyScore", "type": "uint256"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCategoryWiseStats",
+    "inputs": [],
+    "outputs": [
+      {"name": "categories", "type": "string[]"},
+      {"name": "consumerCounts", "type": "uint256[]"},
+      {"name": "rationAmounts", "type": "uint256[]"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getShopkeeperInfo",
+    "inputs": [{"name": "shopkeeper", "type": "address"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "shopkeeperAddress", "type": "address"},
+          {"name": "name", "type": "string"},
+          {"name": "area", "type": "string"},
+          {"name": "registrationTime", "type": "uint256"},
+          {"name": "totalConsumersAssigned", "type": "uint256"},
+          {"name": "totalTokensIssued", "type": "uint256"},
+          {"name": "totalDeliveries", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDeliveryAgentInfo",
+    "inputs": [{"name": "agent", "type": "address"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "agentAddress", "type": "address"},
+          {"name": "name", "type": "string"},
+          {"name": "mobile", "type": "string"},
+          {"name": "registrationTime", "type": "uint256"},
+          {"name": "assignedShopkeeper", "type": "address"},
+          {"name": "totalDeliveries", "type": "uint256"},
+          {"name": "totalPickupsAssigned", "type": "uint256"},
+          {"name": "isActive", "type": "bool"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCurrentMonth",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCurrentYear",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserRole",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [{"name": "", "type": "string"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserRoleAndRedirect",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [
+      {"name": "role", "type": "string"},
+      {"name": "redirectUrl", "type": "string"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "login",
+    "inputs": [],
+    "outputs": [
+      {"name": "success", "type": "bool"},
+      {"name": "role", "type": "string"},
+      {"name": "redirectUrl", "type": "string"}
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "logout",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isRegisteredUser",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isRegisteredAadhaar",
+    "inputs": [{"name": "aadhaar", "type": "uint256"}],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "enablePaymentSystem",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "disablePaymentSystem",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRationPrice",
+    "inputs": [
+      {"name": "category", "type": "string"},
+      {"name": "pricePerKg", "type": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSubsidyPercentage",
+    "inputs": [{"name": "percentage", "type": "uint256"}],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getRationPrice",
+    "inputs": [{"name": "category", "type": "string"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSubsidyPercentage",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "calculatePaymentAmount",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "tokenId", "type": "uint256"}
+    ],
+    "outputs": [
+      {"name": "totalAmount", "type": "uint256"},
+      {"name": "subsidyAmount", "type": "uint256"},
+      {"name": "payableAmount", "type": "uint256"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initiatePayment",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256"},
+      {"name": "tokenId", "type": "uint256"},
+      {"name": "paymentMethod", "type": "string"}
+    ],
+    "outputs": [{"name": "paymentId", "type": "uint256"}],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "completePayment",
+    "inputs": [
+      {"name": "paymentId", "type": "uint256"},
+      {"name": "upiTransactionId", "type": "string"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "failPayment",
+    "inputs": [
+      {"name": "paymentId", "type": "uint256"},
+      {"name": "reason", "type": "string"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPaymentRecord",
+    "inputs": [{"name": "paymentId", "type": "uint256"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "paymentId", "type": "uint256"},
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "tokenId", "type": "uint256"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "amount", "type": "uint256"},
+          {"name": "upiTransactionId", "type": "string"},
+          {"name": "paymentMethod", "type": "string"},
+          {"name": "timestamp", "type": "uint256"},
+          {"name": "isVerified", "type": "bool"},
+          {"name": "invoiceHash", "type": "string"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getInvoice",
+    "inputs": [{"name": "invoiceId", "type": "uint256"}],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {"name": "invoiceId", "type": "uint256"},
+          {"name": "paymentId", "type": "uint256"},
+          {"name": "aadhaar", "type": "uint256"},
+          {"name": "consumerName", "type": "string"},
+          {"name": "shopkeeper", "type": "address"},
+          {"name": "shopkeeperName", "type": "string"},
+          {"name": "tokenId", "type": "uint256"},
+          {"name": "category", "type": "string"},
+          {"name": "rationAmount", "type": "uint256"},
+          {"name": "totalAmount", "type": "uint256"},
+          {"name": "subsidyAmount", "type": "uint256"},
+          {"name": "payableAmount", "type": "uint256"},
+          {"name": "upiTransactionId", "type": "string"},
+          {"name": "timestamp", "type": "uint256"},
+          {"name": "status", "type": "string"}
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "RationPickupAssigned",
+    "inputs": [
+      {"name": "pickupId", "type": "uint256", "indexed": true},
+      {"name": "deliveryAgent", "type": "address", "indexed": true},
+      {"name": "shopkeeper", "type": "address", "indexed": true},
+      {"name": "rationAmount", "type": "uint256", "indexed": false},
+      {"name": "category", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RationPickedUp",
+    "inputs": [
+      {"name": "pickupId", "type": "uint256", "indexed": true},
+      {"name": "deliveryAgent", "type": "address", "indexed": true},
+      {"name": "timestamp", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RationDeliveredToShop",
+    "inputs": [
+      {"name": "pickupId", "type": "uint256", "indexed": true},
+      {"name": "shopkeeper", "type": "address", "indexed": true},
+      {"name": "timestamp", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RationReceiptConfirmed",
+    "inputs": [
+      {"name": "pickupId", "type": "uint256", "indexed": true},
+      {"name": "shopkeeper", "type": "address", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PickupStatusUpdated",
+    "inputs": [
+      {"name": "pickupId", "type": "uint256", "indexed": true},
+      {"name": "status", "type": "uint8", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ConsumerRegistered",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "name", "type": "string", "indexed": false},
+      {"name": "assignedShopkeeper", "type": "address", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ShopkeeperRegistered",
+    "inputs": [
+      {"name": "shopkeeper", "type": "address", "indexed": true},
+      {"name": "name", "type": "string", "indexed": false},
+      {"name": "area", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentRegistered",
+    "inputs": [
+      {"name": "agent", "type": "address", "indexed": true},
+      {"name": "name", "type": "string", "indexed": false},
+      {"name": "mobile", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "DeliveryAgentAssigned",
+    "inputs": [
+      {"name": "agent", "type": "address", "indexed": true},
+      {"name": "shopkeeper", "type": "address", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "WalletLinked",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "wallet", "type": "address", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TokenGenerated",
+    "inputs": [
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "rationAmount", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TokenClaimed",
+    "inputs": [
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "aadhaar", "type": "uint256", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "TokenExpired",
+    "inputs": [
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "aadhaar", "type": "uint256", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "DeliveryMarked",
+    "inputs": [
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "shopkeeper", "type": "address", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "DeliveryConfirmed",
+    "inputs": [
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "deliveryAgent", "type": "address", "indexed": true}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "BulkTokensGenerated",
+    "inputs": [
+      {"name": "count", "type": "uint256", "indexed": false},
+      {"name": "details", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "UserLoggedIn",
+    "inputs": [
+      {"name": "user", "type": "address", "indexed": true},
+      {"name": "role", "type": "string", "indexed": false},
+      {"name": "timestamp", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "UserLoggedOut",
+    "inputs": [
+      {"name": "user", "type": "address", "indexed": true},
+      {"name": "timestamp", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "LoginAttempt",
+    "inputs": [
+      {"name": "user", "type": "address", "indexed": true},
+      {"name": "success", "type": "bool", "indexed": false},
+      {"name": "timestamp", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PaymentInitiated",
+    "inputs": [
+      {"name": "paymentId", "type": "uint256", "indexed": true},
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "tokenId", "type": "uint256", "indexed": true},
+      {"name": "amount", "type": "uint256", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PaymentCompleted",
+    "inputs": [
+      {"name": "paymentId", "type": "uint256", "indexed": true},
+      {"name": "upiTransactionId", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PaymentFailed",
+    "inputs": [
+      {"name": "paymentId", "type": "uint256", "indexed": true},
+      {"name": "reason", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "InvoiceGenerated",
+    "inputs": [
+      {"name": "invoiceId", "type": "uint256", "indexed": true},
+      {"name": "paymentId", "type": "uint256", "indexed": true},
+      {"name": "invoiceHash", "type": "string", "indexed": false}
+    ]
+  },
+  {
+    "type": "event",
+    "name": "SubsidyApplied",
+    "inputs": [
+      {"name": "aadhaar", "type": "uint256", "indexed": true},
+      {"name": "subsidyAmount", "type": "uint256", "indexed": false}
+    ]
+  }
+]
