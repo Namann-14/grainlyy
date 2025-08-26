@@ -25,7 +25,7 @@ async function getWorkingProvider() {
     'https://polygon-amoy-bor-rpc.publicnode.com',
     RPC_URL // Try user's RPC last since it was giving errors
   ].filter(Boolean);
-  
+
   for (const rpcUrl of rpcUrls) {
     try {
       console.log(`🔗 Trying RPC: ${rpcUrl}`);
@@ -33,7 +33,7 @@ async function getWorkingProvider() {
         name: 'polygon-amoy',
         chainId: 80002
       });
-      
+
       // Test the connection
       const network = await provider.getNetwork();
       console.log(`✅ RPC working: ${rpcUrl} - Chain: ${network.chainId}`);
@@ -43,7 +43,7 @@ async function getWorkingProvider() {
       continue;
     }
   }
-  
+
   throw new Error('No working RPC provider found');
 }
 
@@ -56,16 +56,16 @@ const statIcon = "h-6 w-6 text-green-600";
 function getMergedABI() {
   const mergedABI = [];
   const seenFunctions = new Set();
-  
+
   if (DiamondMergedABI.contracts) {
     Object.keys(DiamondMergedABI.contracts).forEach(contractName => {
       const contractData = DiamondMergedABI.contracts[contractName];
       if (contractData.abi && Array.isArray(contractData.abi)) {
         contractData.abi.forEach(item => {
-          const signature = item.type === 'function' 
+          const signature = item.type === 'function'
             ? `${item.name}(${item.inputs?.map(i => i.type).join(',') || ''})`
             : item.type;
-          
+
           if (!seenFunctions.has(signature)) {
             seenFunctions.add(signature);
             mergedABI.push(item);
@@ -161,28 +161,28 @@ export default function ConsumerDashboard() {
       try {
         setLoading(true);
         setError("");
-        
+
         console.log("🔍 Starting data fetch for aadhaar:", aadhaar);
         console.log("🔗 Contract address:", DIAMOND_PROXY_ADDRESS);
-        
+
         if (!DIAMOND_PROXY_ADDRESS) {
           throw new Error("Contract address not configured");
         }
-        
+
         // Use working RPC provider
         console.log("🔗 Finding working RPC provider...");
         const provider = await getWorkingProvider();
-        
+
         // Use the same merged ABI approach as register-consumer route
         const contractABI = getMergedABI();
         console.log('📋 Contract ABI length:', contractABI.length);
-        
+
         // Debug: List all available functions in the ABI
         const availableFunctions = contractABI
           .filter(item => item.type === 'function')
           .map(item => item.name);
         console.log('📋 Available functions in ABI:', availableFunctions.length);
-        
+
         const contract = new ethers.Contract(DIAMOND_PROXY_ADDRESS, contractABI, provider);
         const aadhaarBigInt = BigInt(aadhaar);
 
@@ -191,7 +191,7 @@ export default function ConsumerDashboard() {
           // Test contract connection first
           const network = await provider.getNetwork();
           console.log("✅ Connected to network:", network.name, "chainId:", network.chainId);
-          
+
           // Test contract code exists
           const code = await provider.getCode(DIAMOND_PROXY_ADDRESS);
           if (code === '0x') {
@@ -207,11 +207,11 @@ export default function ConsumerDashboard() {
         try {
           const profileData = await contract.getConsumerByAadhaar(aadhaarBigInt);
           console.log("✅ Profile data:", profileData);
-          
+
           // Check if consumer exists (not zero address)
           if (!profileData || profileData.aadhaar.toString() === '0') {
             console.warn("⚠️ Consumer not found on blockchain");
-            
+
             // Check which consumers are actually registered
             console.log("🔍 Checking for registered consumers...");
             try {
@@ -230,7 +230,7 @@ export default function ConsumerDashboard() {
             } catch (searchError) {
               console.warn("Could not search for registered consumers");
             }
-            
+
             setError(`Consumer with Aadhaar ${aadhaar} not found on blockchain. 
 
 🔍 This might mean:
@@ -241,9 +241,9 @@ export default function ConsumerDashboard() {
 Please contact admin or check your registration status.`);
             return;
           }
-          
+
           setProfile(profileData);
-          
+
           // If we have profile data, fetch shopkeeper info
           if (profileData.assignedShopkeeper && profileData.assignedShopkeeper !== ethers.ZeroAddress) {
             console.log("🏪 Fetching shopkeeper info...");
@@ -255,7 +255,7 @@ Please contact admin or check your registration status.`);
               console.warn("⚠️ Shopkeeper info fetch failed:", shopkeeperError.message);
             }
           }
-          
+
         } catch (profileError) {
           console.warn("⚠️ Profile fetch failed:", profileError.message);
           if (profileError.message.includes("execution reverted")) {
@@ -274,7 +274,7 @@ Please try with a registered Aadhaar number.`);
         // Fetch additional dashboard data
         console.log("📊 Fetching dashboard data...");
         const dashboardPromises = [];
-        
+
         // Try to fetch dashboard data
         dashboardPromises.push(
           contract.getConsumerDashboard(aadhaarBigInt)
@@ -288,30 +288,112 @@ Please try with a registered Aadhaar number.`);
             })
         );
 
-        // Try to fetch unclaimed tokens
+        // Try to fetch unclaimed tokens from Diamond contract
         dashboardPromises.push(
           contract.getUnclaimedTokensByAadhaar(aadhaarBigInt)
             .then(tokens => {
-              console.log("✅ Unclaimed tokens:", tokens);
+              console.log("✅ Unclaimed tokens from Diamond:", tokens);
               setUnclaimedTokens(Array.isArray(tokens) ? tokens : []);
             })
             .catch(err => {
-              console.warn("⚠️ Unclaimed tokens fetch failed:", err.message);
+              console.warn("⚠️ Diamond unclaimed tokens fetch failed:", err.message);
               setUnclaimedTokens([]);
             })
         );
 
-        // Try to check monthly token status
+        // ALSO fetch tokens from DCVToken contract (this is where our new tokens are!)
+        dashboardPromises.push(
+          (async () => {
+            try {
+              console.log("🔍 Fetching tokens from DCVToken contract...");
+              const dcvTokenContract = new ethers.Contract(DCVTOKEN_ADDRESS, DCVTokenABI, provider);
+
+              // Get all tokens for this Aadhaar from DCVToken
+              const allDCVTokens = await dcvTokenContract.getTokensByAadhaar(aadhaarBigInt);
+              console.log("✅ All DCV tokens:", allDCVTokens);
+
+              // Get unclaimed tokens from DCVToken
+              const unclaimedDCVTokens = await dcvTokenContract.getUnclaimedTokensByAadhaar(aadhaarBigInt);
+              console.log("✅ Unclaimed DCV tokens:", unclaimedDCVTokens);
+
+              // If we have DCV tokens, use them (they're more recent)
+              if (unclaimedDCVTokens.length > 0) {
+                console.log("🎯 Using DCV tokens as primary unclaimed tokens");
+                setUnclaimedTokens(unclaimedDCVTokens.map(id => Number(id)));
+              }
+
+              // Get detailed token data
+              const dcvTokenDetails = [];
+              for (const tokenId of allDCVTokens) {
+                try {
+                  const tokenData = await dcvTokenContract.getTokenData(tokenId);
+                  dcvTokenDetails.push({
+                    tokenId: Number(tokenId),
+                    aadhaar: Number(tokenData.aadhaar),
+                    rationAmount: Number(tokenData.rationAmount),
+                    category: tokenData.category,
+                    isClaimed: tokenData.isClaimed,
+                    isExpired: tokenData.isExpired,
+                    issuedTime: Number(tokenData.issuedTime),
+                    expiryTime: Number(tokenData.expiryTime),
+                    issuedDate: new Date(Number(tokenData.issuedTime) * 1000).toLocaleDateString(),
+                    expiryDate: new Date(Number(tokenData.expiryTime) * 1000).toLocaleDateString()
+                  });
+                } catch (tokenError) {
+                  console.warn(`Failed to get details for token ${tokenId}:`, tokenError.message);
+                }
+              }
+
+              setDcvTokens(dcvTokenDetails);
+              console.log("✅ DCV token details loaded:", dcvTokenDetails);
+
+            } catch (dcvError) {
+              console.warn("⚠️ DCVToken fetch failed:", dcvError.message);
+              setDcvTokens([]);
+            }
+          })()
+        );
+
+        // Try to check monthly token status from Diamond contract
         dashboardPromises.push(
           contract.hasConsumerReceivedMonthlyToken(aadhaarBigInt)
             .then(hasToken => {
-              console.log("✅ Has monthly token:", hasToken);
+              console.log("✅ Has monthly token (Diamond):", hasToken);
               setHasMonthlyToken(hasToken);
             })
             .catch(err => {
-              console.warn("⚠️ Monthly token check failed:", err.message);
+              console.warn("⚠️ Diamond monthly token check failed:", err.message);
               setHasMonthlyToken(false);
             })
+        );
+
+        // ALSO check monthly token from DCVToken contract
+        dashboardPromises.push(
+          (async () => {
+            try {
+              console.log("🔍 Checking monthly token from DCVToken contract...");
+              const dcvTokenContract = new ethers.Contract(DCVTOKEN_ADDRESS, DCVTokenABI, provider);
+
+              const currentMonth = new Date().getMonth() + 1;
+              const currentYear = new Date().getFullYear();
+
+              const hasCurrentMonthToken = await dcvTokenContract.hasTokensForMonth(
+                aadhaarBigInt,
+                currentMonth,
+                currentYear
+              );
+
+              console.log("✅ Has current month token (DCV):", hasCurrentMonthToken);
+
+              // If DCVToken says we have a token, use that (it's more accurate)
+              if (hasCurrentMonthToken) {
+                setHasMonthlyToken(true);
+              }
+
+            } catch (dcvMonthlyError) {
+              console.warn("⚠️ DCVToken monthly check failed:", dcvMonthlyError.message);
+            }
+          })()
         );
 
         // Try to fetch distribution history
@@ -411,7 +493,7 @@ Please try with a registered Aadhaar number.`);
       </div>
     </div>
   );
-  
+
   if (error) return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="text-center">
@@ -421,8 +503,8 @@ Please try with a registered Aadhaar number.`);
           <p>Aadhaar searched: {aadhaar}</p>
           {error.includes("log in") && (
             <div className="mt-4">
-              <a 
-                href="/login" 
+              <a
+                href="/login"
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium inline-block"
               >
                 Go to Login Page
@@ -447,7 +529,7 @@ Please try with a registered Aadhaar number.`);
             if (profile && profile.name) {
               return `Welcome back, ${profile.name}! 👋 (Blockchain verified)`;
             }
-            
+
             // Fallback to localStorage if profile not loaded yet
             try {
               const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
@@ -460,16 +542,16 @@ Please try with a registered Aadhaar number.`);
             return "Welcome to your Dashboard! 👋";
           })()}
         </div>
-        
+
         {/* Debug info to help troubleshoot */}
         <div className="text-xs text-green-600 mt-2 p-2 bg-green-100 rounded">
-          <strong>Debug Info:</strong><br/>
-          URL Aadhaar: {aadhaar}<br/>
-          Blockchain Profile Loaded: {profile ? 'Yes' : 'No'}<br/>
+          <strong>Debug Info:</strong><br />
+          URL Aadhaar: {aadhaar}<br />
+          Blockchain Profile Loaded: {profile ? 'Yes' : 'No'}<br />
           {profile && (
             <>
-              Blockchain Name: {profile.name}<br/>
-              Blockchain Aadhaar: {profile.aadhaar?.toString()}<br/>
+              Blockchain Name: {profile.name}<br />
+              Blockchain Aadhaar: {profile.aadhaar?.toString()}<br />
             </>
           )}
           LocalStorage User: {(() => {
@@ -480,7 +562,7 @@ Please try with a registered Aadhaar number.`);
               return 'Parse Error';
             }
           })()}
-          <br/>
+          <br />
           <strong className="text-orange-600">💡 Tip:</strong> If showing "Test Consumer", try logging in with Aadhaar: <code className="bg-white px-1">999888777666</code> (blockchain-registered consumer)
         </div>
       </div>
@@ -757,14 +839,46 @@ Please try with a registered Aadhaar number.`);
       {dcvTokens.length > 0 && (
         <div className={cardClass + " border-indigo-300 mb-8"}>
           <h2 className="font-semibold text-lg mb-2 flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-indigo-700" /> DCV Tokens Owned
+            <CreditCard className="h-5 w-5 text-indigo-700" /> Your Ration Tokens (DCVToken)
           </h2>
-          <div className="flex flex-wrap gap-3">
-            {dcvTokens.map(({ tokenId, balance }) => (
-              <div key={tokenId} className="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 text-indigo-800 font-mono">
-                Token #{tokenId}: {balance.toString()}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {dcvTokens.map((token) => (
+              <div key={token.tokenId} className={`p-4 rounded-lg border-2 ${token.isClaimed
+                ? 'bg-gray-50 border-gray-300'
+                : token.isExpired
+                  ? 'bg-red-50 border-red-300'
+                  : 'bg-green-50 border-green-300'
+                }`}>
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-bold text-lg">Token #{token.tokenId}</span>
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${token.isClaimed
+                    ? 'bg-gray-200 text-gray-700'
+                    : token.isExpired
+                      ? 'bg-red-200 text-red-700'
+                      : 'bg-green-200 text-green-700'
+                    }`}>
+                    {token.isClaimed ? 'CLAIMED' : token.isExpired ? 'EXPIRED' : 'AVAILABLE'}
+                  </span>
+                </div>
+                <div className="text-sm space-y-1">
+                  <div><span className="font-medium">Amount:</span> {token.rationAmount}kg</div>
+                  <div><span className="font-medium">Category:</span> {token.category}</div>
+                  <div><span className="font-medium">Issued:</span> {token.issuedDate}</div>
+                  <div><span className="font-medium">Expires:</span> {token.expiryDate}</div>
+                </div>
+                {!token.isClaimed && !token.isExpired && (
+                  <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
+                    <strong>💡 Show this token number at your assigned shop to collect your ration!</strong>
+                  </div>
+                )}
               </div>
             ))}
+          </div>
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+            <strong>📋 Total Tokens:</strong> {dcvTokens.length} |
+            <strong className="ml-2">🎯 Available:</strong> {dcvTokens.filter(t => !t.isClaimed && !t.isExpired).length} |
+            <strong className="ml-2">✅ Claimed:</strong> {dcvTokens.filter(t => t.isClaimed).length} |
+            <strong className="ml-2">⏰ Expired:</strong> {dcvTokens.filter(t => t.isExpired).length}
           </div>
         </div>
       )}

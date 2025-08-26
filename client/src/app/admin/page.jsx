@@ -1041,7 +1041,7 @@ export default function AdminDashboard() {
                 <CardDescription>Common administrative tasks</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4">
                   <Button
                     onClick={generateMonthlyTokensForAll}
                     disabled={actionLoading.generateMonthlyTokens}
@@ -1094,6 +1094,185 @@ export default function AdminDashboard() {
                   >
                     <Settings className="h-5 w-5 mb-2" />
                     System Settings
+                  </Button>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+                        // Set DCVToken minter first
+                        const response = await fetch('/api/admin?endpoint=set-dcv-minter', { method: 'POST' });
+                        const data = await response.json();
+                        if (data.success) {
+                          setSuccess('✅ DCVToken minter configured successfully! You can now generate tokens.');
+                          addTransactionToMonitor({
+                            hash: data.txHash,
+                            type: 'Setup DCVToken Minter',
+                            details: 'Configured admin wallet as DCVToken minter',
+                            status: 'pending',
+                            polygonScanUrl: data.polygonScanUrl
+                          });
+                        } else {
+                          setError('❌ Failed to configure DCVToken minter: ' + data.error);
+                        }
+                      } catch (error) {
+                        setError('❌ Error configuring DCVToken minter: ' + error.message);
+                      } finally {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+                      }
+                    }}
+                    disabled={actionLoading.updatingSystem}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.updatingSystem ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Shield className="h-5 w-5 mb-2" />
+                    )}
+                    Setup DCVToken Minter
+                  </Button>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+                        // Test basic DCVToken connectivity
+                        const testResponse = await fetch('/api/admin?endpoint=test-dcv-basic');
+                        const testData = await testResponse.json();
+                        
+                        if (testData.success) {
+                          console.log('DCVToken Test Results:', testData.data);
+                          
+                          const data = testData.data;
+                          let message = `✅ DCVToken Status Check:\n`;
+                          message += `📋 Contract: ${data.contractName || 'Unknown'} (${data.contractSymbol || 'N/A'})\n`;
+                          message += `🔧 Minter Status: ${data.minterStatus || 'Unknown'}\n`;
+                          message += `💰 Balance: ${data.adminWalletBalance || 'Unknown'}\n`;
+                          message += `🎯 Ready to Mint: ${data.readyToMint ? 'YES' : 'NO'}\n`;
+                          message += `📊 Existing Tokens: ${data.totalExistingTokens || 0}`;
+                          
+                          if (data.recommendations && data.recommendations.length > 0) {
+                            message += `\n\n📝 Recommendations:\n${data.recommendations.map(r => `• ${r}`).join('\n')}`;
+                          }
+                          
+                          setSuccess(message);
+                          
+                          if (!data.readyToMint) {
+                            setError('⚠️ System not ready for token minting. Please follow the recommendations above.');
+                          }
+                        } else {
+                          setError('❌ Failed to test DCVToken: ' + testData.error);
+                        }
+                      } catch (error) {
+                        setError('❌ Error testing DCVToken: ' + error.message);
+                      } finally {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+                      }
+                    }}
+                    disabled={actionLoading.updatingSystem}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.updatingSystem ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Database className="h-5 w-5 mb-2" />
+                    )}
+                    Test DCVToken Status
+                  </Button>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+                        // Test token generation for a sample consumer
+                        const testAadhaar = '123456780012'; // Use the same Aadhaar from your logs
+                        const response = await fetch('/api/admin?endpoint=generate-token-consumer', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ aadhaar: testAadhaar })
+                        });
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                          setSuccess(`✅ Test token generated successfully for Aadhaar ${testAadhaar}! 
+                            <a href="${data.polygonScanUrl}" target="_blank" class="underline">View on PolygonScan ↗</a>`);
+                          
+                          addTransactionToMonitor({
+                            hash: data.txHash,
+                            type: 'Test Token Generation',
+                            details: `Test token for ${testAadhaar}`,
+                            status: 'pending',
+                            polygonScanUrl: data.polygonScanUrl
+                          });
+                        } else {
+                          setError('❌ Test token generation failed: ' + data.error);
+                        }
+                      } catch (error) {
+                        setError('❌ Error testing token generation: ' + error.message);
+                      } finally {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+                      }
+                    }}
+                    disabled={actionLoading.updatingSystem}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.updatingSystem ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Package className="h-5 w-5 mb-2" />
+                    )}
+                    Test Token Generation
+                  </Button>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: true }));
+                        // Verify tokens for the test consumer
+                        const testAadhaar = '123456780012';
+                        const response = await fetch(`/api/admin?endpoint=verify-tokens&aadhaar=${testAadhaar}`);
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                          const tokenData = data.data;
+                          let message = `🔍 Token Verification Results for ${testAadhaar}:\n`;
+                          message += `📊 Total Tokens: ${tokenData.totalTokens || 0}\n`;
+                          message += `🎯 Unclaimed Tokens: ${tokenData.unclaimedTokens || 0}\n`;
+                          message += `📅 Has Current Month Token: ${tokenData.hasCurrentMonthToken ? 'YES' : 'NO'}\n`;
+                          message += `🏪 Total Contract Tokens: ${tokenData.totalContractTokens || 0}`;
+                          
+                          if (tokenData.latestToken) {
+                            message += `\n\n📋 Latest Token Details:\n`;
+                            message += `• Token ID: ${tokenData.latestToken.tokenId}\n`;
+                            message += `• Amount: ${tokenData.latestToken.rationAmount}kg\n`;
+                            message += `• Category: ${tokenData.latestToken.category}\n`;
+                            message += `• Issued: ${new Date(tokenData.latestToken.issuedDate).toLocaleDateString()}\n`;
+                            message += `• Status: ${tokenData.latestToken.isClaimed ? 'CLAIMED' : 'UNCLAIMED'}`;
+                          }
+                          
+                          setSuccess(message);
+                        } else {
+                          setError('❌ Token verification failed: ' + data.error);
+                        }
+                      } catch (error) {
+                        setError('❌ Error verifying tokens: ' + error.message);
+                      } finally {
+                        setActionLoading(prev => ({ ...prev, updatingSystem: false }));
+                      }
+                    }}
+                    disabled={actionLoading.updatingSystem}
+                    variant="outline"
+                    className="h-20 flex flex-col items-center justify-center"
+                  >
+                    {actionLoading.updatingSystem ? (
+                      <RefreshCw className="h-5 w-5 animate-spin mb-2" />
+                    ) : (
+                      <Eye className="h-5 w-5 mb-2" />
+                    )}
+                    Verify Tokens
                   </Button>
                 </div>
               </CardContent>

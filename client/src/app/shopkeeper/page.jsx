@@ -239,7 +239,7 @@ export default function ShopkeeperDashboard() {
 
             // Try to auto-register the shopkeeper
             try {
-              const registerResponse = await fetch('/api/admin/register-shopkeeper', {
+              const registerResponse = await fetch('/api/admin?endpoint=register-shopkeeper', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -374,11 +374,57 @@ export default function ShopkeeperDashboard() {
 
       // Fetch unclaimed tokens for this shopkeeper
       try {
-        const unclaimedTokens = await contractInstance.getUnclaimedTokensByShopkeeper(shopkeeperAddress);
-        console.log('🎫 Unclaimed Tokens:', unclaimedTokens);
+        // Try to get unclaimed tokens by shopkeeper (if function exists)
+        let unclaimedTokens = [];
+        
+        try {
+          unclaimedTokens = await contractInstance.getUnclaimedTokensByShopkeeper(shopkeeperAddress);
+          console.log('🎫 Unclaimed Tokens from Diamond contract:', unclaimedTokens);
+        } catch (diamondErr) {
+          console.log('⚠️ Diamond contract unclaimed tokens function not available:', diamondErr.message);
+          
+          // Fallback: Get tokens from assigned consumers
+          try {
+            console.log('🔄 Trying fallback: getting tokens from assigned consumers...');
+            const assignedConsumers = await contractInstance.getConsumersByShopkeeper(shopkeeperAddress);
+            console.log('👥 Assigned consumers:', assignedConsumers);
+            
+            // For each consumer, check if they have unclaimed tokens
+            for (const consumer of assignedConsumers) {
+              try {
+                const consumerAadhaar = consumer.aadhaar || consumer[0];
+                console.log(`🔍 Checking tokens for consumer: ${consumerAadhaar}`);
+                
+                // Use our new API endpoint to get unclaimed tokens
+                const response = await fetch('/api/admin?endpoint=get-unclaimed-tokens', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    aadhaar: consumerAadhaar.toString(),
+                    includeClaimedTokens: false 
+                  })
+                });
+                
+                if (response.ok) {
+                  const tokenData = await response.json();
+                  if (tokenData.success && tokenData.tokens.length > 0) {
+                    unclaimedTokens.push(...tokenData.tokens);
+                  }
+                }
+              } catch (consumerErr) {
+                console.warn(`Failed to get tokens for consumer:`, consumerErr);
+              }
+            }
+            
+            console.log('🎫 Total unclaimed tokens found via fallback:', unclaimedTokens.length);
+          } catch (fallbackErr) {
+            console.warn('⚠️ Fallback approach also failed:', fallbackErr.message);
+          }
+        }
+        
         setInventory({ unclaimedTokens: unclaimedTokens || [] });
       } catch (err) {
-        console.log('⚠️ Unclaimed tokens function not available:', err);
+        console.log('⚠️ All unclaimed tokens approaches failed:', err);
         setInventory({ unclaimedTokens: [] });
       }
 
@@ -440,116 +486,100 @@ export default function ShopkeeperDashboard() {
 
       console.log("🎯 Marking ration delivered for Aadhaar:", aadhaar, "TokenId:", tokenId);
 
-      if (!connected || !account || !contract) {
-        throw new Error("Wallet not connected or contract not initialized");
-      }
+      // Use our backend API instead of direct blockchain calls
+      const response = await fetch('/api/admin?endpoint=mark-token-claimed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          aadhaar: aadhaar.toString(),
+          tokenId: tokenId.toString()
+        })
+      });
 
-      // First ensure this wallet is registered as shopkeeper
-      console.log("🔍 Ensuring wallet is registered as shopkeeper...");
-      try {
-        const registerResponse = await fetch('/api/admin/register-shopkeeper', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            address: account,
-            name: `Shopkeeper ${account.slice(-4).toUpperCase()}`,
-            area: "Local Area"
-          })
-        });
+      const result = await response.json();
+      console.log("📝 Mark token claimed response:", result);
 
-        const registerResult = await registerResponse.json();
-        if (registerResult.success || registerResult.alreadyRegistered) {
-          console.log("✅ Shopkeeper registration confirmed");
-        } else {
-          console.warn("⚠️ Shopkeeper registration warning:", registerResult.error);
-        }
-      } catch (regError) {
-        console.warn("⚠️ Shopkeeper registration failed:", regError.message);
-        // Continue anyway - maybe already registered
-      }
+      if (result.success) {
+        setSuccess(`✅ Ration delivery marked successfully! Token ${tokenId} claimed for consumer ${aadhaar}.`);
+        console.log("✅ Token marked as claimed:", result.txHash);
 
-      // Get the user's signer (MetaMask) - SHOPKEEPER'S OWN WALLET
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const signer = await ethersProvider.getSigner();
-      const contractWithSigner = contract.connect(signer);
-
-      console.log("📞 Using SHOPKEEPER'S wallet to mark delivery...");
-      console.log("👨‍💼 Shopkeeper address:", account);
-
-      // Try markRationDeliveredByAadhaar with shopkeeper's own wallet
-      let tx;
-      try {
-        tx = await contractWithSigner.markRationDeliveredByAadhaar(
-          BigInt(aadhaar),
-          BigInt(tokenId)
-        );
-        console.log("✅ Used markRationDeliveredByAadhaar with shopkeeper wallet");
-      } catch (firstError) {
-        console.log("⚠️ markRationDeliveredByAadhaar failed:", firstError.message);
-
-        // Fallback to claimRationByConsumer
+        // Generate delivery receipt
         try {
-          tx = await contractWithSigner.claimRationByConsumer(
-            BigInt(aadhaar),
-            BigInt(tokenId)
-          );
-          console.log("✅ Used claimRationByConsumer with shopkeeper wallet");
-        } catch (secondError) {
-          console.error("❌ Both methods failed:", { firstError: firstError.message, secondError: secondError.message });
-          throw new Error(`Failed to mark delivery: ${firstError.message}. Make sure your wallet is registered as a shopkeeper.`);
+          console.log("🧾 Generating delivery receipt...");
+          const receiptResponse = await fetch('/api/admin?endpoint=generate-delivery-receipt', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tokenId: tokenId.toString(),
+              aadhaar: aadhaar.toString(),
+              shopkeeperAddress: account,
+              transactionHash: result.txHash,
+              rationAmount: 5, // Default amount, could be dynamic
+              category: 'Standard' // Default category, could be dynamic
+            })
+          });
+
+          const receiptResult = await receiptResponse.json();
+          if (receiptResult.success && receiptResult.receipt) {
+            console.log("✅ Receipt generated:", receiptResult.receipt.receiptId);
+            setGeneratedReceipt(receiptResult.receipt);
+            setShowReceiptModal(true);
+          } else {
+            console.warn("⚠️ Receipt generation failed:", receiptResult.error);
+          }
+        } catch (receiptError) {
+          console.error("❌ Receipt generation error:", receiptError);
         }
-      }
 
-      console.log("📝 Transaction sent:", tx.hash);
-      setSuccess("Transaction sent! Waiting for confirmation...");
+        // Refresh dashboard data AND close token modal
+        if (contract) {
+          console.log("🔄 Refreshing dashboard data after delivery...");
+          
+          // Small delay to ensure blockchain state is updated
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          await fetchDashboardData(contract, account);
+          await refreshDashboard();
 
-      // Wait for confirmation
-      const receipt = await tx.wait();
-      console.log("✅ Transaction confirmed:", receipt.hash);
-
-      setSuccess("Ration delivery marked successfully! Refreshing dashboard...");
-
-      // Refresh dashboard data AND close token modal
-      if (contract) {
-        console.log("🔄 Refreshing dashboard data after delivery...");
-        await fetchDashboardData(contract, account);
-
-        // Force a manual refresh to ensure UI updates
-        await refreshDashboard();
-
-        // Also refresh unclaimed tokens for the specific consumer
-        if (selectedConsumerTokens) {
-          console.log("🔄 Refreshing consumer tokens...");
-          try {
-            const includeClaimedTokens = selectedConsumerTokens.includeClaimedTokens || false;
-            const updatedTokens = await checkUnclaimedTokens(selectedConsumerTokens.aadhaar, true, includeClaimedTokens);
-            if (updatedTokens && updatedTokens.length === 0) {
-              // No more tokens, close modal
-              setShowTokensModal(false);
-              setSelectedConsumerTokens(null);
-              const tokenType = includeClaimedTokens ? "tokens" : "unclaimed tokens";
-              setSuccess(`✅ All ${tokenType} delivered! Modal closed.`);
-            } else if (updatedTokens && updatedTokens.length > 0) {
-              // Update the modal with new tokens
-              setSelectedConsumerTokens({
-                aadhaar: selectedConsumerTokens.aadhaar,
-                tokens: updatedTokens,
-                includeClaimedTokens: includeClaimedTokens
-              });
-              setSuccess(`✅ Delivery marked! ${updatedTokens.length} tokens remaining.`);
+          // Also refresh unclaimed tokens for the specific consumer
+          if (selectedConsumerTokens) {
+            console.log("🔄 Refreshing consumer tokens...");
+            try {
+              const includeClaimedTokens = selectedConsumerTokens.includeClaimedTokens || false;
+              const updatedTokens = await checkUnclaimedTokens(selectedConsumerTokens.aadhaar, true, includeClaimedTokens);
+              if (updatedTokens && updatedTokens.length === 0) {
+                // No more tokens, close modal
+                setShowTokensModal(false);
+                setSelectedConsumerTokens(null);
+                const tokenType = includeClaimedTokens ? "tokens" : "unclaimed tokens";
+                setSuccess(`✅ All ${tokenType} delivered! Modal closed.`);
+              } else if (updatedTokens && updatedTokens.length > 0) {
+                // Update the modal with new tokens
+                setSelectedConsumerTokens({
+                  aadhaar: selectedConsumerTokens.aadhaar,
+                  tokens: updatedTokens,
+                  includeClaimedTokens: includeClaimedTokens
+                });
+                setSuccess(`✅ Delivery marked! ${updatedTokens.length} tokens remaining.`);
+              }
+            } catch (refreshError) {
+              console.warn("⚠️ Token refresh failed:", refreshError);
             }
-          } catch (refreshError) {
-            console.warn("⚠️ Token refresh failed:", refreshError);
           }
         }
+
+        setTimeout(() => setSuccess(""), 5000);
+      } else {
+        throw new Error(result.error || 'Failed to mark token as claimed');
       }
 
-      setTimeout(() => setSuccess(""), 5000);
     } catch (error) {
-      console.error("❌ Error marking delivery:", error);
-      setError("Failed to mark delivery: " + error.message);
+      console.error("❌ Error marking ration delivered:", error);
+      setError("Failed to mark ration delivered: " + error.message);
+      setTimeout(() => setError(""), 5000);
     } finally {
       setLoading(false);
     }
@@ -564,7 +594,7 @@ export default function ShopkeeperDashboard() {
       const aadhaarString = aadhaar.toString();
 
       // Make API call to backend
-      const response = await fetch('/api/admin/get-unclaimed-tokens', {
+      const response = await fetch('/api/admin?endpoint=get-unclaimed-tokens', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -624,7 +654,7 @@ export default function ShopkeeperDashboard() {
       console.log("🚚 Requesting delivery agent for consumer:", consumerAddress);
 
       // Use backend API with admin wallet instead of MetaMask
-      const response = await fetch('/api/admin/request-delivery', {
+      const response = await fetch('/api/admin?endpoint=request-delivery', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -716,6 +746,7 @@ export default function ShopkeeperDashboard() {
           .footer { text-align: center; font-size: 10px; color: #666; margin-top: 20px; }
           .blockchain { background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 10px; }
           .status { background: #d4edda; color: #155724; padding: 5px 10px; text-align: center; font-weight: bold; }
+          .payment-section { background: #f8f9fa; padding: 10px; margin: 10px 0; border: 1px solid #dee2e6; }
           @media print { body { margin: 0; } .receipt { border: none; } }
         </style>
       </head>
@@ -730,20 +761,23 @@ export default function ShopkeeperDashboard() {
           <div class="status">✅ DELIVERY CONFIRMED</div>
           
           <div class="section">
-            <div><span class="label">Pickup ID:</span> <span class="value">#${receiptData.pickupId}</span></div>
+            <div><span class="label">Token ID:</span> <span class="value">#${receiptData.tokenId}</span></div>
             <div><span class="label">Date & Time:</span> <span class="value">${new Date(receiptData.generatedAt).toLocaleString()}</span></div>
           </div>
           
           <div class="divider"></div>
           
           <div class="section">
-            <div><span class="label">Shopkeeper:</span> <span class="value">${receiptData.shopkeeperName}</span></div>
-            <div><span class="label">Shop Address:</span> <span class="value">${receiptData.shopkeeperAddress.slice(0, 10)}...${receiptData.shopkeeperAddress.slice(-8)}</span></div>
+            <div><span class="label">Consumer:</span> <span class="value">${receiptData.consumerName}</span></div>
+            <div><span class="label">Aadhaar:</span> <span class="value">${receiptData.consumerAadhaar}</span></div>
+            ${receiptData.consumerMobile && receiptData.consumerMobile !== 'Not Available' ? 
+              `<div><span class="label">Mobile:</span> <span class="value">${receiptData.consumerMobile}</span></div>` : ''}
           </div>
           
           <div class="section">
-            <div><span class="label">Delivery Agent:</span> <span class="value">${receiptData.deliveryAgentName}</span></div>
-            <div><span class="label">Agent Address:</span> <span class="value">${receiptData.deliveryAgentAddress.slice(0, 10)}...${receiptData.deliveryAgentAddress.slice(-8)}</span></div>
+            <div><span class="label">Shopkeeper:</span> <span class="value">${receiptData.shopkeeperName}</span></div>
+            <div><span class="label">Shop Area:</span> <span class="value">${receiptData.shopkeeperArea}</span></div>
+            <div><span class="label">Shop Address:</span> <span class="value">${receiptData.shopkeeperAddress.slice(0, 10)}...${receiptData.shopkeeperAddress.slice(-8)}</span></div>
           </div>
           
           <div class="divider"></div>
@@ -751,24 +785,23 @@ export default function ShopkeeperDashboard() {
           <div class="section">
             <div><span class="label">Ration Amount:</span> <span class="value">${receiptData.rationAmount} kg</span></div>
             <div><span class="label">Category:</span> <span class="value">${receiptData.category}</span></div>
-            <div><span class="label">Pickup Location:</span> <span class="value">${receiptData.pickupLocation}</span></div>
-            <div><span class="label">Est. Value:</span> <span class="value">₹${receiptData.estimatedValue.toLocaleString()}</span></div>
+            <div><span class="label">Delivery Method:</span> <span class="value">${receiptData.deliveryMethod}</span></div>
           </div>
           
-          ${receiptData.deliveryInstructions ? `
-          <div class="section">
-            <div><span class="label">Instructions:</span></div>
-            <div style="margin-left: 10px; font-style: italic;">${receiptData.deliveryInstructions}</div>
+          <div class="payment-section">
+            <div><strong>Payment Details:</strong></div>
+            <div><span class="label">Total Value:</span> <span class="value">₹${receiptData.estimatedValue.toLocaleString()}</span></div>
+            <div><span class="label">Subsidy (70%):</span> <span class="value">₹${receiptData.subsidyAmount.toLocaleString()}</span></div>
+            <div><span class="label">Consumer Paid:</span> <span class="value">₹${receiptData.consumerPayment.toLocaleString()}</span></div>
+            <div><span class="label">Status:</span> <span class="value">${receiptData.paymentStatus}</span></div>
           </div>
-          ` : ''}
           
           <div class="divider"></div>
           
           <div class="section">
-            <div><span class="label">Assigned:</span> <span class="value">${new Date(receiptData.assignedTime * 1000).toLocaleString()}</span></div>
-            <div><span class="label">Picked Up:</span> <span class="value">${new Date(receiptData.pickedUpTime * 1000).toLocaleString()}</span></div>
-            <div><span class="label">Delivered:</span> <span class="value">${new Date(receiptData.deliveredTime * 1000).toLocaleString()}</span></div>
-            <div><span class="label">Confirmed:</span> <span class="value">${new Date(receiptData.confirmedTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Token Issued:</span> <span class="value">${new Date(receiptData.issuedTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Token Claimed:</span> <span class="value">${new Date(receiptData.claimedTime * 1000).toLocaleString()}</span></div>
+            <div><span class="label">Token Expires:</span> <span class="value">${new Date(receiptData.expiryTime * 1000).toLocaleString()}</span></div>
           </div>
           
           <div class="blockchain">
@@ -776,6 +809,7 @@ export default function ShopkeeperDashboard() {
             <div>Network: ${receiptData.blockchainNetwork}</div>
             <div>Contract: ${receiptData.contractAddress}</div>
             <div>Tx Hash: ${receiptData.transactionHash}</div>
+            <div>Verified: ${receiptData.isVerified ? '✅ Yes' : '❌ No'}</div>
           </div>
           
           <div class="footer">
@@ -808,29 +842,39 @@ Receipt ID: ${receiptData.receiptId}
 Status: ✅ DELIVERY CONFIRMED
 Generated: ${new Date(receiptData.generatedAt).toLocaleString()}
 
-DELIVERY DETAILS:
-- Pickup ID: #${receiptData.pickupId}
-- Shopkeeper: ${receiptData.shopkeeperName}
-- Shop Address: ${receiptData.shopkeeperAddress}
-- Delivery Agent: ${receiptData.deliveryAgentName}
-- Agent Address: ${receiptData.deliveryAgentAddress}
+CONSUMER DETAILS:
+- Name: ${receiptData.consumerName}
+- Aadhaar: ${receiptData.consumerAadhaar}
+- Mobile: ${receiptData.consumerMobile || 'Not Available'}
+- Category: ${receiptData.category}
+
+SHOPKEEPER DETAILS:
+- Name: ${receiptData.shopkeeperName}
+- Area: ${receiptData.shopkeeperArea}
+- Address: ${receiptData.shopkeeperAddress}
 
 RATION INFORMATION:
+- Token ID: #${receiptData.tokenId}
 - Amount: ${receiptData.rationAmount} kg
 - Category: ${receiptData.category}
-- Pickup Location: ${receiptData.pickupLocation}
-- Estimated Value: ₹${receiptData.estimatedValue.toLocaleString()}
+- Delivery Method: ${receiptData.deliveryMethod}
 
-TIMELINE:
-- Assigned: ${new Date(receiptData.assignedTime * 1000).toLocaleString()}
-- Picked Up: ${new Date(receiptData.pickedUpTime * 1000).toLocaleString()}
-- Delivered: ${new Date(receiptData.deliveredTime * 1000).toLocaleString()}
-- Confirmed: ${new Date(receiptData.confirmedTime * 1000).toLocaleString()}
+PAYMENT DETAILS:
+- Total Value: ₹${receiptData.estimatedValue.toLocaleString()}
+- Government Subsidy (70%): ₹${receiptData.subsidyAmount.toLocaleString()}
+- Consumer Payment (30%): ₹${receiptData.consumerPayment.toLocaleString()}
+- Payment Status: ${receiptData.paymentStatus}
+
+TOKEN TIMELINE:
+- Issued: ${new Date(receiptData.issuedTime * 1000).toLocaleString()}
+- Claimed: ${new Date(receiptData.claimedTime * 1000).toLocaleString()}
+- Expires: ${new Date(receiptData.expiryTime * 1000).toLocaleString()}
 
 BLOCKCHAIN VERIFICATION:
 - Network: ${receiptData.blockchainNetwork}
 - Contract: ${receiptData.contractAddress}
 - Transaction Hash: ${receiptData.transactionHash}
+- Verified: ${receiptData.isVerified ? 'Yes' : 'No'}
 
 This receipt is digitally verified on the blockchain.
 Generated by Grainly PDS System.
@@ -840,7 +884,7 @@ Generated by Grainly PDS System.
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `receipt-${receiptData.receiptId}.txt`;
+    a.download = `grainly-receipt-${receiptData.receiptId}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1119,7 +1163,7 @@ Generated by Grainly PDS System.
                               onClick={async () => {
                                 if (consumer.aadhaar) {
                                   // First check for unclaimed tokens
-                                  const tokens = await checkUnclaimedTokens(consumer.aadhaar);
+                                  const tokens = await checkUnclaimedTokens(consumer.aadhaar, true); // Skip modal display
                                   if (tokens && tokens.length > 0) {
                                     // Use the first available token
                                     const tokenToDeliver = tokens[0];
@@ -1138,7 +1182,7 @@ Generated by Grainly PDS System.
                               disabled={!consumer.isActive || !consumer.aadhaar || loading}
                               className="bg-green-600 hover:bg-green-700"
                             >
-                              ✓ Mark Delivered
+                              ✓ Mark Delivered & Generate Receipt
                             </Button>
                             <Button
                               size="sm"
@@ -1710,20 +1754,28 @@ Generated by Grainly PDS System.
 
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
-                    <span className="font-medium text-gray-700">Pickup ID:</span>
-                    <p>#{generatedReceipt.pickupId}</p>
+                    <span className="font-medium text-gray-700">Token ID:</span>
+                    <p>#{generatedReceipt.tokenId}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Date & Time:</span>
                     <p>{new Date(generatedReceipt.generatedAt).toLocaleString()}</p>
                   </div>
                   <div>
+                    <span className="font-medium text-gray-700">Consumer:</span>
+                    <p>{generatedReceipt.consumerName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Aadhaar:</span>
+                    <p>{generatedReceipt.consumerAadhaar}</p>
+                  </div>
+                  <div>
                     <span className="font-medium text-gray-700">Shopkeeper:</span>
                     <p>{generatedReceipt.shopkeeperName}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Delivery Agent:</span>
-                    <p>{generatedReceipt.deliveryAgentName}</p>
+                    <span className="font-medium text-gray-700">Shop Area:</span>
+                    <p>{generatedReceipt.shopkeeperArea}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Ration Amount:</span>
@@ -1734,8 +1786,16 @@ Generated by Grainly PDS System.
                     <p>{generatedReceipt.category}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Est. Value:</span>
-                    <p className="font-bold text-green-600">₹{generatedReceipt.estimatedValue.toLocaleString()}</p>
+                    <span className="font-medium text-gray-700">Total Value:</span>
+                    <p className="font-bold text-blue-600">₹{generatedReceipt.estimatedValue.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Subsidy:</span>
+                    <p className="font-bold text-green-600">₹{generatedReceipt.subsidyAmount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Consumer Paid:</span>
+                    <p className="font-bold text-orange-600">₹{generatedReceipt.consumerPayment.toLocaleString()}</p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Status:</span>
@@ -1744,12 +1804,23 @@ Generated by Grainly PDS System.
                 </div>
 
                 <div className="border-t border-gray-300 pt-4 mt-4">
-                  <h5 className="font-medium text-gray-700 mb-2">Delivery Timeline:</h5>
+                  <h5 className="font-medium text-gray-700 mb-2">Token Timeline:</h5>
                   <div className="text-xs space-y-1">
-                    <div>Assigned: {new Date(generatedReceipt.assignedTime * 1000).toLocaleString()}</div>
-                    <div>Picked Up: {new Date(generatedReceipt.pickedUpTime * 1000).toLocaleString()}</div>
-                    <div>Delivered: {new Date(generatedReceipt.deliveredTime * 1000).toLocaleString()}</div>
-                    <div>Confirmed: {new Date(generatedReceipt.confirmedTime * 1000).toLocaleString()}</div>
+                    <div>Issued: {new Date(generatedReceipt.issuedTime * 1000).toLocaleString()}</div>
+                    <div>Claimed: {new Date(generatedReceipt.claimedTime * 1000).toLocaleString()}</div>
+                    <div>Expires: {new Date(generatedReceipt.expiryTime * 1000).toLocaleString()}</div>
+                    <div>Receipt Generated: {new Date(generatedReceipt.generatedAt).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-300 pt-4 mt-4">
+                  <h5 className="font-medium text-gray-700 mb-2">Delivery Information:</h5>
+                  <div className="text-xs space-y-1">
+                    <div>Method: {generatedReceipt.deliveryMethod}</div>
+                    <div>Payment Status: {generatedReceipt.paymentStatus}</div>
+                    {generatedReceipt.consumerMobile && generatedReceipt.consumerMobile !== 'Not Available' && (
+                      <div>Consumer Mobile: {generatedReceipt.consumerMobile}</div>
+                    )}
                   </div>
                 </div>
 
@@ -1758,6 +1829,7 @@ Generated by Grainly PDS System.
                   <div>Network: {generatedReceipt.blockchainNetwork}</div>
                   <div>Contract: {generatedReceipt.contractAddress}</div>
                   <div className="break-all">Tx Hash: {generatedReceipt.transactionHash}</div>
+                  <div>Verified: {generatedReceipt.isVerified ? '✅ Yes' : '❌ No'}</div>
                 </div>
               </div>
 
@@ -1792,10 +1864,12 @@ Generated by Grainly PDS System.
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <h5 className="font-medium text-blue-800 mb-2">📋 What happens next?</h5>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• The delivery has been confirmed on the blockchain</li>
-                  <li>• This receipt serves as proof of successful delivery</li>
-                  <li>• The delivery agent's task is now complete</li>
+                  <li>• The ration delivery has been confirmed on the blockchain</li>
+                  <li>• This receipt serves as proof of successful ration distribution</li>
+                  <li>• The consumer has received their subsidized ration</li>
                   <li>• You can print or download this receipt for your records</li>
+                  <li>• The token has been marked as claimed and cannot be reused</li>
+                  <li>• Government subsidy has been processed automatically</li>
                 </ul>
               </div>
             </div>
