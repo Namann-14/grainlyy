@@ -11,7 +11,8 @@ import {
   ShoppingCart,
   Users,
   LayoutDashboardIcon,
-  Truck
+  Truck,
+  HelpingHandIcon
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -45,6 +46,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMetaMask } from "@/components/MetaMaskProvider";
 import Image from "next/image";
+import { Toaster } from "@/components/ui/toaster";
 
 const navLinks = {
   mainMenu: [
@@ -71,6 +73,12 @@ const navLinks = {
       icon: Users,
       label: "Consumer Management",
       iconColor: "text-purple-700"
+    },
+    {
+      href: "/admin/support",
+      icon: HelpingHandIcon,
+      label: "Consumer Complaints",
+      iconColor: "text-yellow-700"
     },
     {
       href: "/admin/register-shopkeeper",
@@ -316,6 +324,7 @@ export default function AdminLayout({ children }) {
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </div>
+      <Toaster />
     </SidebarProvider>
   );
 }

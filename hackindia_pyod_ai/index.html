@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Graph Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: #121821;
+      --text: #e7ecf3;
+      --muted: #9fb1c7;
+      --accent: #4aa3ff;
+      --danger: #ff5d6c;
+      --border: #223042;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 100% -10%, #101623, #0b0f14);
+      color: var(--text);
+      font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
+      padding: 24px;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    button, .linkish {
+      appearance: none; border: 1px solid var(--border);
+      background: #0f1520; color: var(--text); padding: 8px 12px;
+      border-radius: 10px; cursor: pointer;
+      transition: transform .04s ease, background .2s, border-color .2s, opacity .2s;
+      font-weight: 600; letter-spacing: .2px;
+    }
+    button:hover { background: #131b29; border-color: #2b3d56; }
+    button:active { transform: translateY(1px); }
+    .accent { border-color: #194773; background: #0f2034; color: #cfe6ff; }
+    .accent:hover { background: #12253c; border-color: #20598f; }
+    .danger { border-color: #6a2b35; background: #2c1216; color: #ffd7db; }
+    .danger:hover { background: #351419; border-color: #7f313c; }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .grid-3 {
+      display: grid; grid-template-columns: 2fr 1fr; gap: 16px;
+    }
+    .card {
+      background: linear-gradient(180deg, #0e1420, #0c111b);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; color: #d8e5f6; display: flex; justify-content: space-between; align-items: center; }
+    .card h2 .mini-controls { display: flex; gap: 8px; }
+    .holder {
+      display: grid; place-items: center; border-radius: 10px; overflow: hidden;
+      background: #0a0f18; min-height: 240px; border: 1px dashed #1f2a3a;
+    }
+    img.chart {
+      width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: none;
+      background: #000;
+    }
+    .muted { color: var(--muted); }
+    .error { color: var(--danger); font-weight: 600; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 6px 0; }
+    details { margin-top: 10px; }
+    code, pre {
+      background: #0f1520; color: #cfe6ff; border: 1px solid #203149;
+      border-radius: 10px; padding: 8px; display: block; overflow:auto; white-space: pre-wrap;
+    }
+    footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Graph Viewer</h1>
+
+    <div class="controls">
+      <button class="accent" id="btnRefreshAll">Refresh All</button>
+      <button id="btnDownloadAll" title="Download all images (as separate files)">Download All</button>
+      <span class="muted" id="status">Idle.</span>
+    </div>
+
+    <section class="grid-3">
+      <!-- Left: Time-series + insights -->
+      <div class="card">
+        <h2>
+          Ration Trend & Anomalies
+          <span class="mini-controls">
+            <button id="btnRefreshMain">Refresh</button>
+            <button id="btnDownloadMain">Download</button>
+          </span>
+        </h2>
+        <div class="holder">
+          <img id="imgMain" class="chart" alt="Ration time-series with anomalies" />
+          <span id="phMain" class="muted">Waiting for image…</span>
+        </div>
+
+        <h2 style="margin-top:14px;">Insights</h2>
+        <div id="insights" class="muted">No insights yet.</div>
+
+        <details>
+          <summary class="muted">Show raw /graph JSON</summary>
+          <pre id="rawMain"></pre>
+        </details>
+      </div>
+
+      <!-- Right: Two stacked cards -->
+      <div class="grid" style="grid-template-columns: 1fr;">
+        <div class="card">
+          <h2>
+            Token vs Aadhaar Pattern
+            <span class="mini-controls">
+              <button id="btnRefreshPattern">Refresh</button>
+              <button id="btnDownloadPattern">Download</button>
+            </span>
+          </h2>
+          <div class="holder">
+            <img id="imgPattern" class="chart" alt="Token vs Aadhaar pattern" />
+            <span id="phPattern" class="muted">Waiting for image…</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            Anomaly Types (Rule-based)
+            <span class="mini-controls">
+              <button id="btnRefreshBar">Refresh</button>
+              <button id="btnDownloadBar">Download</button>
+            </span>
+          </h2>
+          <div class="holder">
+            <img id="imgBar" class="chart" alt="Anomaly categories bar chart" />
+            <span id="phBar" class="muted">Waiting for image…</span>
+          </div>
+
+          <div id="countsWrap">
+            <h2 style="margin-top:14px;">Counts</h2>
+            <div id="counts" class="muted">—</div>
+          </div>
+
+          <details>
+            <summary class="muted">Show raw /graphs/patterns JSON</summary>
+            <pre id="rawPatterns"></pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Using <code>/graph</code> (JSON with <code>image_data_url</code>) and <code>/graphs/patterns</code> for the new charts.
+      If you see CORS errors, enable CORS on FastAPI for <code>127.0.0.1:3000</code> and <code>localhost:3000</code>.
+    </footer>
+  </div>
+
+  <script>
+    const API_GRAPH = "http://127.0.0.1:8000/graph";
+    const API_PATTERNS = "http://127.0.0.1:8000/graphs/patterns";
+
+    const els = {
+      status: document.getElementById("status"),
+
+      // main
+      imgMain: document.getElementById("imgMain"),
+      phMain: document.getElementById("phMain"),
+      insights: document.getElementById("insights"),
+      rawMain: document.getElementById("rawMain"),
+
+      // pattern + bar
+      imgPattern: document.getElementById("imgPattern"),
+      phPattern: document.getElementById("phPattern"),
+      imgBar: document.getElementById("imgBar"),
+      phBar: document.getElementById("phBar"),
+      rawPatterns: document.getElementById("rawPatterns"),
+      counts: document.getElementById("counts"),
+
+      // buttons
+      btnRefreshAll: document.getElementById("btnRefreshAll"),
+      btnDownloadAll: document.getElementById("btnDownloadAll"),
+      btnRefreshMain: document.getElementById("btnRefreshMain"),
+      btnDownloadMain: document.getElementById("btnDownloadMain"),
+      btnRefreshPattern: document.getElementById("btnRefreshPattern"),
+      btnDownloadPattern: document.getElementById("btnDownloadPattern"),
+      btnRefreshBar: document.getElementById("btnRefreshBar"),
+      btnDownloadBar: document.getElementById("btnDownloadBar"),
+    };
+
+    function setStatus(text, isError = false) {
+      els.status.textContent = text;
+      els.status.className = isError ? "error" : "muted";
+    }
+
+    function showImage(imgEl, phEl, dataUrl) {
+      imgEl.onload = () => { imgEl.style.display = "block"; phEl.style.display = "none"; };
+      imgEl.onerror = () => { imgEl.style.display = "none"; phEl.style.display = "grid"; };
+      imgEl.src = dataUrl;
+    }
+
+    function downloadDataUrl(dataUrl, filename) {
+      if (!dataUrl) return;
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // ----------------- fetch /graph -----------------
+    async function fetchMain() {
+      try {
+        setStatus("Loading /graph…");
+        els.phMain.style.display = "grid";
+        els.imgMain.style.display = "none";
+        els.insights.textContent = "Loading…";
+        els.rawMain.textContent = "";
+
+        const res = await fetch(API_GRAPH, { method: "GET", cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+        const data = await res.json();
+
+        // image
+        let dataUrl = data.image_data_url || (data.image_base64 ? "data:image/png;base64," + data.image_base64 : null);
+        if (!dataUrl) throw new Error("No image_data_url or image_base64 in /graph response.");
+        showImage(els.imgMain, els.phMain, dataUrl);
+
+        // insights
+        if (Array.isArray(data.insights) && data.insights.length) {
+          const ul = document.createElement("ul");
+          data.insights.forEach(t => {
+            const li = document.createElement("li");
+            li.textContent = (t ?? "").toString();
+            ul.appendChild(li);
+          });
+          els.insights.innerHTML = "";
+          els.insights.appendChild(ul);
+        } else {
+          els.insights.textContent = "No insights found.";
+        }
+
+        els.rawMain.textContent = JSON.stringify(data, null, 2);
+        setStatus("Done.");
+        return { mainUrl: dataUrl };
+      } catch (err) {
+        console.error(err);
+        els.phMain.style.display = "grid";
+        els.imgMain.style.display = "none";
+        els.insights.textContent = "—";
+        setStatus(err.message || "Error fetching /graph.", true);
+        return { mainUrl: null };
+      }
+    }
+
+    // ----------------- fetch /graphs/patterns -----------------
+    async function fetchPatterns() {
+      try {
+        setStatus("Loading /graphs/patterns…");
+        els.phPattern.style.display = "grid"; els.imgPattern.style.display = "none";
+        els.phBar.style.display = "grid"; els.imgBar.style.display = "none";
+        els.rawPatterns.textContent = ""; els.counts.textContent = "Loading…";
+
+        const res = await fetch(API_PATTERNS, { method: "GET", cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+        const data = await res.json();
+        els.rawPatterns.textContent = JSON.stringify(data, null, 2);
+
+        // images
+        const patUrl = data.token_vs_aadhaar_image_data_url;
+        const barUrl = data.anomaly_bar_image_data_url;
+        if (patUrl) showImage(els.imgPattern, els.phPattern, patUrl);
+        if (barUrl) showImage(els.imgBar, els.phBar, barUrl);
+
+        // counts table
+        const counts = data.anomaly_type_counts || {};
+        if (Object.keys(counts).length) {
+          const rows = Object.entries(counts)
+            .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+          els.counts.innerHTML = `<table><thead><tr><th>Category</th><th>Count</th></tr></thead><tbody>${rows}</tbody></table>`;
+        } else {
+          els.counts.textContent = "No rule-based anomalies.";
+        }
+
+        setStatus("Done.");
+        return { patUrl, barUrl };
+      } catch (err) {
+        console.error(err);
+        els.phPattern.style.display = "grid"; els.imgPattern.style.display = "none";
+        els.phBar.style.display = "grid"; els.imgBar.style.display = "none";
+        els.counts.textContent = "—";
+        setStatus(err.message || "Error fetching /graphs/patterns.", true);
+        return { patUrl: null, barUrl: null };
+      }
+    }
+
+    // ----------------- Events -----------------
+    els.btnRefreshAll.addEventListener("click", async () => {
+      await fetchMain();
+      await fetchPatterns();
+    });
+    els.btnDownloadAll.addEventListener("click", async () => {
+      // try to reuse current src values
+      downloadDataUrl(els.imgMain?.src, "trend_anomalies.png");
+      downloadDataUrl(els.imgPattern?.src, "token_vs_aadhaar.png");
+      downloadDataUrl(els.imgBar?.src, "anomaly_types.png");
+      setStatus("Downloaded images (if available).");
+    });
+
+    els.btnRefreshMain.addEventListener("click", fetchMain);
+    els.btnDownloadMain.addEventListener("click", () => downloadDataUrl(els.imgMain?.src, "trend_anomalies.png"));
+
+    els.btnRefreshPattern.addEventListener("click", fetchPatterns);
+    els.btnDownloadPattern.addEventListener("click", () => downloadDataUrl(els.imgPattern?.src, "token_vs_aadhaar.png"));
+
+    els.btnRefreshBar.addEventListener("click", fetchPatterns);
+    els.btnDownloadBar.addEventListener("click", () => downloadDataUrl(els.imgBar?.src, "anomaly_types.png"));
+
+    // Initial load
+    (async () => {
+      await fetchMain();
+      await fetchPatterns();
+    })();
+  </script>
+</body>
+</html>
