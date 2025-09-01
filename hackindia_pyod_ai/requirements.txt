@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+web3
+pandas
+matplotlib
+pyod
+apscheduler

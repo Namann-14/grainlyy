@@ -188,7 +188,7 @@ export default function PickupManagement() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-7xl mx-auto py-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -284,12 +284,12 @@ export default function PickupManagement() {
             <CardContent>
               <form onSubmit={handleAssignPickup} className="space-y-4">
                 <div>
-                  <Label htmlFor="deliveryAgent">Delivery Agent</Label>
+                  <Label htmlFor="deliveryAgent" className="mb-2">Delivery Agent</Label>
                   <Select
                     value={assignmentForm.deliveryAgent}
                     onValueChange={(value) => setAssignmentForm(prev => ({ ...prev, deliveryAgent: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select delivery agent" />
                     </SelectTrigger>
                     <SelectContent>
@@ -303,12 +303,12 @@ export default function PickupManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="shopkeeper">Shopkeeper</Label>
+                  <Label htmlFor="shopkeeper" className="mb-2">Shopkeeper</Label>
                   <Select
                     value={assignmentForm.shopkeeper}
                     onValueChange={(value) => setAssignmentForm(prev => ({ ...prev, shopkeeper: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select shopkeeper" />
                     </SelectTrigger>
                     <SelectContent>
@@ -322,7 +322,7 @@ export default function PickupManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="rationAmount">Ration Amount (kg)</Label>
+                  <Label htmlFor="rationAmount" className="mb-2">Ration Amount (kg)</Label>
                   <Input
                     id="rationAmount"
                     type="number"
@@ -334,12 +334,12 @@ export default function PickupManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category" className="mb-2">Category</Label>
                   <Select
                     value={assignmentForm.category}
                     onValueChange={(value) => setAssignmentForm(prev => ({ ...prev, category: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -351,7 +351,7 @@ export default function PickupManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="pickupLocation">Pickup Location</Label>
+                  <Label htmlFor="pickupLocation" className="mb-2">Pickup Location</Label>
                   <Input
                     id="pickupLocation"
                     value={assignmentForm.pickupLocation}
@@ -362,7 +362,7 @@ export default function PickupManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="deliveryInstructions">Delivery Instructions</Label>
+                  <Label htmlFor="deliveryInstructions" className="mb-2">Delivery Instructions</Label>
                   <Textarea
                     id="deliveryInstructions"
                     value={assignmentForm.deliveryInstructions}
