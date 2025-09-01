@@ -334,24 +334,43 @@ export default function TransactionMonitor() {
     // Load transactions from localStorage on component mount
     const savedTransactions = localStorage.getItem('admin_transactions');
     if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
+      try {
+        const parsed = JSON.parse(savedTransactions);
+        if (Array.isArray(parsed)) {
+          setTransactions(parsed);
+        } else {
+          console.warn('Invalid transactions data in localStorage, clearing...');
+          localStorage.removeItem('admin_transactions');
+          setTransactions([]);
+        }
+      } catch (error) {
+        console.error('Error parsing saved transactions:', error);
+        localStorage.removeItem('admin_transactions');
+        setTransactions([]);
+      }
     }
 
     // Listen for new transactions
     const handleAddTransaction = (event) => {
+      if (!event.detail || !event.detail.hash) {
+        console.warn('Invalid transaction data received:', event.detail);
+        return;
+      }
+
       const newTransaction = {
         hash: event.detail.hash,
-        type: event.detail.type,
+        type: event.detail.type || 'Unknown Transaction',
         timestamp: Date.now(),
         status: 'pending',
-        details: event.detail.details,
-        polygonScanUrl: event.detail.polygonScanUrl,
+        details: event.detail.details || '',
+        polygonScanUrl: event.detail.polygonScanUrl || `https://amoy.polygonscan.com/tx/${event.detail.hash}`,
         blockNumber: null,
         gasUsed: null
       };
 
       setTransactions(prev => {
-        const updated = [newTransaction, ...prev].slice(0, 50);
+        const currentTransactions = Array.isArray(prev) ? prev : [];
+        const updated = [newTransaction, ...currentTransactions].slice(0, 50);
         localStorage.setItem('admin_transactions', JSON.stringify(updated));
         return updated;
       });
@@ -377,9 +396,15 @@ export default function TransactionMonitor() {
   };
 
   const updateTransactionStatus = (txHash, status, receiptData) => {
+    if (!txHash) {
+      console.warn('Cannot update transaction status: txHash is missing');
+      return;
+    }
+
     setTransactions(prev => {
-      const updated = prev.map(tx => 
-        tx.hash === txHash 
+      const currentTransactions = Array.isArray(prev) ? prev : [];
+      const updated = currentTransactions.map(tx => 
+        tx && tx.hash === txHash 
           ? { 
               ...tx, 
               status, 
@@ -388,7 +413,8 @@ export default function TransactionMonitor() {
               lastChecked: Date.now()
             }
           : tx
-      );
+      ).filter(Boolean); // Remove any null/undefined transactions
+      
       localStorage.setItem('admin_transactions', JSON.stringify(updated));
       return updated;
     });
@@ -433,14 +459,23 @@ export default function TransactionMonitor() {
   };
 
   const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    if (!timestamp || typeof timestamp !== 'number') {
+      return 'Invalid date';
+    }
+    
+    try {
+      return new Date(timestamp).toLocaleString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   const clearTransactions = () => {
@@ -477,22 +512,24 @@ export default function TransactionMonitor() {
           </div>
         ) : (
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {transactions.map((tx, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+            {transactions.filter(tx => tx && typeof tx === 'object').map((tx, index) => (
+              <div key={`${tx.hash || 'tx'}-${index}-${Date.now()}`} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-2">
-                    {getStatusIcon(tx.status)}
-                    <h3 className="font-semibold text-sm">{tx.type}</h3>
+                    {getStatusIcon(tx.status || 'unknown')}
+                    <h3 className="font-semibold text-sm">{tx.type || 'Unknown Transaction'}</h3>
                   </div>
                   <div className="flex items-center gap-2">
-                    {getStatusBadge(tx.status)}
-                    <button
-                      onClick={() => refreshTransaction(tx.hash)}
-                      disabled={loading}
-                      className="p-1 hover:bg-gray-200 rounded"
-                    >
-                      <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+                    {getStatusBadge(tx.status || 'unknown')}
+                    {tx.hash && (
+                      <button
+                        onClick={() => refreshTransaction(tx.hash)}
+                        disabled={loading}
+                        className="p-1 hover:bg-gray-200 rounded"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -501,28 +538,32 @@ export default function TransactionMonitor() {
                     <span className="text-gray-600">Transaction Hash:</span>
                     <div className="flex items-center gap-2">
                       <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                        {tx.hash.slice(0, 10)}...{tx.hash.slice(-8)}
+                        {tx.hash ? `${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}` : 'No hash available'}
                       </code>
-                      <button
-                        onClick={() => copyToClipboard(tx.hash)}
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </button>
-                      <a
-                        href={tx.polygonScanUrl || `https://amoy.polygonscan.com/tx/${tx.hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      {tx.hash && (
+                        <>
+                          <button
+                            onClick={() => copyToClipboard(tx.hash)}
+                            className="p-1 hover:bg-gray-200 rounded"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                          <a
+                            href={tx.polygonScanUrl || `https://amoy.polygonscan.com/tx/${tx.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 hover:bg-gray-200 rounded"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Time:</span>
-                    <span className="text-xs">{formatDate(tx.timestamp)}</span>
+                    <span className="text-xs">{tx.timestamp ? formatDate(tx.timestamp) : 'Unknown'}</span>
                   </div>
 
                   {tx.details && (

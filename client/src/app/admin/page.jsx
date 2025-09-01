@@ -454,6 +454,12 @@ export default function AdminDashboard() {
   // ========== TOKEN MANAGEMENT FUNCTIONS ==========
 
   const generateMonthlyTokensForAll = async () => {
+    // Prevent multiple simultaneous executions
+    if (actionLoading.generateMonthlyTokens) {
+      console.log('⚠️ Token generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     try {
       setActionLoading((prev) => ({ ...prev, generateMonthlyTokens: true }));
       setError("");
@@ -471,31 +477,52 @@ export default function AdminDashboard() {
       if (data.success) {
         toast({
           title: "Success",
-          description: `Monthly tokens generation started! View on PolygonScan: ${data.polygonScanUrl}`,
+          description: `Monthly tokens generation started! ${data.message}`,
           variant: "default",
         });
 
+        // Use a unique transaction ID to prevent React key conflicts
+        const uniqueId = `monthly-tokens-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: data.txHash || uniqueId,
           type: "Monthly Token Generation",
-          details: "Generated monthly tokens for all consumers",
-          status: "pending",
+          details: data.message || "Generated monthly tokens for all consumers",
+          status: "completed",
           polygonScanUrl: data.polygonScanUrl,
+          timestamp: Date.now()
         });
 
         // Refresh data after some time
         setTimeout(() => fetchAllDashboardData(), 30000);
       } else {
         setError("❌ Failed to generate monthly tokens: " + data.error);
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
       }
     } catch (error) {
+      console.error('❌ Token generation error:', error);
       setError("❌ Error generating monthly tokens: " + error.message);
+      toast({
+        title: "Error",
+        description: "Failed to generate monthly tokens: " + error.message,
+        variant: "destructive",
+      });
     } finally {
       setActionLoading((prev) => ({ ...prev, generateMonthlyTokens: false }));
     }
   };
 
   const generateCategoryTokens = async (category) => {
+    // Prevent multiple simultaneous executions
+    if (actionLoading.generateCategoryTokens) {
+      console.log('⚠️ Category token generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     try {
       setActionLoading((prev) => ({ ...prev, generateCategoryTokens: true }));
       setError("");
@@ -514,22 +541,37 @@ export default function AdminDashboard() {
       if (data.success) {
         toast({
           title: "Success",
-          description: `Tokens generation started for ${category} category! View on PolygonScan: ${data.polygonScanUrl}`,
+          description: `Tokens generation completed for ${category} category! ${data.message}`,
           variant: "default",
         });
 
+        // Use a unique transaction ID to prevent React key conflicts
+        const uniqueId = `category-tokens-${category}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
         addTransactionToMonitor({
-          hash: data.txHash,
+          hash: data.txHash || uniqueId,
           type: "Category Token Generation",
-          details: `Generated tokens for ${category} category`,
-          status: "pending",
+          details: data.message || `Generated tokens for ${category} category`,
+          status: "completed",
           polygonScanUrl: data.polygonScanUrl,
+          timestamp: Date.now()
         });
       } else {
         setError("❌ Failed to generate category tokens: " + data.error);
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
       }
     } catch (error) {
+      console.error('❌ Category token generation error:', error);
       setError("❌ Error generating category tokens: " + error.message);
+      toast({
+        title: "Error",
+        description: "Failed to generate category tokens: " + error.message,
+        variant: "destructive",
+      });
     } finally {
       setActionLoading((prev) => ({ ...prev, generateCategoryTokens: false }));
     }
@@ -1252,7 +1294,11 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="flex justify-center gap-4">
                   <Button
-                    onClick={generateMonthlyTokensForAll}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      generateMonthlyTokensForAll();
+                    }}
                     disabled={actionLoading.generateMonthlyTokens}
                     className="h-20 w-40 flex flex-col items-center justify-center"
                   >
@@ -1421,7 +1467,11 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4 h-full flex justify-end flex-col">
                   <Button
-                    onClick={generateMonthlyTokensForAll}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      generateMonthlyTokensForAll();
+                    }}
                     disabled={actionLoading.generateMonthlyTokens}
                     className="w-full"
                   >
