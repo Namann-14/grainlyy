@@ -618,6 +618,10 @@ export async function GET(request) {
         return await handleVerifyTokens(searchParams);
       case 'get-unclaimed-tokens':
         return await handleGetUnclaimedTokens(searchParams);
+      case 'get-expired-tokens':
+        return await handleGetExpiredTokens();
+      case 'get-expiring-soon-tokens':
+        return await handleGetExpiringSoonTokens();
       default:
         return NextResponse.json({ success: false, error: 'Invalid endpoint' }, { status: 400 });
     }
@@ -673,6 +677,12 @@ export async function POST(request) {
         return await handleBulkGenerateTokens();
       case 'expire-old-tokens':
         return await handleExpireOldTokens();
+      case 'expire-token':
+        return await handleExpireToken(body);
+      case 'get-expired-tokens':
+        return await handleGetExpiredTokens();
+      case 'get-expiring-soon-tokens':
+        return await handleGetExpiringSoonTokens();
       case 'pause-system':
         return await handlePauseSystem();
       case 'unpause-system':
@@ -2213,6 +2223,212 @@ async function handleExpireOldTokens() {
   }
 }
 
+// New token expiration functions using DCVToken contract
+async function handleExpireToken(body) {
+  try {
+    const { tokenId } = body;
+
+    if (!tokenId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Token ID is required'
+      }, { status: 400 });
+    }
+
+    console.log(`🗓️ Manually expiring token: ${tokenId}`);
+
+    // Use DCVToken contract directly
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const wallet = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+
+    const DCVTokenABI = require('../../../../abis/DCVToken.json');
+    const dcvTokenContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS || "0xC336869ac6f9D51888ab27615a086524C281D3Aa",
+      DCVTokenABI,
+      wallet
+    );
+
+    // First verify the token exists
+    const tokenExists = await dcvTokenContract.tokenExists(tokenId);
+    if (!tokenExists) {
+      return NextResponse.json({
+        success: false,
+        error: `Token ${tokenId} does not exist`
+      }, { status: 404 });
+    }
+
+    // Check if token is already expired
+    const isAlreadyExpired = await dcvTokenContract.isTokenExpired(tokenId);
+    if (isAlreadyExpired) {
+      return NextResponse.json({
+        success: false,
+        error: `Token ${tokenId} is already expired`
+      }, { status: 400 });
+    }
+
+    // Get token data for logging
+    const tokenData = await dcvTokenContract.getTokenData(tokenId);
+    console.log(`📋 Token details:`, {
+      tokenId: Number(tokenData.tokenId),
+      aadhaar: Number(tokenData.aadhaar),
+      category: tokenData.category,
+      issuedTime: new Date(Number(tokenData.issuedTime) * 1000).toISOString(),
+      expiryTime: new Date(Number(tokenData.expiryTime) * 1000).toISOString()
+    });
+
+    // Mark token as expired
+    const tx = await dcvTokenContract.markAsExpired(tokenId, {
+      gasLimit: 200000
+    });
+
+    console.log(`📤 Token expiration transaction sent: ${tx.hash}`);
+    const receipt = await tx.wait();
+
+    if (receipt.status === 1) {
+      console.log(`✅ Token ${tokenId} marked as expired successfully`);
+      
+      return NextResponse.json({
+        success: true,
+        txHash: tx.hash,
+        polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
+        message: `Token ${tokenId} has been marked as expired`,
+        tokenData: {
+          tokenId: Number(tokenData.tokenId),
+          aadhaar: Number(tokenData.aadhaar),
+          category: tokenData.category,
+          expiredAt: new Date().toISOString()
+        }
+      });
+    } else {
+      throw new Error('Transaction failed');
+    }
+  } catch (error) {
+    console.error('Expire token error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to expire token: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleGetExpiredTokens() {
+  try {
+    console.log('📋 Fetching all expired tokens...');
+
+    // Use DCVToken contract directly
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const DCVTokenABI = require('../../../../abis/DCVToken.json');
+    const dcvTokenContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS || "0xC336869ac6f9D51888ab27615a086524C281D3Aa",
+      DCVTokenABI,
+      provider
+    );
+
+    // Get all expired token IDs
+    const expiredTokenIds = await dcvTokenContract.getExpiredTokens();
+    console.log(`📊 Found ${expiredTokenIds.length} expired tokens`);
+
+    // Get detailed data for each expired token
+    const expiredTokens = [];
+    for (const tokenId of expiredTokenIds) {
+      try {
+        const tokenData = await dcvTokenContract.getTokenData(Number(tokenId));
+        expiredTokens.push({
+          tokenId: Number(tokenData.tokenId),
+          aadhaar: Number(tokenData.aadhaar),
+          assignedShopkeeper: tokenData.assignedShopkeeper,
+          rationAmount: Number(tokenData.rationAmount),
+          issuedTime: Number(tokenData.issuedTime),
+          expiryTime: Number(tokenData.expiryTime),
+          isClaimed: tokenData.isClaimed,
+          isExpired: tokenData.isExpired,
+          category: tokenData.category,
+          issuedDate: new Date(Number(tokenData.issuedTime) * 1000).toLocaleDateString(),
+          expiryDate: new Date(Number(tokenData.expiryTime) * 1000).toLocaleDateString(),
+          status: 'EXPIRED'
+        });
+      } catch (tokenError) {
+        console.warn(`Failed to get details for expired token ${tokenId}:`, tokenError.message);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      expiredTokens,
+      totalExpired: expiredTokens.length,
+      message: `Found ${expiredTokens.length} expired tokens`
+    });
+  } catch (error) {
+    console.error('Get expired tokens error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to get expired tokens: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
+async function handleGetExpiringSoonTokens() {
+  try {
+    console.log('⏰ Fetching tokens expiring soon...');
+
+    // Use DCVToken contract directly
+    const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+    const DCVTokenABI = require('../../../../abis/DCVToken.json');
+    const dcvTokenContract = new ethers.Contract(
+      process.env.NEXT_PUBLIC_DCVTOKEN_ADDRESS || "0xC336869ac6f9D51888ab27615a086524C281D3Aa",
+      DCVTokenABI,
+      provider
+    );
+
+    // Get tokens expiring soon
+    const expiringSoonTokenIds = await dcvTokenContract.getTokensExpiringSoon();
+    console.log(`📊 Found ${expiringSoonTokenIds.length} tokens expiring soon`);
+
+    // Get detailed data for each token
+    const expiringSoonTokens = [];
+    for (const tokenId of expiringSoonTokenIds) {
+      try {
+        const tokenData = await dcvTokenContract.getTokenData(Number(tokenId));
+        const daysUntilExpiry = Math.ceil((Number(tokenData.expiryTime) * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
+        
+        expiringSoonTokens.push({
+          tokenId: Number(tokenData.tokenId),
+          aadhaar: Number(tokenData.aadhaar),
+          assignedShopkeeper: tokenData.assignedShopkeeper,
+          rationAmount: Number(tokenData.rationAmount),
+          issuedTime: Number(tokenData.issuedTime),
+          expiryTime: Number(tokenData.expiryTime),
+          isClaimed: tokenData.isClaimed,
+          isExpired: tokenData.isExpired,
+          category: tokenData.category,
+          issuedDate: new Date(Number(tokenData.issuedTime) * 1000).toLocaleDateString(),
+          expiryDate: new Date(Number(tokenData.expiryTime) * 1000).toLocaleDateString(),
+          daysUntilExpiry,
+          status: daysUntilExpiry <= 0 ? 'EXPIRED' : daysUntilExpiry <= 3 ? 'EXPIRING_SOON' : 'ACTIVE'
+        });
+      } catch (tokenError) {
+        console.warn(`Failed to get details for expiring token ${tokenId}:`, tokenError.message);
+      }
+    }
+
+    // Sort by days until expiry (most urgent first)
+    expiringSoonTokens.sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+
+    return NextResponse.json({
+      success: true,
+      expiringSoonTokens,
+      totalExpiringSoon: expiringSoonTokens.length,
+      message: `Found ${expiringSoonTokens.length} tokens expiring soon`
+    });
+  } catch (error) {
+    console.error('Get expiring soon tokens error:', error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to get expiring soon tokens: ${error.message}`
+    }, { status: 500 });
+  }
+}
+
 async function handlePauseSystem() {
   try {
     if (!diamondContract) {
@@ -2283,18 +2499,25 @@ async function handleSetRationPrice(body) {
       throw new Error('Diamond contract not initialized');
     }
 
-    const { price } = body;
+    const { category, price } = body;
 
-    if (!price) {
-      throw new Error('Price is required');
+    if (!category || !price) {
+      throw new Error('Both category and price are required');
     }
 
-    console.log(`🚀 Setting ration price to: ${price}`);
+    // Validate category
+    const validCategories = ['BPL', 'APL', 'AAY', 'PHH'];
+    if (!validCategories.includes(category)) {
+      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    }
 
-    // Convert price to appropriate units (assuming contract expects in cents/wei)
-    const priceInCents = Math.round(parseFloat(price) * 100);
+    console.log(`🚀 Setting ration price for ${category} category to: ₹${price} per kg`);
 
-    const tx = await diamondContract.setRationPrice(priceInCents, {
+    // Convert price to appropriate units (assuming contract expects in wei - 1 INR = 10^18 wei for calculations)
+    // For simplicity, let's assume contract expects price in paisa (1 INR = 100 paisa)
+    const priceInPaisa = Math.round(parseFloat(price) * 100);
+
+    const tx = await diamondContract.setRationPrice(category, priceInPaisa, {
       gasLimit: 300000
     });
 
@@ -2307,7 +2530,7 @@ async function handleSetRationPrice(body) {
       success: true,
       txHash: tx.hash,
       polygonScanUrl: `https://amoy.polygonscan.com/tx/${tx.hash}`,
-      message: `Ration price set to ₹${price} successfully.`
+      message: `Ration price for ${category} category set to ₹${price} per kg successfully.`
     });
   } catch (error) {
     console.error('Set ration price error:', error);

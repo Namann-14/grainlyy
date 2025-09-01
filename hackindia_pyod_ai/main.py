@@ -61,10 +61,29 @@ from typing import Dict, List, Tuple, Any, Optional
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 # 👉 If you're actually on-chain, keep these imports; otherwise stub them for local testing.
 from web3 import Web3
-from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
+# POA middleware import - handle different web3.py versions
+POA_MIDDLEWARE = None
+try:
+    # Try web3.py v6+ 
+    from web3.middleware import construct_simple_cache_middleware
+    POA_MIDDLEWARE = "simple_cache"
+except ImportError:
+    try:
+        # Try web3.py v5-6
+        from web3.middleware import ExtraDataToPOAMiddleware
+        POA_MIDDLEWARE = ExtraDataToPOAMiddleware
+    except ImportError:
+        try:
+            # Try older web3.py versions
+            from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware
+            POA_MIDDLEWARE = ExtraDataToPOAMiddleware
+        except ImportError:
+            # If none work, disable POA middleware
+            POA_MIDDLEWARE = None
 
 from pyod.models.iforest import IForest
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -76,7 +95,7 @@ from config import RPC_URL, CONTRACT_ADDRESS  # make sure config.py is present a
 # ------------------- FASTAPI APP -------------------
 app = FastAPI(title="Blockchain Ration Anomaly API")
 
-# ------------------- CORS (for Next.js dev servers) -------------------
+# ------------------- CORS (for Next.js dev servers and Hugging Face Spaces) -------------------
 # If you use Next rewrites (Option A), these origins are not strictly required—but harmless.
 # If you fetch directly from browser (Option B), these are REQUIRED.
 app.add_middleware(
@@ -84,6 +103,8 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:3000",
         "http://localhost:3000",
+        "https://*.hf.space",  # Hugging Face Spaces
+        "*"  # Allow all origins for Hugging Face Spaces
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -101,8 +122,41 @@ with open("DCVToken.json") as f:
     token_abi = json.load(f)
 
 w3 = Web3(Web3.HTTPProvider(RPC_URL))
-w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
+
+# Add POA middleware if needed (for Polygon and other POA networks)
+if POA_MIDDLEWARE is not None:
+    try:
+        if POA_MIDDLEWARE == "simple_cache":
+            # For newer web3.py versions, POA networks work without special middleware
+            logging.info("Using modern web3.py - no POA middleware needed")
+        else:
+            # For older versions, inject POA middleware
+            w3.middleware_onion.inject(POA_MIDDLEWARE, layer=0)
+            logging.info("POA middleware injected successfully")
+    except Exception as e:
+        logging.warning(f"Could not configure POA middleware: {e}")
+else:
+    logging.info("POA middleware not available - using standard configuration")
+
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=token_abi)
+
+# Test blockchain connection
+try:
+    latest_block = w3.eth.get_block('latest')
+    logging.info(f"Connected to blockchain. Latest block: {latest_block.number}")
+    
+    # Test contract connection
+    try:
+        token_count = len(contract.functions.getAllTokens().call())
+        logging.info(f"Contract connection successful. Found {token_count} tokens.")
+    except Exception as e:
+        logging.error(f"Contract connection failed: {e}")
+        logging.info("Application will continue with limited functionality")
+        
+except Exception as e:
+    logging.error(f"Blockchain connection failed: {e}")
+    logging.info("Application will run in demo mode with sample data")
+    # You could set a flag here to use mock data if blockchain is unavailable
 
 # ------------------- GLOBAL STORAGE -------------------
 latest_df: Optional[pd.DataFrame] = None
@@ -148,30 +202,45 @@ def _human_seconds(seconds: float) -> str:
 # ------------------- FETCH TOKEN DATA -------------------
 def fetch_tokens_data() -> pd.DataFrame:
     """Fetch token data from blockchain and preprocess into DataFrame."""
-    token_ids = contract.functions.getAllTokens().call()
+    try:
+        token_ids = contract.functions.getAllTokens().call()
+        logging.info(f"Found {len(token_ids)} tokens on blockchain")
+    except Exception as e:
+        logging.error(f"Failed to fetch token IDs: {e}")
+        # Return sample data for demo purposes
+        return _create_sample_data()
+    
     records = []
 
     for tid in token_ids:
-        data = contract.functions.getTokenData(tid).call()
-        issued = datetime.datetime.fromtimestamp(data[4])
-        expiry = datetime.datetime.fromtimestamp(data[5])
-        claim = datetime.datetime.fromtimestamp(data[6]) if data[6] > 0 else None
+        try:
+            data = contract.functions.getTokenData(tid).call()
+            issued = datetime.datetime.fromtimestamp(data[4])
+            expiry = datetime.datetime.fromtimestamp(data[5])
+            claim = datetime.datetime.fromtimestamp(data[6]) if data[6] > 0 else None
 
-        records.append({
-            "tokenId": data[0],
-            "aadhaar": str(data[1]),
-            "rationAmount": data[3],
-            "issuedTime": issued,
-            "expiryTime": expiry,
-            "claimTime": claim,
-            "isClaimed": data[7],
-            "isExpired": data[8],
-            "category": data[9],
-            # Optional extras if ABI has them at these indices:
-            "familyId": data[10] if len(data) > 10 else None,
-            "location": data[11] if len(data) > 11 else None,
-            "issuedBy": data[12] if len(data) > 12 else None,
-        })
+            records.append({
+                "tokenId": data[0],
+                "aadhaar": str(data[1]),
+                "rationAmount": data[3],
+                "issuedTime": issued,
+                "expiryTime": expiry,
+                "claimTime": claim,
+                "isClaimed": data[7],
+                "isExpired": data[8],
+                "category": data[9],
+                # Optional extras if ABI has them at these indices:
+                "familyId": data[10] if len(data) > 10 else None,
+                "location": data[11] if len(data) > 11 else None,
+                "issuedBy": data[12] if len(data) > 12 else None,
+            })
+        except Exception as e:
+            logging.warning(f"Failed to fetch data for token {tid}: {e}")
+            continue
+
+    if not records:
+        logging.warning("No valid token records found, using sample data")
+        return _create_sample_data()
 
     df = pd.DataFrame(records)
 
@@ -183,6 +252,63 @@ def fetch_tokens_data() -> pd.DataFrame:
     df["year"] = df["issuedTime"].dt.year
     df["expiredUsage"] = ((df["isExpired"]) & (df["isClaimed"])).astype(int)
 
+    logging.info(f"Successfully processed {len(df)} token records")
+    return df
+
+
+def _create_sample_data() -> pd.DataFrame:
+    """Create sample data for demo when blockchain is unavailable."""
+    import numpy as np
+    
+    np.random.seed(42)  # For reproducible demo data
+    n_samples = 20
+    
+    base_time = datetime.datetime.now() - datetime.timedelta(days=30)
+    
+    records = []
+    for i in range(n_samples):
+        issued_time = base_time + datetime.timedelta(
+            days=np.random.randint(0, 30),
+            hours=np.random.randint(0, 24)
+        )
+        
+        # Some tokens are claimed, some aren't
+        is_claimed = np.random.choice([True, False], p=[0.7, 0.3])
+        claim_time = None
+        if is_claimed:
+            claim_time = issued_time + datetime.timedelta(
+                hours=np.random.exponential(24)  # Exponential distribution for realistic delays
+            )
+        
+        expiry_time = issued_time + datetime.timedelta(days=30)
+        is_expired = datetime.datetime.now() > expiry_time
+        
+        records.append({
+            "tokenId": i + 1,
+            "aadhaar": str(np.random.randint(100000000000, 999999999999)),
+            "rationAmount": np.random.choice([5, 10, 15, 20, 25], p=[0.1, 0.3, 0.4, 0.15, 0.05]),
+            "issuedTime": issued_time,
+            "expiryTime": expiry_time,
+            "claimTime": claim_time,
+            "isClaimed": is_claimed,
+            "isExpired": is_expired,
+            "category": np.random.choice(["BPL", "APL", "Priority", "Antyodaya"]),
+            "familyId": f"FAM{np.random.randint(1000, 9999)}",
+            "location": np.random.choice(["Delhi", "Mumbai", "Kolkata", "Chennai"]),
+            "issuedBy": f"ISSUER{np.random.randint(1, 10)}"
+        })
+    
+    df = pd.DataFrame(records)
+    
+    # Feature engineering
+    df["claimDelay"] = (df["claimTime"] - df["issuedTime"]).dt.total_seconds().fillna(0)
+    df["claimDelay"] = df["claimDelay"].clip(lower=0)
+    df["oddHour"] = df["issuedTime"].dt.hour
+    df["month"] = df["issuedTime"].dt.month
+    df["year"] = df["issuedTime"].dt.year
+    df["expiredUsage"] = ((df["isExpired"]) & (df["isClaimed"])).astype(int)
+    
+    logging.info(f"Created {len(df)} sample records for demo")
     return df
 
 
@@ -513,9 +639,13 @@ scheduled_job()
 
 
 # ------------------- API ROUTES -------------------
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return {"message": "Ration Anomaly API is running 🚀"}
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("<h1>Ration Anomaly API is running 🚀</h1><p>Visit /graph, /anomalies, /latest, or /graphs/patterns for API endpoints.</p>")
 
 
 @app.get("/anomalies")

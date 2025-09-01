@@ -47,6 +47,8 @@ import {
   Link2,
   Copy,
   ExternalLink,
+  XCircle,
+  Search,
 } from "lucide-react";
 import {
   Card,
@@ -126,6 +128,14 @@ export default function AdminDashboard() {
   const [emergencyCases, setEmergencyCases] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
+  // Token Management States
+  const [expiredTokens, setExpiredTokens] = useState([]);
+  const [expiringSoonTokens, setExpiringSoonTokens] = useState([]);
+  const [selectedTokenToExpire, setSelectedTokenToExpire] = useState(null);
+  
+  // Individual token expiration states
+  const [expireTokenId, setExpireTokenId] = useState("");
+
   // UI States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -145,10 +155,14 @@ export default function AdminDashboard() {
     bulkGenerateTokens: false,
     assigningAgent: false,
     updatingSystem: false,
+    expireToken: false,
+    getExpired: false,
+    getExpiringSoon: false,
   });
 
   // Form States
   const [priceSettings, setPriceSettings] = useState({
+    category: "BPL", // Default category
     rationPrice: "",
     subsidyPercentage: "",
   });
@@ -178,6 +192,14 @@ export default function AdminDashboard() {
     message: "",
     priority: "normal",
     showDialog: false,
+  });
+
+  // Token Expiration Form States
+  const [tokenExpirationForm, setTokenExpirationForm] = useState({
+    tokenId: "",
+    showExpireDialog: false,
+    showExpiredTokensDialog: false,
+    showExpiringSoonDialog: false,
   });
 
   // ========== BACKEND API INITIALIZATION ==========
@@ -663,6 +685,89 @@ export default function AdminDashboard() {
     }
   };
 
+  // ========== TOKEN EXPIRATION FUNCTIONS ==========
+
+  const expireTokenById = async () => {
+    try {
+      setActionLoading((prev) => ({ ...prev, expireToken: true }));
+      setError("");
+
+      if (!expireTokenId) {
+        setError("❌ Please enter a token ID to expire");
+        return;
+      }
+
+      const response = await fetch("/api/admin?endpoint=expire-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tokenId: expireTokenId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess("✅ Token expired successfully!");
+        setExpireTokenId("");
+      } else {
+        setError("❌ Failed to expire token: " + data.error);
+      }
+    } catch (error) {
+      setError("❌ Error expiring token: " + error.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, expireToken: false }));
+    }
+  };
+
+  const getExpiredTokens = async () => {
+    try {
+      setActionLoading((prev) => ({ ...prev, getExpired: true }));
+      setError("");
+
+      const response = await fetch("/api/admin?endpoint=get-expired-tokens", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setExpiredTokens(data.expiredTokens || []);
+        setSuccess(`✅ Found ${data.expiredTokens?.length || 0} expired tokens`);
+      } else {
+        setError("❌ Failed to get expired tokens: " + data.error);
+      }
+    } catch (error) {
+      setError("❌ Error getting expired tokens: " + error.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, getExpired: false }));
+    }
+  };
+
+  const getExpiringSoonTokens = async () => {
+    try {
+      setActionLoading((prev) => ({ ...prev, getExpiringSoon: true }));
+      setError("");
+
+      const response = await fetch("/api/admin?endpoint=get-expiring-soon-tokens", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setExpiringSoonTokens(data.expiringSoonTokens || []);
+        setSuccess(`✅ Found ${data.expiringSoonTokens?.length || 0} tokens expiring soon`);
+      } else {
+        setError("❌ Failed to get expiring soon tokens: " + data.error);
+      }
+    } catch (error) {
+      setError("❌ Error getting expiring soon tokens: " + error.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, getExpiringSoon: false }));
+    }
+  };
+
   // ========== SYSTEM MANAGEMENT FUNCTIONS ==========
 
   const pauseSystem = async () => {
@@ -753,10 +858,18 @@ export default function AdminDashboard() {
         return;
       }
 
+      if (!priceSettings.category) {
+        setError("❌ Please select a category");
+        return;
+      }
+
       const response = await fetch("/api/admin?endpoint=set-ration-price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ price: priceSettings.rationPrice }),
+        body: JSON.stringify({ 
+          category: priceSettings.category,
+          price: priceSettings.rationPrice 
+        }),
       });
 
       const data = await response.json();
@@ -764,14 +877,14 @@ export default function AdminDashboard() {
       if (data.success) {
         toast({
           title: "Success",
-          description: `Ration price updated to ₹${priceSettings.rationPrice}! View on PolygonScan: ${data.polygonScanUrl}`,
+          description: `Ration price for ${priceSettings.category} updated to ₹${priceSettings.rationPrice}! View on PolygonScan: ${data.polygonScanUrl}`,
           variant: "default",
         });
 
         addTransactionToMonitor({
           hash: data.txHash,
           type: "Set Ration Price",
-          details: `Updated ration price to ₹${priceSettings.rationPrice}`,
+          details: `Updated ${priceSettings.category} ration price to ₹${priceSettings.rationPrice}`,
           status: "pending",
           polygonScanUrl: data.polygonScanUrl,
         });
@@ -1552,6 +1665,138 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Token Expiration Management */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              {/* Manual Token Expiration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Manual Token Expiration</CardTitle>
+                  <CardDescription>
+                    Expire specific tokens by ID
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Token ID</label>
+                    <Input
+                      type="number"
+                      placeholder="Enter token ID"
+                      value={expireTokenId}
+                      onChange={(e) => setExpireTokenId(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    onClick={expireTokenById}
+                    disabled={actionLoading.expireToken || !expireTokenId}
+                    className="w-full"
+                    variant="destructive"
+                  >
+                    {actionLoading.expireToken ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Expire Token
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Expired Tokens */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Expired Tokens</CardTitle>
+                  <CardDescription>
+                    View all expired tokens
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button
+                    onClick={getExpiredTokens}
+                    disabled={actionLoading.getExpired}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {actionLoading.getExpired ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Get Expired Tokens
+                  </Button>
+                  {expiredTokens && expiredTokens.length > 0 && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                      <p className="text-sm font-medium text-red-800">
+                        Found {expiredTokens.length} expired tokens
+                      </p>
+                      <div className="mt-2 max-h-32 overflow-y-auto">
+                        {expiredTokens.slice(0, 5).map((token, index) => (
+                          <div key={index} className="text-xs text-red-700 mb-1 p-1 bg-red-100 rounded">
+                            <div>Token ID: {token.tokenId}</div>
+                            <div>Aadhaar: {token.aadhaar}</div>
+                            <div>Category: {token.category}</div>
+                            <div>Expired: {token.expiryDate}</div>
+                          </div>
+                        ))}
+                        {expiredTokens.length > 5 && (
+                          <div className="text-xs text-red-600 mt-1">
+                            ... and {expiredTokens.length - 5} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Expiring Soon Tokens */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Expiring Soon</CardTitle>
+                  <CardDescription>
+                    Tokens expiring within 7 days
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button
+                    onClick={getExpiringSoonTokens}
+                    disabled={actionLoading.getExpiringSoon}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {actionLoading.getExpiringSoon ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                    )}
+                    Get Expiring Soon
+                  </Button>
+                  {expiringSoonTokens && expiringSoonTokens.length > 0 && (
+                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                      <p className="text-sm font-medium text-yellow-800">
+                        Found {expiringSoonTokens.length} tokens expiring soon
+                      </p>
+                      <div className="mt-2 max-h-32 overflow-y-auto">
+                        {expiringSoonTokens.slice(0, 5).map((token, index) => (
+                          <div key={index} className="text-xs text-yellow-700 mb-1 p-1 bg-yellow-100 rounded">
+                            <div>Token ID: {token.tokenId}</div>
+                            <div>Aadhaar: {token.aadhaar}</div>
+                            <div>Category: {token.category}</div>
+                            <div>Expires: {token.expiryDate}</div>
+                            <div>Days left: {token.daysUntilExpiry}</div>
+                          </div>
+                        ))}
+                        {expiringSoonTokens.length > 5 && (
+                          <div className="text-xs text-yellow-600 mt-1">
+                            ... and {expiringSoonTokens.length - 5} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* User Management Tab */}
@@ -1799,10 +2044,36 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-sm font-medium">
-                      Ration Price (₹ per kg)
+                      Ration Card Category
+                    </label>
+                    <Select
+                      value={priceSettings.category}
+                      onValueChange={(value) =>
+                        setPriceSettings((prev) => ({
+                          ...prev,
+                          category: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BPL">BPL (Below Poverty Line)</SelectItem>
+                        <SelectItem value="APL">APL (Above Poverty Line)</SelectItem>
+                        <SelectItem value="AAY">AAY (Antyodaya Anna Yojana)</SelectItem>
+                        <SelectItem value="PHH">PHH (Priority Households)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">
+                      Ration Price (₹ per kg) for {priceSettings.category}
                     </label>
                     <Input
                       type="number"
+                      step="0.01"
                       value={priceSettings.rationPrice}
                       onChange={(e) =>
                         setPriceSettings((prev) => ({
@@ -1810,7 +2081,7 @@ export default function AdminDashboard() {
                           rationPrice: e.target.value,
                         }))
                       }
-                      placeholder="Enter price"
+                      placeholder="Enter price per kg"
                     />
                   </div>
 
@@ -1842,7 +2113,7 @@ export default function AdminDashboard() {
                       ) : (
                         <DollarSign className="h-4 w-4 mr-2" />
                       )}
-                      Set Price
+                      Set {priceSettings.category} Price
                     </Button>
 
                     <Button
