@@ -183,82 +183,40 @@ export default function DeliveryDashboard() {
     try {
       console.log("🚚 Fetching delivery agent data for:", agentAddress);
 
-      // Get delivery agent info - try API first for better reliability
+      // Get delivery agent info using the correct function
       try {
-        console.log("📋 Fetching agent info via API...");
-        const response = await fetch('/api/delivery-agent-info', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: agentAddress })
+        console.log("📋 Calling getDeliveryAgentDashboard...");
+        const agentData = await contractInstance.getDeliveryAgentDashboard(agentAddress);
+        console.log("📋 Raw agent data:", agentData);
+
+        const parsedAgentInfo = {
+          agentAddress: agentData.agentAddress || agentData[0] || agentAddress,
+          name: agentData.agentName || agentData[1] || "Delivery Agent",
+          mobile: agentData.mobile || agentData[2] || "Not Set",
+          registrationTime: Number(agentData.registrationTime || agentData[3]) || 0,
+          assignedShopkeeper: agentData.assignedShopkeeper || agentData[4] || ethers.ZeroAddress,
+          totalDeliveries: Number(agentData.totalDeliveries || agentData[5]) || 0,
+          isActive: Boolean(agentData.isActive !== undefined ? agentData.isActive : agentData[6]) !== false
+        };
+
+        console.log("✅ Parsed agent info from blockchain:", parsedAgentInfo);
+        setAgentInfo(parsedAgentInfo);
+      } catch (agentErr) {
+        console.warn('⚠️ getDeliveryAgentDashboard failed:', agentErr.message);
+        
+        // Fallback: Agent might not be registered
+        setAgentInfo({
+          agentAddress: agentAddress,
+          name: "Unregistered Agent",
+          mobile: "Not Registered",
+          registrationTime: 0,
+          assignedShopkeeper: ethers.ZeroAddress,
+          totalDeliveries: 0,
+          isActive: false
         });
-
-        const result = await response.json();
-        if (result.success && result.agent) {
-          console.log("✅ Got agent info from API:", result.agent);
-          setAgentInfo(result.agent);
-        } else {
-          throw new Error(result.error || "API call failed");
-        }
-      } catch (apiErr) {
-        console.warn('⚠️ API call failed, trying direct blockchain call:', apiErr.message);
-
-        // Fallback to direct blockchain call
-        try {
-          console.log("📋 Calling getDeliveryAgentInfo directly...");
-          const agentData = await contractInstance.getDeliveryAgentInfo(agentAddress);
-          console.log("📋 Raw agent data:", agentData);
-
-          const parsedAgentInfo = {
-            agentAddress: agentData.agentAddress || agentData[0] || agentAddress,
-            name: agentData.agentName || agentData.name || agentData[1] || "Delivery Agent",
-            mobile: agentData.mobile || agentData[2] || "Not Set",
-            registrationTime: Number(agentData.registrationTime || agentData[3]) || 0,
-            assignedShopkeeper: agentData.assignedShopkeeper || agentData[4] || ethers.ZeroAddress,
-            totalDeliveries: Number(agentData.totalDeliveries || agentData[5]) || 0,
-            totalPickupsAssigned: Number(agentData.totalPickupsAssigned || agentData[6]) || 0,
-            isActive: Boolean(agentData.isActive !== undefined ? agentData.isActive : agentData[7]) !== false
-          };
-
-          console.log("✅ Parsed agent info from blockchain:", parsedAgentInfo);
-          setAgentInfo(parsedAgentInfo);
-        } catch (blockchainErr) {
-          console.warn('⚠️ Direct blockchain call also failed:', blockchainErr.message);
-
-          // Final fallback - check if agent is registered by trying to get their pickups
-          try {
-            console.log("🔍 Checking if agent exists by testing pickup functions...");
-            await contractInstance.getMyPickups();
-
-            // If we can call getMyPickups without error, agent exists
-            setAgentInfo({
-              agentAddress: agentAddress,
-              name: `Delivery Agent ${agentAddress.slice(-4).toUpperCase()}`,
-              mobile: "Contact Admin for Details",
-              registrationTime: Math.floor(Date.now() / 1000),
-              assignedShopkeeper: ethers.ZeroAddress,
-              totalDeliveries: 0,
-              totalPickupsAssigned: 0,
-              isActive: true
-            });
-            console.log("✅ Agent exists but details not available");
-          } catch (finalErr) {
-            console.error('❌ Agent verification failed:', finalErr.message);
-            // Agent might not be registered
-            setAgentInfo({
-              agentAddress: agentAddress,
-              name: "Unregistered Agent",
-              mobile: "Not Registered",
-              registrationTime: 0,
-              assignedShopkeeper: ethers.ZeroAddress,
-              totalDeliveries: 0,
-              totalPickupsAssigned: 0,
-              isActive: false
-            });
-          }
-        }
       }
 
-      // Get my pickups from blockchain
+      // Get all my pickups from blockchain
       let allPickups = [];
       try {
         console.log("📦 Calling getMyPickups...");
@@ -266,7 +224,7 @@ export default function DeliveryDashboard() {
         console.log("📦 Raw pickups data:", pickups);
 
         if (pickups && Array.isArray(pickups)) {
-          allPickups = pickups.map(pickup => ({
+          allPickups = pickups.map((pickup, index) => ({
             pickupId: Number(pickup.pickupId || pickup[0]),
             deliveryAgent: pickup.deliveryAgent || pickup[1],
             shopkeeper: pickup.shopkeeper || pickup[2],
@@ -283,58 +241,22 @@ export default function DeliveryDashboard() {
           }));
         }
 
-        console.log("✅ Parsed pickups:", allPickups);
+        console.log("✅ Parsed all pickups:", allPickups);
         setMyPickups(allPickups);
       } catch (err) {
-        console.warn('⚠️ getMyPickups not available:', err.message);
-
-        // Create mock data for demonstration
-        const mockPickups = [
-          {
-            pickupId: 1,
-            deliveryAgent: agentAddress,
-            shopkeeper: "0x1234567890123456789012345678901234567890",
-            rationAmount: 50,
-            category: "BPL",
-            status: 1, // Picked up
-            assignedTime: Math.floor(Date.now() / 1000) - 7200,
-            pickedUpTime: Math.floor(Date.now() / 1000) - 3600,
-            deliveredTime: 0,
-            confirmedTime: 0,
-            pickupLocation: "Central Warehouse",
-            deliveryInstructions: "Handle with care",
-            isCompleted: false
-          },
-          {
-            pickupId: 2,
-            deliveryAgent: agentAddress,
-            shopkeeper: "0x0987654321098765432109876543210987654321",
-            rationAmount: 75,
-            category: "APL",
-            status: 0, // Assigned
-            assignedTime: Math.floor(Date.now() / 1000) - 1800,
-            pickedUpTime: 0,
-            deliveredTime: 0,
-            confirmedTime: 0,
-            pickupLocation: "District Warehouse",
-            deliveryInstructions: "Call before delivery",
-            isCompleted: false
-          }
-        ];
-
-        console.log("📝 Using mock pickups data");
-        allPickups = mockPickups;
-        setMyPickups(mockPickups);
+        console.warn('⚠️ getMyPickups failed:', err.message);
+        setMyPickups([]);
       }
 
-      // Get pending pickups (status 0 = assigned)
+      // Get pending pickups using the correct function
+      let pendingPickupsData = [];
       try {
         console.log("⏳ Calling getMyPendingPickups...");
-        const pendingPickupsData = await contractInstance.getMyPendingPickups();
-        console.log("⏳ Raw pending pickups:", pendingPickupsData);
+        const pendingPickups = await contractInstance.getMyPendingPickups();
+        console.log("⏳ Raw pending pickups:", pendingPickups);
 
-        if (pendingPickupsData && Array.isArray(pendingPickupsData)) {
-          const parsedPendingPickups = pendingPickupsData.map(pickup => ({
+        if (pendingPickups && Array.isArray(pendingPickups)) {
+          pendingPickupsData = pendingPickups.map((pickup, index) => ({
             pickupId: Number(pickup.pickupId || pickup[0]),
             deliveryAgent: pickup.deliveryAgent || pickup[1],
             shopkeeper: pickup.shopkeeper || pickup[2],
@@ -349,70 +271,34 @@ export default function DeliveryDashboard() {
             deliveryInstructions: pickup.deliveryInstructions || pickup[11] || "",
             isCompleted: Boolean(pickup.isCompleted !== undefined ? pickup.isCompleted : pickup[12])
           }));
-          setPendingPickups(parsedPendingPickups);
-        } else {
-          // Filter from all pickups
-          const pendingFromAll = allPickups.filter(p => p.status === 0);
-          setPendingPickups(pendingFromAll);
         }
+
+        console.log("✅ Parsed pending pickups:", pendingPickupsData);
+        setPendingPickups(pendingPickupsData);
       } catch (err) {
-        console.warn('⚠️ getMyPendingPickups not available:', err.message);
-        // Filter from all pickups for pending ones (status 0)
-        const pendingFromAll = allPickups.filter(p => p.status === 0);
-        setPendingPickups(pendingFromAll);
+        console.warn('⚠️ getMyPendingPickups failed:', err.message);
+        setPendingPickups([]);
       }
 
-      // Get pending deliveries (status 1 = picked up, ready for delivery)
-      try {
-        console.log("🚛 Calling getMyPendingDeliveries...");
-        const pendingDeliveriesData = await contractInstance.getMyPendingDeliveries();
-        console.log("🚛 Raw pending deliveries:", pendingDeliveriesData);
+      // Filter pending deliveries from all pickups (status 1 = picked up, ready for delivery)
+      const pendingDeliveriesData = allPickups.filter(pickup => 
+        pickup.status === 1 && !pickup.isCompleted
+      );
+      
+      console.log("🚛 Pending deliveries:", pendingDeliveriesData);
+      setPendingDeliveries(pendingDeliveriesData);
 
-        if (pendingDeliveriesData && Array.isArray(pendingDeliveriesData)) {
-          const parsedPendingDeliveries = pendingDeliveriesData.map(pickup => ({
-            pickupId: Number(pickup.pickupId || pickup[0]),
-            deliveryAgent: pickup.deliveryAgent || pickup[1],
-            shopkeeper: pickup.shopkeeper || pickup[2],
-            rationAmount: Number(pickup.rationAmount || pickup[3]),
-            category: pickup.category || pickup[4] || "Unknown",
-            status: Number(pickup.status || pickup[5]),
-            assignedTime: Number(pickup.assignedTime || pickup[6]),
-            pickedUpTime: Number(pickup.pickedUpTime || pickup[7]),
-            deliveredTime: Number(pickup.deliveredTime || pickup[8]),
-            confirmedTime: Number(pickup.confirmedTime || pickup[9]),
-            pickupLocation: pickup.pickupLocation || pickup[10] || "Unknown Location",
-            deliveryInstructions: pickup.deliveryInstructions || pickup[11] || "",
-            isCompleted: Boolean(pickup.isCompleted !== undefined ? pickup.isCompleted : pickup[12])
-          }));
-          setPendingDeliveries(parsedPendingDeliveries);
-        } else {
-          // Filter from all pickups
-          const deliveriesFromAll = allPickups.filter(p => p.status === 1 || p.status === 2);
-          setPendingDeliveries(deliveriesFromAll);
-        }
-      } catch (err) {
-        console.warn('⚠️ getMyPendingDeliveries not available:', err.message);
-        // Filter from all pickups for deliveries (status 1 or 2)
-        const deliveriesFromAll = allPickups.filter(p => p.status === 1 || p.status === 2);
-        setPendingDeliveries(deliveriesFromAll);
-      }
-
-      // Calculate statistics based on actual data
-      const totalPickups = allPickups.length;
-      const completedPickups = allPickups.filter(p => p.isCompleted || p.status >= 4).length;
-      const pendingPickupsCount = allPickups.filter(p => p.status === 0).length;
-      const pendingDeliveriesCount = allPickups.filter(p => p.status === 1 || p.status === 2).length;
-
-      const calculatedStats = {
-        totalPickups,
-        completedPickups,
-        pendingPickups: pendingPickupsCount,
-        pendingDeliveries: pendingDeliveriesCount,
-        completionRate: totalPickups > 0 ? ((completedPickups / totalPickups) * 100).toFixed(1) : '0'
+      // Calculate statistics
+      const stats = {
+        totalPickups: allPickups.length,
+        pendingPickups: pendingPickupsData.length,
+        pendingDeliveries: pendingDeliveriesData.length,
+        completedDeliveries: allPickups.filter(p => p.isCompleted).length,
+        totalRationAmount: allPickups.reduce((sum, p) => sum + p.rationAmount, 0)
       };
 
-      console.log("📊 Calculated statistics:", calculatedStats);
-      setStatistics(calculatedStats);
+      console.log("📊 Statistics:", stats);
+      setStatistics(stats);
 
     } catch (error) {
       console.error('❌ Error fetching dashboard data:', error);

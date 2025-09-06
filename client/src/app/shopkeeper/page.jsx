@@ -479,107 +479,103 @@ export default function ShopkeeperDashboard() {
   };
 
   // Action functions for Indian PDS workflow
-  const markRationDelivered = async (aadhaar, tokenId) => {
+  const confirmRationReceipt = async (pickupId) => {
     try {
       setLoading(true);
       setError("");
 
-      console.log("🎯 Marking ration delivered for Aadhaar:", aadhaar, "TokenId:", tokenId);
-
-      // Use our backend API instead of direct blockchain calls
-      const response = await fetch('/api/admin?endpoint=mark-token-claimed', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          aadhaar: aadhaar.toString(),
-          tokenId: tokenId.toString()
-        })
-      });
-
-      const result = await response.json();
-      console.log("📝 Mark token claimed response:", result);
-
-      if (result.success) {
-        setSuccess(`✅ Ration delivery marked successfully! Token ${tokenId} claimed for consumer ${aadhaar}.`);
-        console.log("✅ Token marked as claimed:", result.txHash);
-
-        // Generate delivery receipt
-        try {
-          console.log("🧾 Generating delivery receipt...");
-          const receiptResponse = await fetch('/api/admin?endpoint=generate-delivery-receipt', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tokenId: tokenId.toString(),
-              aadhaar: aadhaar.toString(),
-              shopkeeperAddress: account,
-              transactionHash: result.txHash,
-              rationAmount: 5, // Default amount, could be dynamic
-              category: 'Standard' // Default category, could be dynamic
-            })
-          });
-
-          const receiptResult = await receiptResponse.json();
-          if (receiptResult.success && receiptResult.receipt) {
-            console.log("✅ Receipt generated:", receiptResult.receipt.receiptId);
-            setGeneratedReceipt(receiptResult.receipt);
-            setShowReceiptModal(true);
-          } else {
-            console.warn("⚠️ Receipt generation failed:", receiptResult.error);
-          }
-        } catch (receiptError) {
-          console.error("❌ Receipt generation error:", receiptError);
-        }
-
-        // Refresh dashboard data AND close token modal
-        if (contract) {
-          console.log("🔄 Refreshing dashboard data after delivery...");
-          
-          // Small delay to ensure blockchain state is updated
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          await fetchDashboardData(contract, account);
-          await refreshDashboard();
-
-          // Also refresh unclaimed tokens for the specific consumer
-          if (selectedConsumerTokens) {
-            console.log("🔄 Refreshing consumer tokens...");
-            try {
-              const includeClaimedTokens = selectedConsumerTokens.includeClaimedTokens || false;
-              const updatedTokens = await checkUnclaimedTokens(selectedConsumerTokens.aadhaar, true, includeClaimedTokens);
-              if (updatedTokens && updatedTokens.length === 0) {
-                // No more tokens, close modal
-                setShowTokensModal(false);
-                setSelectedConsumerTokens(null);
-                const tokenType = includeClaimedTokens ? "tokens" : "unclaimed tokens";
-                setSuccess(`✅ All ${tokenType} delivered! Modal closed.`);
-              } else if (updatedTokens && updatedTokens.length > 0) {
-                // Update the modal with new tokens
-                setSelectedConsumerTokens({
-                  aadhaar: selectedConsumerTokens.aadhaar,
-                  tokens: updatedTokens,
-                  includeClaimedTokens: includeClaimedTokens
-                });
-                setSuccess(`✅ Delivery marked! ${updatedTokens.length} tokens remaining.`);
-              }
-            } catch (refreshError) {
-              console.warn("⚠️ Token refresh failed:", refreshError);
-            }
-          }
-        }
-
-        setTimeout(() => setSuccess(""), 5000);
-      } else {
-        throw new Error(result.error || 'Failed to mark token as claimed');
+      if (!connected || !account || !contract) {
+        throw new Error("Wallet not connected or contract not initialized");
       }
 
+      console.log("🎯 Confirming ration receipt for pickup ID:", pickupId);
+
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
+      const contractWithSigner = contract.connect(signer);
+
+      // Check if the function exists in the contract
+      if (!contractWithSigner.confirmRationReceipt) {
+        throw new Error("confirmRationReceipt function not found in contract");
+      }
+
+      // Estimate gas first
+      let gasEstimate;
+      try {
+        gasEstimate = await contractWithSigner.confirmRationReceipt.estimateGas(
+          BigInt(pickupId)
+        );
+        console.log("⛽ Gas estimate:", gasEstimate.toString());
+      } catch (gasError) {
+        console.warn("⚠️ Gas estimation failed:", gasError.message);
+        // Use a reasonable default gas limit
+        gasEstimate = BigInt(300000);
+      }
+
+      // Send transaction with proper gas settings
+      const tx = await contractWithSigner.confirmRationReceipt(
+        BigInt(pickupId), 
+        {
+          gasLimit: gasEstimate + BigInt(50000), // Add buffer
+          gasPrice: ethers.parseUnits("30", "gwei") // Set reasonable gas price for Polygon
+        }
+      );
+
+      setSuccess("Transaction sent! Waiting for confirmation...");
+      console.log("📤 Transaction hash:", tx.hash);
+
+      const receipt = await tx.wait();
+      console.log("✅ Transaction confirmed:", receipt);
+      
+      setSuccess("Ration receipt confirmed successfully! Generating receipt...");
+
+      // Generate delivery receipt for pickup confirmation
+      const deliveryData = {
+        pickupId: pickupId,
+        shopkeeper: account,
+        shopkeeperName: shopkeeperInfo?.name || "Unknown Shopkeeper",
+        shopkeeperArea: shopkeeperInfo?.area || "Unknown Area",
+        timestamp: new Date().toISOString(),
+        transactionHash: tx.hash,
+        type: "pickup_confirmation"
+      };
+
+      const receipt_data = generateDeliveryReceipt(deliveryData, tx.hash);
+      setGeneratedReceipt(receipt_data);
+      setShowReceiptModal(true);
+
+      // Refresh dashboard after successful transaction
+      await refreshDashboard();
+      setTimeout(() => setSuccess(""), 5000);
+
     } catch (error) {
-      console.error("❌ Error marking ration delivered:", error);
-      setError("Failed to mark ration delivered: " + error.message);
-      setTimeout(() => setError(""), 5000);
+      console.error("❌ Error confirming ration receipt:", error);
+      
+      let errorMessage = "Failed to confirm ration receipt";
+      
+      if (error.message.includes("user rejected")) {
+        errorMessage = "Transaction was rejected by user";
+      } else if (error.message.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for gas fees";
+      } else if (error.message.includes("execution reverted")) {
+        errorMessage = "Transaction failed - pickup may already be confirmed or invalid";
+      } else if (error.message.includes("Only shopkeeper")) {
+        errorMessage = "Only the assigned shopkeeper can confirm this receipt";
+      } else if (error.message.includes("Already confirmed")) {
+        errorMessage = "This pickup has already been confirmed";
+      } else if (error.message.includes("Internal JSON-RPC error")) {
+        errorMessage = "Network error - please check your connection and try again. Make sure you're on Polygon Amoy testnet.";
+      } else if (error.code === "UNKNOWN_ERROR") {
+        errorMessage = "Network or contract error - please try again. Ensure you have MATIC for gas fees.";
+      } else if (error.message.includes("nonce")) {
+        errorMessage = "Transaction nonce error - please reset your MetaMask account or try again";
+      } else if (error.message.includes("replacement")) {
+        errorMessage = "Transaction replacement error - please wait and try again";
+      } else {
+        errorMessage = error.message || "Unknown error occurred";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -699,8 +695,33 @@ export default function ShopkeeperDashboard() {
   // Receipt generation function
   const generateDeliveryReceipt = (delivery, transactionHash) => {
     const now = new Date();
-    const receiptId = `RCP-${delivery.pickupId}-${now.getTime()}`;
+    const receiptId = delivery.type === "pickup_confirmation" 
+      ? `PKP-${delivery.pickupId}-${now.getTime()}`
+      : `RCP-${delivery.pickupId || delivery.tokenId}-${now.getTime()}`;
 
+    // Handle pickup confirmation receipts
+    if (delivery.type === "pickup_confirmation") {
+      return {
+        receiptId,
+        pickupId: delivery.pickupId,
+        transactionHash,
+        shopkeeperName: delivery.shopkeeperName,
+        shopkeeperAddress: delivery.shopkeeper,
+        shopkeeperArea: delivery.shopkeeperArea,
+        generatedAt: now.toISOString(),
+        status: "PICKUP CONFIRMED",
+        blockchainNetwork: "Polygon Amoy Testnet",
+        contractAddress: CONTRACT_ADDRESS,
+        type: "pickup_confirmation",
+        confirmedTime: Math.floor(Date.now() / 1000),
+        estimatedValue: 0, // No specific value for pickup confirmation
+        deliveryMethod: "Pickup Confirmation",
+        paymentStatus: "Not Applicable",
+        isVerified: true
+      };
+    }
+
+    // Handle token delivery receipts (existing logic)
     return {
       receiptId,
       pickupId: delivery.pickupId,
@@ -1432,6 +1453,7 @@ Generated by Grainly PDS System.
                     setGeneratedReceipt={setGeneratedReceipt}
                     setShowReceiptModal={setShowReceiptModal}
                     shopkeeperInfo={shopkeeperInfo}
+                    confirmRationReceipt={confirmRationReceipt}
                   />
                 </CardContent>
               </Card>
@@ -1749,58 +1771,89 @@ Generated by Grainly PDS System.
                 </div>
 
                 <div className="bg-green-100 text-green-800 text-center py-2 rounded mb-4 font-bold">
-                  ✅ DELIVERY CONFIRMED
+                  {generatedReceipt.type === "pickup_confirmation" ? "✅ PICKUP CONFIRMED" : "✅ DELIVERY CONFIRMED"}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <div>
-                    <span className="font-medium text-gray-700">Token ID:</span>
-                    <p>#{generatedReceipt.tokenId}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Date & Time:</span>
-                    <p>{new Date(generatedReceipt.generatedAt).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Consumer:</span>
-                    <p>{generatedReceipt.consumerName}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Aadhaar:</span>
-                    <p>{generatedReceipt.consumerAadhaar}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Shopkeeper:</span>
-                    <p>{generatedReceipt.shopkeeperName}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Shop Area:</span>
-                    <p>{generatedReceipt.shopkeeperArea}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Ration Amount:</span>
-                    <p className="font-bold text-green-600">{generatedReceipt.rationAmount} kg</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Category:</span>
-                    <p>{generatedReceipt.category}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Total Value:</span>
-                    <p className="font-bold text-blue-600">₹{generatedReceipt.estimatedValue.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Subsidy:</span>
-                    <p className="font-bold text-green-600">₹{generatedReceipt.subsidyAmount.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Consumer Paid:</span>
-                    <p className="font-bold text-orange-600">₹{generatedReceipt.consumerPayment.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Status:</span>
-                    <p className="font-bold text-green-600">{generatedReceipt.status}</p>
-                  </div>
+                  {generatedReceipt.type === "pickup_confirmation" ? (
+                    <>
+                      <div>
+                        <span className="font-medium text-gray-700">Pickup ID:</span>
+                        <p>#{generatedReceipt.pickupId}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Date & Time:</span>
+                        <p>{new Date(generatedReceipt.generatedAt).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Shopkeeper:</span>
+                        <p>{generatedReceipt.shopkeeperName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Shop Area:</span>
+                        <p>{generatedReceipt.shopkeeperArea}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Status:</span>
+                        <p className="font-bold text-green-600">{generatedReceipt.status}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Confirmation Type:</span>
+                        <p>Pickup Received</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="font-medium text-gray-700">Token ID:</span>
+                        <p>#{generatedReceipt.tokenId}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Date & Time:</span>
+                        <p>{new Date(generatedReceipt.generatedAt).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Consumer:</span>
+                        <p>{generatedReceipt.consumerName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Aadhaar:</span>
+                        <p>{generatedReceipt.consumerAadhaar}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Shopkeeper:</span>
+                        <p>{generatedReceipt.shopkeeperName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Shop Area:</span>
+                        <p>{generatedReceipt.shopkeeperArea}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Ration Amount:</span>
+                        <p className="font-bold text-green-600">{generatedReceipt.rationAmount} kg</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Category:</span>
+                        <p>{generatedReceipt.category}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Total Value:</span>
+                        <p className="font-bold text-blue-600">₹{generatedReceipt.estimatedValue.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Subsidy:</span>
+                        <p className="font-bold text-green-600">₹{generatedReceipt.subsidyAmount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Consumer Paid:</span>
+                        <p className="font-bold text-orange-600">₹{generatedReceipt.consumerPayment.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Status:</span>
+                        <p className="font-bold text-green-600">{generatedReceipt.status}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="border-t border-gray-300 pt-4 mt-4">
@@ -1864,12 +1917,25 @@ Generated by Grainly PDS System.
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <h5 className="font-medium text-blue-800 mb-2">📋 What happens next?</h5>
                 <ul className="text-sm text-blue-700 space-y-1">
-                  <li>• The ration delivery has been confirmed on the blockchain</li>
-                  <li>• This receipt serves as proof of successful ration distribution</li>
-                  <li>• The consumer has received their subsidized ration</li>
-                  <li>• You can print or download this receipt for your records</li>
-                  <li>• The token has been marked as claimed and cannot be reused</li>
-                  <li>• Government subsidy has been processed automatically</li>
+                  {generatedReceipt.type === "pickup_confirmation" ? (
+                    <>
+                      <li>• The pickup confirmation has been recorded on the blockchain</li>
+                      <li>• This receipt serves as proof that you received the delivery from the agent</li>
+                      <li>• The delivery agent's task is now marked as complete</li>
+                      <li>• You can print or download this receipt for your records</li>
+                      <li>• The pickup status has been updated to confirmed</li>
+                      <li>• You can now distribute the ration to your assigned consumers</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• The ration delivery has been confirmed on the blockchain</li>
+                      <li>• This receipt serves as proof of successful ration distribution</li>
+                      <li>• The consumer has received their subsidized ration</li>
+                      <li>• You can print or download this receipt for your records</li>
+                      <li>• The token has been marked as claimed and cannot be reused</li>
+                      <li>• Government subsidy has been processed automatically</li>
+                    </>
+                  )}
                 </ul>
               </div>
             </div>
@@ -1888,7 +1954,8 @@ function IncomingDeliveriesSection({
   generateDeliveryReceipt,
   setGeneratedReceipt,
   setShowReceiptModal,
-  shopkeeperInfo
+  shopkeeperInfo,
+  confirmRationReceipt
 }) {
   const [incomingDeliveries, setIncomingDeliveries] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -2669,24 +2736,16 @@ function IncomingDeliveriesSection({
                         Update Status
                       </Button>
 
-                      {/* Test button to simulate delivery agent marking as delivered */}
+                      {/* Confirm delivery received by consumer */}
                       {delivery.status === 2 && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="bg-orange-100 text-orange-700 border-orange-300"
-                          onClick={() => {
-                            // Simulate delivery agent marking as delivered (Status 3)
-                            setIncomingDeliveries(prevDeliveries =>
-                              prevDeliveries.map(d =>
-                                d.pickupId === delivery.pickupId
-                                  ? { ...d, status: 3, deliveredTime: Math.floor(Date.now() / 1000) }
-                                  : d
-                              )
-                            );
-                          }}
+                          className="bg-green-100 text-green-700 border-green-300"
+                          onClick={() => confirmRationReceipt(delivery.pickupId)}
+                          disabled={loading}
                         >
-                          🚚 Simulate "Delivered" (Test)
+                          ✅ Confirm Delivery Received
                         </Button>
                       )}
                     </div>

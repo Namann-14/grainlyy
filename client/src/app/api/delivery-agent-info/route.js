@@ -62,11 +62,11 @@ export async function POST(request) {
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const contract = new ethers.Contract(DIAMOND_ADDRESS, mergedABI, provider);
 
-    console.log('📋 Calling getDeliveryAgentInfo...');
+    console.log('📋 Calling getDeliveryAgentDashboard...');
     
     try {
       // Get delivery agent info from blockchain
-      const agentData = await contract.getDeliveryAgentInfo(walletAddress);
+      const agentData = await contract.getDeliveryAgentDashboard(walletAddress);
       console.log('📋 Raw agent data from blockchain:', agentData);
       
       // Parse the response (handle both array and object formats)
@@ -77,8 +77,7 @@ export async function POST(request) {
         registrationTime: Number(agentData.registrationTime || agentData[3]) || 0,
         assignedShopkeeper: agentData.assignedShopkeeper || agentData[4] || ethers.ZeroAddress,
         totalDeliveries: Number(agentData.totalDeliveries || agentData[5]) || 0,
-        totalPickupsAssigned: Number(agentData.totalPickupsAssigned || agentData[6]) || 0,
-        isActive: Boolean(agentData.isActive !== undefined ? agentData.isActive : (agentData[7] !== undefined ? agentData[7] : true))
+        isActive: Boolean(agentData.isActive !== undefined ? agentData.isActive : (agentData[6] !== undefined ? agentData[6] : true))
       };
 
       console.log('✅ Parsed agent info:', agentInfo);
