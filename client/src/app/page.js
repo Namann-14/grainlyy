@@ -39,8 +39,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useTranslation } from "@/lib/i18n";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Home() {
+  const { t } = useTranslation();
+  
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -151,34 +155,35 @@ export default function Home() {
                   href="#features"
                   className="text-sm font-medium hover:text-green-600 transition-colors"
                 >
-                  Features
+                  {t("nav.features")}
                 </Link>
                 <Link
                   href="#how-it-works"
                   className="text-sm font-medium hover:text-green-600 transition-colors"
                 >
-                  How It Works
+                  {t("nav.how_it_works")}
                 </Link>
                 <Link
                   href="#stakeholders"
                   className="text-sm font-medium hover:text-green-600 transition-colors"
                 >
-                  Stakeholders
+                  {t("nav.stakeholders")}
                 </Link>
                 <Link
                   href="#faq"
                   className="text-sm font-medium hover:text-green-600 transition-colors"
                 >
-                  FAQ
+                  {t("nav.faq")}
                 </Link>
               </nav>
               <div className="flex items-center gap-4">
+                <LanguageSwitcher />
                 <Link href="/login">
                   <Button
                     variant="outline"
                     className="hidden md:flex hover:cursor-pointer"
                   >
-                    Log In
+                    {t("nav.login")}
                   </Button>
                 </Link>
                 {/* <Button className="bg-green-600 hover:bg-green-800">
@@ -186,29 +191,29 @@ export default function Home() {
             </Button> */}
                 <DropdownMenu>
                   <DropdownMenuTrigger className="bg-green-600 px-5 py-1.5 rounded-sm text-white hover:bg-green-700 hover:cursor-pointer">
-                    Get Started
+                    {t("nav.get_started")}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuLabel>Get started as</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("nav.get_started_as")}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <Link href="/signup/delivery" className="w-full">
                       <DropdownMenuItem className="cursor-pointer">
-                        Delivery
+                        {t("nav.roles.delivery")}
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/signup/vendor" className="w-full">
                       <DropdownMenuItem className="cursor-pointer">
-                        Vendor
+                        {t("nav.roles.vendor")}
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/signup/ngo" className="w-full">
                       <DropdownMenuItem className="cursor-pointer">
-                        NGO
+                        {t("nav.roles.ngo")}
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/signup/consumer" className="w-full">
                       <DropdownMenuItem className="cursor-pointer">
-                        Consumer
+                        {t("nav.roles.consumer")}
                       </DropdownMenuItem>
                     </Link>
                   </DropdownMenuContent>
@@ -231,24 +236,21 @@ export default function Home() {
                 variants={fadeIn}
                 className="inline-block px-3 py-1 text-xs bg-emerald-700/50 rounded-full"
               >
-                Blockchain-Powered Public Distribution
+                {t("hero.badge")}
               </motion.div>
 
               <motion.h1
                 variants={fadeIn}
                 className="text-4xl md:text-6xl font-bold leading-tight"
               >
-                Transforming Public Distribution
-                <br />
-                With Blockchain
+                {t("hero.title")}
               </motion.h1>
 
               <motion.p
                 variants={fadeIn}
                 className="text-emerald-100 max-w-2xl mx-auto"
               >
-                Making government ration delivery transparent, tamper-proof, and
-                publicly verifiable through blockchain technology.
+                {t("hero.description")}
               </motion.p>
 
               <motion.div
@@ -259,13 +261,13 @@ export default function Home() {
                   href="#"
                   className="px-6 py-3 bg-green-100 text-emerald-900 font-medium rounded-md hover:bg-green-300 transition-colors"
                 >
-                  Learn More
+                  {t("hero.learn_more")}
                 </Link>
                 <Link
                   href="#"
                   className="px-6 py-3 bg-emerald-800 border border-emerald-700 rounded-md hover:bg-emerald-700 transition-colors"
                 >
-                  Get Started
+                  {t("hero.get_started")}
                 </Link>
               </motion.div>
             </motion.div>
@@ -280,7 +282,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-emerald-800">
-                Deliveries Tracked
+                {t("hero.deliveries_tracked")}
               </span>
             </div>
             <div className="font-bold text-2xl">20K+</div>
@@ -294,10 +296,10 @@ export default function Home() {
             className="absolute bottom-12 right-12 bg-emerald-800/80 rounded-full p-1 hidden md:flex"
           >
             <button className="px-4 py-1 rounded-full bg-green-400 text-emerald-900 text-sm font-medium">
-              Public
+              {t("hero.public")}
             </button>
             <button className="px-4 py-1 rounded-full text-white text-sm">
-              Government
+              {t("hero.government")}
             </button>
           </motion.div>
         </div>
@@ -318,9 +320,7 @@ export default function Home() {
                 20K<sup>+</sup>
               </h2>
               <p className="text-gray-600">
-                Deliveries successfully tracked
-                <br />
-                across distribution networks
+                {t("stats.deliveries_tracked")}
               </p>
             </motion.div>
 
@@ -335,9 +335,7 @@ export default function Home() {
                 98<span className="text-5xl">%</span>
               </h2>
               <p className="text-gray-600">
-                Reduction in fraud across
-                <br />
-                all distribution channels
+                {t("stats.fraud_reduction")}
               </p>
             </motion.div>
 
@@ -352,9 +350,7 @@ export default function Home() {
                 85<span className="text-5xl">%</span>
               </h2>
               <p className="text-gray-600">
-                Increased transparency in
-                <br />
-                public distribution systems
+                {t("stats.transparency_increase")}
               </p>
             </motion.div>
           </div>
@@ -372,16 +368,13 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <div className="inline-block px-3 py-1 text-xs bg-gray-200 rounded-full mb-4">
-                Features
+                {t("features.badge")}
               </div>
               <h2 className="text-4xl font-bold mb-6">
-                Empowering Your
-                <br />
-                Distribution Journey
+                {t("features.title")}
               </h2>
               <p className="text-gray-600">
-                Our blockchain-based system ensures transparency and
-                accountability at every step of the ration distribution process.
+                {t("features.description")}
               </p>
 
               <div className="relative mt-12">
@@ -407,12 +400,10 @@ export default function Home() {
                   <Lock className="text-emerald-600 h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">
-                  Immutable Records
+                  {t("features.immutable_records.title")}
                 </h3>
                 <p className="text-gray-600">
-                  All transactions are permanently recorded on the blockchain,
-                  preventing tampering. Once recorded, delivery data cannot be
-                  altered, ensuring a trustworthy system for all stakeholders.
+                  {t("features.immutable_records.description")}
                 </p>
               </div>
 
@@ -420,11 +411,9 @@ export default function Home() {
                 <div className="p-2 w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
                   <MapPin className="text-emerald-600 h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">GPS Verification</h3>
+                <h3 className="text-xl font-semibold mb-2">{t("features.gps_verification.title")}</h3>
                 <p className="text-gray-600">
-                  Real-time location tracking ensures deliveries reach their
-                  intended destinations. Our system verifies the exact location
-                  of deliveries, preventing diversion of supplies.
+                  {t("features.gps_verification.description")}
                 </p>
               </div>
 
@@ -432,11 +421,9 @@ export default function Home() {
                 <div className="p-2 w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
                   <Users className="text-emerald-600 h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Trust Scores</h3>
+                <h3 className="text-xl font-semibold mb-2">{t("features.trust_scores.title")}</h3>
                 <p className="text-gray-600">
-                  Dealers receive trust scores based on their delivery
-                  performance and compliance. Incentivize good behavior and
-                  identify potential issues before they become problems.
+                  {t("features.trust_scores.description")}
                 </p>
               </div>
             </motion.div>
@@ -449,14 +436,13 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mb-16">
             <div className="inline-block px-3 py-1 text-xs bg-gray-200 rounded-full mb-4">
-              How It Works
+              {t("how_it_works.badge")}
             </div>
             <h2 className="text-4xl font-bold mb-6">
-              Your Advantages of Adopting Grainlyy
+              {t("how_it_works.title")}
             </h2>
             <p className="text-gray-600">
-              See how our blockchain solution transforms the public distribution
-              system.
+              {t("how_it_works.description")}
             </p>
           </div>
 
@@ -469,24 +455,22 @@ export default function Home() {
               className="bg-white p-8 rounded-xl shadow-md"
             >
               <h3 className="text-xl font-semibold mb-4">
-                Complete Transparency
+                {t("how_it_works.transparency.title")}
               </h3>
               <p className="text-gray-600 mb-6">
-                All stakeholders can view the entire supply chain in real-time,
-                from warehouse to end recipient.
+                {t("how_it_works.transparency.description")}
               </p>
 
-              <h3 className="text-xl font-semibold mb-4">Fraud Prevention</h3>
+              <h3 className="text-xl font-semibold mb-4">{t("how_it_works.fraud_prevention.title")}</h3>
               <p className="text-gray-600 mb-6">
-                Immutable blockchain records and GPS verification make it
-                impossible to falsify delivery data.
+                {t("how_it_works.fraud_prevention.description")}
               </p>
 
               <Link
                 href="#"
                 className="inline-flex items-center text-emerald-700 font-medium"
               >
-                VIEW DETAILS
+                {t("how_it_works.view_details")}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4 ml-1"
@@ -546,14 +530,13 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mb-16">
             <div className="inline-block px-3 py-1 text-xs bg-gray-200 rounded-full mb-4">
-              Stakeholders
+              {t('stakeholders.badge')}
             </div>
             <h2 className="text-4xl font-bold mb-6">
-              Everything Your Platform Needs
+              {t('stakeholders.title')}
             </h2>
             <p className="text-gray-600">
-              Tailored dashboards for every stakeholder in the distribution
-              system.
+              {t('stakeholders.description')}
             </p>
           </div>
 
@@ -567,23 +550,22 @@ export default function Home() {
             >
               <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
                 <Globe className="h-5 w-5 text-emerald-600" />
-                Government
+                {t('stakeholders.government.title')}
               </h3>
               <p className="text-gray-600 mb-6">
-                Complete oversight of distribution networks with performance
-                analytics and trust score monitoring.
+                {t('stakeholders.government.description')}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Complete oversight
+                  {t('stakeholders.government.features.oversight')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                  Analytics
+                  {t('stakeholders.government.features.analytics')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Performance tracking
+                  {t('stakeholders.government.features.tracking')}
                 </div>
               </div>
             </motion.div>
@@ -597,23 +579,22 @@ export default function Home() {
             >
               <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
                 <Truck className="h-5 w-5 text-blue-600" />
-                Dealers
+                {t('stakeholders.dealers.title')}
               </h3>
               <p className="text-gray-600 mb-6">
-                Simplified inventory management with transparent delivery
-                verification and trust score improvements.
+                {t('stakeholders.dealers.description')}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Inventory management
+                  {t('stakeholders.dealers.features.inventory')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                  Verification
+                  {t('stakeholders.dealers.features.verification')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Trust scores
+                  {t('stakeholders.dealers.features.trust')}
                 </div>
               </div>
             </motion.div>
@@ -627,23 +608,22 @@ export default function Home() {
             >
               <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
                 <Users className="h-5 w-5 text-purple-600" />
-                Public
+                {t('stakeholders.public.title')}
               </h3>
               <p className="text-gray-600 mb-6">
-                Real-time delivery tracking with verification of ration quality
-                and quantity, plus feedback systems.
+                {t('stakeholders.public.description')}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Real-time tracking
+                  {t('stakeholders.public.features.tracking')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                  Verification
+                  {t('stakeholders.public.features.verification')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Feedback
+                  {t('stakeholders.public.features.feedback')}
                 </div>
               </div>
             </motion.div>
@@ -657,23 +637,22 @@ export default function Home() {
             >
               <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
                 <Shield className="h-5 w-5 text-amber-600" />
-                NGOs
+                {t('stakeholders.ngos.title')}
               </h3>
               <p className="text-gray-600 mb-6">
-                Independent verification capabilities with data for advocacy and
-                policy recommendations.
+                {t('stakeholders.ngos.description')}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Verification tools
+                  {t('stakeholders.ngos.features.tools')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-                  Advocacy
+                  {t('stakeholders.ngos.features.advocacy')}
                 </div>
                 <div className="bg-white rounded-full px-3 py-1 text-sm shadow-sm">
-                  Integration
+                  {t('stakeholders.ngos.features.integration')}
                 </div>
               </div>
             </motion.div>
@@ -692,14 +671,13 @@ export default function Home() {
             className="max-w-2xl mb-16"
           >
             <div className="inline-block px-3 py-1 text-xs bg-gray-200 rounded-full mb-4">
-              Testimonials
+              {t('testimonials.badge')}
             </div>
             <h2 className="text-4xl font-bold mb-6">
-              Showcasing Remarkable Success Stories
+              {t('testimonials.title')}
             </h2>
             <p className="text-gray-600">
-              See how Grainlyy is transforming public distribution systems
-              across regions.
+              {t('testimonials.description')}
             </p>
           </motion.div>
 
@@ -713,8 +691,8 @@ export default function Home() {
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className="font-semibold">District Officer</h4>
-                  <p className="text-sm text-gray-500">Eastern Region</p>
+                  <h4 className="font-semibold">{t('testimonials.district_officer.title')}</h4>
+                  <p className="text-sm text-gray-500">{t('testimonials.district_officer.location')}</p>
                 </div>
                 <div className="flex text-emerald-500">
                   {"★★★★★".split("").map((star, i) => (
@@ -723,9 +701,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-600">
-                "Grainlyy has transformed our distribution system. We've seen a
-                95% reduction in complaints and complete transparency in our
-                operations."
+                {t('testimonials.district_officer.quote')}
               </p>
             </motion.div>
 
@@ -738,8 +714,8 @@ export default function Home() {
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h4 className="font-semibold">Ration Shop Owner</h4>
-                  <p className="text-sm text-gray-500">Western District</p>
+                  <h4 className="font-semibold">{t('testimonials.shop_owner.title')}</h4>
+                  <p className="text-sm text-gray-500">{t('testimonials.shop_owner.location')}</p>
                 </div>
                 <div className="flex text-emerald-500">
                   {"★★★★★".split("").map((star, i) => (
@@ -748,8 +724,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-600">
-                "The trust score system has helped me improve my service. My
-                customers now have complete faith in my shop's operations."
+                {t('testimonials.shop_owner.quote')}
               </p>
             </motion.div>
 
@@ -770,13 +745,13 @@ export default function Home() {
                     <div className="w-full h-4 bg-gray-200 rounded mb-2"></div>
                     <div className="w-3/4 h-4 bg-gray-200 rounded mb-4"></div>
                     <div className="bg-green-400 text-emerald-900 text-center py-1 rounded-full text-sm font-medium">
-                      Verified ✓
+                      {t('testimonials.ngo_director.verified')}
                     </div>
                   </div>
                 </div>
-                <h4 className="font-semibold text-white">NGO Director</h4>
+                <h4 className="font-semibold text-white">{t('testimonials.ngo_director.title')}</h4>
                 <p className="text-sm text-emerald-200">
-                  Food Security Alliance
+                  {t('testimonials.ngo_director.location')}
                 </p>
               </div>
             </motion.div>
@@ -789,14 +764,13 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto mb-16 text-center">
             <div className="inline-block px-3 py-1 text-xs bg-gray-200 rounded-full mb-4">
-              FAQ
+              {t('faq.badge')}
             </div>
             <h2 className="text-4xl font-bold mb-6">
-              Frequently Asked Questions
+              {t('faq.title')}
             </h2>
             <p className="text-gray-600">
-              Find answers to common questions about Grainlyy's blockchain
-              distribution system.
+              {t('faq.description')}
             </p>
           </div>
 
@@ -807,14 +781,10 @@ export default function Home() {
                 className="bg-white rounded-xl shadow-sm px-6"
               >
                 <AccordionTrigger className="text-lg font-medium py-4">
-                  How does blockchain ensure transparency?
+                  {t('faq.questions.transparency.question')}
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 text-gray-600">
-                  Blockchain creates an immutable, tamper-proof record of all
-                  transactions. Every delivery is recorded on the blockchain
-                  with timestamps, locations, and quantities, creating a
-                  permanent and publicly verifiable record that cannot be
-                  altered.
+                  {t('faq.questions.transparency.answer')}
                 </AccordionContent>
               </AccordionItem>
 
@@ -823,13 +793,10 @@ export default function Home() {
                 className="bg-white rounded-xl shadow-sm px-6"
               >
                 <AccordionTrigger className="text-lg font-medium py-4">
-                  What hardware is required for implementation?
+                  {t('faq.questions.hardware.question')}
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 text-gray-600">
-                  The system requires minimal hardware - just smartphones for
-                  dealers and distribution centers to record deliveries and
-                  verify GPS locations. Government offices and NGOs can access
-                  the system through any internet-connected device.
+                  {t('faq.questions.hardware.answer')}
                 </AccordionContent>
               </AccordionItem>
 
@@ -838,14 +805,10 @@ export default function Home() {
                 className="bg-white rounded-xl shadow-sm px-6"
               >
                 <AccordionTrigger className="text-lg font-medium py-4">
-                  How are trust scores calculated?
+                  {t('faq.questions.trust_scores.question')}
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 text-gray-600">
-                  Trust scores are calculated based on multiple factors
-                  including delivery accuracy, timeliness, customer feedback,
-                  and compliance with GPS verification. The algorithm is
-                  transparent and dealers can see exactly how their actions
-                  affect their score.
+                  {t('faq.questions.trust_scores.answer')}
                 </AccordionContent>
               </AccordionItem>
 
@@ -854,13 +817,10 @@ export default function Home() {
                 className="bg-white rounded-xl shadow-sm px-6"
               >
                 <AccordionTrigger className="text-lg font-medium py-4">
-                  Can the system work offline?
+                  {t('faq.questions.offline.question')}
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 text-gray-600">
-                  Yes, the mobile application has offline capabilities that
-                  store transaction data locally until connectivity is restored.
-                  Once back online, the data is synchronized with the blockchain
-                  to maintain the integrity of the record.
+                  {t('faq.questions.offline.answer')}
                 </AccordionContent>
               </AccordionItem>
 
@@ -869,14 +829,10 @@ export default function Home() {
                 className="bg-white rounded-xl shadow-sm px-6"
               >
                 <AccordionTrigger className="text-lg font-medium py-4">
-                  How is user privacy protected?
+                  {t('faq.questions.privacy.question')}
                 </AccordionTrigger>
                 <AccordionContent className="pb-4 text-gray-600">
-                  While the system ensures transparency of the distribution
-                  process, personal data of recipients is protected through
-                  encryption and access controls. The public can verify that
-                  deliveries occurred without accessing sensitive personal
-                  information.
+                  {t('faq.questions.privacy.answer')}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -895,25 +851,24 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold">
-              Ready to Transform Your Distribution System?
+              {t('cta.title')}
             </h2>
             <p className="mt-6 text-lg text-emerald-100 max-w-2xl mx-auto">
-              Join the growing network of governments and organizations using
-              Grainlyy to ensure transparent and efficient public distribution.
+              {t('cta.description')}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
                 className="px-6 py-3 bg-green-100 text-emerald-900 font-medium rounded-md hover:bg-green-300 transition-colors"
               >
-                Request Demo
+                {t('cta.demo')}
               </Button>
               <Button
                 size="lg"
                 variant="outline"
                 className="px-6 py-3 bg-emerald-800 border border-emerald-700 rounded-md hover:bg-emerald-700 transition-colors"
               >
-                Contact Sales
+                {t('cta.contact')}
               </Button>
             </div>
           </motion.div>
@@ -932,15 +887,14 @@ export default function Home() {
                 </span>
               </Link>
               <p className="text-sm text-gray-600 mb-4">
-                Making government ration delivery transparent, tamper-proof, and
-                publicly verifiable through blockchain technology.
+                {t('footer.description')}
               </p>
               <div className="flex gap-4">
                 <Link
                   href="#"
                   className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-emerald-100"
                 >
-                  <span className="sr-only">Twitter</span>
+                  <span className="sr-only">{t('footer.social.twitter')}</span>
                   <svg
                     className="w-4 h-4"
                     fill="currentColor"
@@ -954,7 +908,7 @@ export default function Home() {
                   href="#"
                   className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-emerald-100"
                 >
-                  <span className="sr-only">LinkedIn</span>
+                  <span className="sr-only">{t('footer.social.linkedin')}</span>
                   <svg
                     className="w-4 h-4"
                     fill="currentColor"
@@ -968,14 +922,14 @@ export default function Home() {
             </div>
 
             <div>
-              <h3 className="font-bold mb-4">Platform</h3>
+              <h3 className="font-bold mb-4">{t('footer.platform')}</h3>
               <ul className="space-y-2">
                 <li>
                   <Link
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Features
+                    {t('footer.links.features')}
                   </Link>
                 </li>
                 <li>
@@ -983,7 +937,7 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Security
+                    {t('footer.links.security')}
                   </Link>
                 </li>
                 <li>
@@ -991,7 +945,7 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Roadmap
+                    {t('footer.links.roadmap')}
                   </Link>
                 </li>
                 <li>
@@ -999,21 +953,21 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Pricing
+                    {t('footer.links.pricing')}
                   </Link>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-bold mb-4">Resources</h3>
+              <h3 className="font-bold mb-4">{t('footer.resources')}</h3>
               <ul className="space-y-2">
                 <li>
                   <Link
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Documentation
+                    {t('footer.links.documentation')}
                   </Link>
                 </li>
                 <li>
@@ -1021,7 +975,7 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    API
+                    {t('footer.links.api')}
                   </Link>
                 </li>
                 <li>
@@ -1029,7 +983,7 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Guides
+                    {t('footer.links.guides')}
                   </Link>
                 </li>
                 <li>
@@ -1037,7 +991,7 @@ export default function Home() {
                     href="#"
                     className="text-sm text-gray-600 hover:text-emerald-700"
                   >
-                    Support
+                    {t('footer.links.support')}
                   </Link>
                 </li>
               </ul>
@@ -1045,8 +999,7 @@ export default function Home() {
           </div>
 
           <div className="mt-12 pt-8 border-t border-gray-200 text-sm text-gray-500">
-            © {new Date().getFullYear()} Grainlyy. All rights reserved.
-            Blockchain-powered transparency for public distribution.
+            © {new Date().getFullYear()} Grainlyy. {t('footer.copyright')}
           </div>
         </div>
       </footer>

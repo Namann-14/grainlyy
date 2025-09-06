@@ -1,0 +1,198 @@
+{
+  "nav": {
+    "features": "Features",
+    "how_it_works": "How It Works",
+    "stakeholders": "Stakeholders", 
+    "faq": "FAQ",
+    "login": "Log In",
+    "get_started": "Get Started",
+    "get_started_as": "Get started as",
+    "roles": {
+      "delivery": "Delivery",
+      "vendor": "Vendor", 
+      "ngo": "NGO",
+      "consumer": "Consumer"
+    }
+  },
+  "hero": {
+    "badge": "Blockchain-Powered Public Distribution",
+    "title": "Transforming Public Distribution With Blockchain",
+    "description": "Making government ration delivery transparent, tamper-proof, and publicly verifiable through blockchain technology.",
+    "learn_more": "Learn More",
+    "get_started": "Get Started",
+    "deliveries_tracked": "Deliveries Tracked",
+    "public": "Public",
+    "government": "Government"
+  },
+  "stats": {
+    "deliveries_tracked": "Deliveries successfully tracked across distribution networks",
+    "fraud_reduction": "Reduction in fraud across all distribution channels", 
+    "transparency_increase": "Increased transparency in public distribution systems"
+  },
+  "features": {
+    "badge": "Features",
+    "title": "Empowering Your Distribution Journey",
+    "description": "Our blockchain-based system ensures transparency and accountability at every step of the ration distribution process.",
+    "immutable_records": {
+      "title": "Immutable Records",
+      "description": "All transactions are permanently recorded on the blockchain, preventing tampering. Once recorded, delivery data cannot be altered, ensuring a trustworthy system for all stakeholders."
+    },
+    "gps_verification": {
+      "title": "GPS Verification", 
+      "description": "Real-time location tracking ensures deliveries reach their intended destinations. Our system verifies the exact location of deliveries, preventing diversion of supplies."
+    },
+    "trust_scores": {
+      "title": "Trust Scores",
+      "description": "Dealers receive trust scores based on their delivery performance and compliance. Incentivize good behavior and identify potential issues before they become problems."
+    }
+  },
+  "how_it_works": {
+    "badge": "How It Works",
+    "title": "Your Advantages of Adopting Grainlyy",
+    "description": "See how our blockchain solution transforms the public distribution system.",
+    "transparency": {
+      "title": "Complete Transparency",
+      "description": "All stakeholders can view the entire supply chain in real-time, from warehouse to end recipient."
+    },
+    "fraud_prevention": {
+      "title": "Fraud Prevention",
+      "description": "Immutable blockchain records and GPS verification make it impossible to falsify delivery data."
+    },
+    "view_details": "VIEW DETAILS"
+  },
+  "stakeholders": {
+    "badge": "Stakeholders",
+    "title": "Everything Your Platform Needs",
+    "description": "Tailored dashboards for every stakeholder in the distribution system.",
+    "government": {
+      "title": "Government",
+      "description": "Complete oversight of distribution networks with performance analytics and trust score monitoring.",
+      "features": {
+        "oversight": "Complete oversight",
+        "analytics": "Analytics",
+        "tracking": "Performance tracking"
+      }
+    },
+    "dealers": {
+      "title": "Dealers",
+      "description": "Simplified inventory management with transparent delivery verification and trust score improvements.",
+      "features": {
+        "inventory": "Inventory management",
+        "verification": "Verification",
+        "trust": "Trust scores"
+      }
+    },
+    "public": {
+      "title": "Public",
+      "description": "Real-time delivery tracking with verification of ration quality and quantity, plus feedback systems.",
+      "features": {
+        "tracking": "Real-time tracking",
+        "verification": "Verification",
+        "feedback": "Feedback"
+      }
+    },
+    "ngos": {
+      "title": "NGOs",
+      "description": "Independent verification capabilities with data for advocacy and policy recommendations.",
+      "features": {
+        "tools": "Verification tools",
+        "advocacy": "Advocacy",
+        "integration": "Integration"
+      }
+    }
+  },
+  "testimonials": {
+    "badge": "Testimonials",
+    "title": "Showcasing Remarkable Success Stories",
+    "description": "See how Grainlyy is transforming public distribution systems across regions.",
+    "district_officer": {
+      "title": "District Officer",
+      "location": "Eastern Region",
+      "quote": "Grainlyy has transformed our distribution system. We've seen a 95% reduction in complaints and complete transparency in our operations."
+    },
+    "shop_owner": {
+      "title": "Ration Shop Owner",
+      "location": "Western District",
+      "quote": "The trust score system has helped me improve my service. My customers now have complete faith in my shop's operations."
+    },
+    "ngo_director": {
+      "title": "NGO Director",
+      "location": "Food Security Alliance",
+      "verified": "Verified ✓"
+    }
+  },
+  "faq": {
+    "badge": "FAQ",
+    "title": "Frequently Asked Questions",
+    "description": "Find answers to common questions about Grainlyy's blockchain distribution system.",
+    "questions": {
+      "transparency": {
+        "question": "How does blockchain ensure transparency?",
+        "answer": "Blockchain creates an immutable, tamper-proof record of all transactions. Every delivery is recorded on the blockchain with timestamps, locations, and quantities, creating a permanent and publicly verifiable record that cannot be altered."
+      },
+      "hardware": {
+        "question": "What hardware is required for implementation?",
+        "answer": "The system requires minimal hardware - just smartphones for dealers and distribution centers to record deliveries and verify GPS locations. Government offices and NGOs can access the system through any internet-connected device."
+      },
+      "trust_scores": {
+        "question": "How are trust scores calculated?",
+        "answer": "Trust scores are calculated based on multiple factors including delivery accuracy, timeliness, customer feedback, and compliance with GPS verification. The algorithm is transparent and dealers can see exactly how their actions affect their score."
+      },
+      "offline": {
+        "question": "Can the system work offline?",
+        "answer": "Yes, the mobile application has offline capabilities that store transaction data locally until connectivity is restored. Once back online, the data is synchronized with the blockchain to maintain the integrity of the record."
+      },
+      "privacy": {
+        "question": "How is user privacy protected?",
+        "answer": "While the system ensures transparency of the distribution process, personal data of recipients is protected through encryption and access controls. The public can verify that deliveries occurred without accessing sensitive personal information."
+      }
+    }
+  },
+  "cta": {
+    "title": "Ready to Transform Your Distribution System?",
+    "description": "Join the growing network of governments and organizations using Grainlyy to ensure transparent and efficient public distribution.",
+    "demo": "Request Demo",
+    "contact": "Contact Sales",
+    "get_started": "Get Started Today",
+    "learn_more": "Learn More"
+  },
+  "footer": {
+    "description": "Making government ration delivery transparent, tamper-proof, and publicly verifiable through blockchain technology.",
+    "platform": "Platform",
+    "resources": "Resources",
+    "social": {
+      "twitter": "Twitter",
+      "linkedin": "LinkedIn"
+    },
+    "links": {
+      "features": "Features",
+      "security": "Security",
+      "roadmap": "Roadmap",
+      "pricing": "Pricing",
+      "documentation": "Documentation",
+      "api": "API",
+      "guides": "Guides",
+      "support": "Support"
+    },
+    "copyright": "All rights reserved. Blockchain-powered transparency for public distribution.",
+    "quick_links": "Quick Links",
+    "how_it_works": "How It Works", 
+    "stakeholders": "Stakeholders",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "legal": "Legal",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service",
+    "cookies": "Cookies",
+    "follow_us": "Follow Us",
+    "all_rights_reserved": "All rights reserved."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "close": "Close",
+    "submit": "Submit",
+    "cancel": "Cancel"
+  }
+}

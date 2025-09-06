@@ -1,6 +1,7 @@
 import './globals.css';
 import { MetaMaskProvider } from '@/components/MetaMaskProvider';
 import { Toaster } from '@/components/ui/toaster';
+import ClientProviders from '@/components/ClientProviders';
 
 export const metadata = {
   title: 'Grainlyyy',
@@ -11,10 +12,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <MetaMaskProvider>
-          {children}
-        </MetaMaskProvider>
-        <Toaster />
+        <ClientProviders>
+          <MetaMaskProvider>
+            {children}
+          </MetaMaskProvider>
+          <Toaster />
+        </ClientProviders>
       </body>
     </html>
   );
