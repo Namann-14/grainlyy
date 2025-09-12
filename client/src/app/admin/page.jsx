@@ -1292,12 +1292,12 @@ export default function AdminDashboard() {
           onValueChange={setActiveTab}
           className="w-full max-w-7xl mx-auto"
         >
-          <TabsList className="grid w-full grid-cols-6 mb-2">
+          <TabsList className="grid w-full grid-cols-4 mb-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tokens">Token Management</TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="deliveries">Delivery Management</TabsTrigger>
-            <TabsTrigger value="payments">Payment Analytics</TabsTrigger>
+            {/* <TabsTrigger value="deliveries">Delivery Management</TabsTrigger>
+            <TabsTrigger value="payments">Payment Analytics</TabsTrigger> */}
             <TabsTrigger value="settings">System Settings</TabsTrigger>
           </TabsList>
 
@@ -1911,9 +1911,9 @@ export default function AdminDashboard() {
           </TabsContent>
 
           {/* Delivery Management Tab */}
-          <TabsContent value="deliveries" className="space-y-6">
+          
+          {/* <TabsContent value="deliveries" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Assign Delivery Agent */}
               <Card>
                 <CardHeader>
                   <CardTitle>Assign Delivery Agent</CardTitle>
@@ -1936,8 +1936,6 @@ export default function AdminDashboard() {
                   </Button>
                 </CardContent>
               </Card>
-
-              {/* Active Deliveries */}
               <Card>
                 <CardHeader>
                   <CardTitle>Active Deliveries</CardTitle>
@@ -1961,10 +1959,10 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* Payment Analytics Tab */}
-          <TabsContent value="payments" className="space-y-6">
+          {/* <TabsContent value="payments" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {paymentAnalytics && (
                 <>
@@ -2028,7 +2026,7 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* System Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
