@@ -605,8 +605,8 @@ export default function DeliveryDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4">
 
         {/* Header */}
         <motion.div
@@ -794,7 +794,7 @@ export default function DeliveryDashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
+              <Card className="">
                 <CardHeader>
                   <CardTitle>Recent Activity</CardTitle>
                 </CardHeader>
@@ -871,7 +871,7 @@ export default function DeliveryDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="h-fit">
                 <CardHeader>
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
