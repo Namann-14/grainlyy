@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "PDS བཙོན་མཛོད་གནས་ཡོད།",
+    "subtitle": "ཨིན་ཌི་ཡཱན་གནས་ཡོད། - བཙོན་མཛོད་གནས་ཡོད།",
+
+    "connection": {
+      "backend_connected": "བཙོན་མཛོད་གནས་ཡོད།",
+      "backend_disconnected": "བཙོན་མཛོད་གནས་ཡོད།",
+      "connecting_backend_wallet": "བཙོན་མཛོད་གནས་ཡོད།...",
+      "connected": "བཙོན་མཛོད།",
+      "disconnected": "བཙོན་མཛོད།",
+      "copy_success_toast": "བཙོན་མཛོད་གནས་ཡོད།!",
+      "view_contract_button": "བཙོན་མཛོད་གནས་ཡོད།",
+      "refresh_button": "བཙོན་མཛོད།"
+    },
+
+    "tabs": {
+      "overview": "ཡོངས་གནས།",
+      "tokens": "བཙོན་མཛོད་གནས་ཡོད།",
+      "users": "བཙོན་མཛོད་གནས་ཡོད།",
+      "deliveries": "བཙོན་མཛོད་གནས་ཡོད།",
+      "payments": "བཙོན་མཛོད་གནས་ཡོད།",
+      "settings": "བཙོན་མཛོད་གནས་ཡོད།"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "བཙོན་མཛོད་གནས་ཡོད།!",
+      "backend_connected_success": "བཙོན་མཛོད་གནས་ཡོད།!",
+      "fetch_dashboard_failed": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "total_consumers_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "total_shopkeepers_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "total_shopkeepers_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "delivery_agents_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "delivery_agents_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "system_status_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "system_status_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+        "system_status_active": "བཙོན་཮ཛོད།",
+        "system_status_paused": "བཙོན་཮ཛོད།"
+      },
+
+      "quick_actions_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "quick_actions_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "quick_actions_generate_monthly_tokens": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "quick_actions_consumer_requests": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "quick_actions_expire_old_tokens": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "categories_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "categories_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "categories_generate_tokens_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "categories_count_label": "{category} བཙོན་཮ཛོད ({count})",
+
+      "anomalies_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "anomalies_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "anomalies_total_records_badge": "{count} བཙོན་཮ཛོད་གནས་ཡོད།",
+      "anomalies_ml_label": "ML བཙོན་཮ཛོད:",
+      "anomalies_rule_label": "བཙོན་཮ཛོད:",
+      "anomalies_recent_label": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "anomalies_token_id": "བཙོན་཮ཛོད་ཨཱཡི་ཌི: {token_id}",
+      "anomalies_aadhaar": "ཨཱདྷཱར: {aadhaar}",
+      "anomalies_issued_claimed": "བཙོན་཮ཛོད: {issued} | བཙོན་཮ཛོད: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "བཙོན་཮ཛོད་གནས་ཡོད།"
+    },
+
+    "tokens": {
+      "monthly_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "monthly_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "monthly_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "monthly_hint": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "category_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "category_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "category_button_label": "{category} བཙོན་཮ཛོད ({count})",
+
+      "bulk_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "bulk_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "bulk_generate_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "bulk_expire_old_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "manual_expiration_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "manual_expiration_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "manual_expiration_token_id_label": "བཙོན་཮ཛོད་ཨཱཡི་ཌི",
+      "manual_expiration_placeholder": "བཙོན་཮ཛོད་ཨཱཡི་ཌི བཙོན་཮ཛོད།",
+      "manual_expiration_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "expired_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expired_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expired_fetch_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expired_found_label": "བཙོན་཮ཛོད {count} བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expired_item_token_id": "བཙོན་཮ཛོད་ཨཱཡི་ཌི: {token_id}",
+      "expired_item_aadhaar": "ཨཱདྷཱར: {aadhaar}",
+      "expired_item_category": "བཙོན་཮ཛོད: {category}",
+      "expired_item_expired": "བཙོན་཮ཛོད: {date}",
+      "expired_more_label": "... དང {count} བཙོན་཮ཛོད",
+
+      "expiring_soon_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expiring_soon_description": "བཙོན་཮ཛོད 7 བཙོན་཮ཛོད",
+      "expiring_soon_fetch_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expiring_soon_found_label": "བཙོན་཮ཛོད {count} བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expiring_soon_item_token_id": "བཙོན་཮ཛོད་ཨཱཡི་ཌི: {token_id}",
+      "expiring_soon_item_aadhaar": "ཨཱདྷཱར: {aadhaar}",
+      "expiring_soon_item_category": "བཙོན་཮ཛོད: {category}",
+      "expiring_soon_item_expires": "བཙོན་཮ཛོད: {date}",
+      "expiring_soon_item_days_left": "བཙོན་཮ཛོད: {days}"
+    },
+
+    "users": {
+      "consumers_title": "བཙོན་཮ཛོད།",
+      "consumers_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "consumers_manage_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "བཙོན་཮ཛོད།",
+      "shopkeepers_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "shopkeepers_active_label": "བཙོན་཮ཛོད:",
+      "shopkeepers_inactive_label": "བཙོན་཮ཛོད:",
+      "shopkeepers_manage_button": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "delivery_agents_title": "བཙོན་཮ཛོད།",
+      "delivery_agents_subtitle": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "delivery_agents_active_label": "བཙོན་཮ཛོད:",
+      "delivery_agents_inactive_label": "བཙོན་཮ཛོད:",
+      "delivery_agents_manage_button": "བཙོན་཮ཛོད་གནས་ཡོད།"
+    },
+
+    "deliveries": {
+      "assign_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "active_deliveries_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "active_deliveries_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "active_deliveries_view_all": "བཙོན་཮ཛོད་གནས་ཡོད།"
+    },
+
+    "payments": {
+      "total_payments_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "total_payments_subtext": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "total_amount_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "total_amount_subtext": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "pending_payments_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "pending_payments_subtext": "བཙོན་཮ཛོད་གནས་ཡோད།",
+      "management_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "management_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "management_cta": "བཙོན་཮ཛོད་གནས་ཡོད།"
+    },
+
+    "settings": {
+      "price_settings_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_settings_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_category_label": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_category_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_category_bpl": "BPL (བཙོན་཮ཛོད)",
+      "price_category_apl": "APL (བཙོན་཮ཛོད)",
+      "price_category_aay": "AAY (བཙོན་཮ཛོད)",
+      "price_category_phh": "PHH (བཙོན་཮ཛོད)",
+      "price_ration_label": "{category} བཙོན་཮ཛོད (₹ per kg)",
+      "price_ration_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_subsidy_label": "བཙོན་཮ཛོད (%)",
+      "price_subsidy_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "price_set_cta": "བཙོན་཮ཛོད {category} བཙོན་཮ཛོད།",
+      "subsidy_set_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "system_control_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_control_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_control_status_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_control_status_subtext": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_control_pause_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_control_resume_cta": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "system_info_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_info_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "system_info_contract_address": "བཙོན་཮ཛོད:",
+      "system_info_admin_wallet": "བཙོན་཮ཛོད:",
+      "system_info_network": "བཙོན་཮ཛོད:",
+      "system_info_network_value": "པོ་ལི་གཱན་ཨ་མོཡི་ཊེསཊ་ནེཊ།",
+      "system_info_connection_status": "བཙོན་཮ཛོད:",
+      "system_info_connection_connected": "བཙོན་཮ཛོད།",
+      "system_info_connection_disconnected": "བཙོན་཮ཛོད།"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_agent_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_agent_order_id_label": "བཙོན་཮ཛོད་ཨཱཡི་ཌི",
+      "assign_agent_order_id_placeholder": "བཙོན་཮ཛོད་ཨཱཡི་ཌི བཙོན་཮ཛོད།",
+      "assign_agent_agent_label": "བཙོན་཮ཛོད།",
+      "assign_agent_agent_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_agent_shopkeeper_label": "བཙོན་཮ཛོད།",
+      "assign_agent_shopkeeper_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_agent_ration_details_label": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_agent_ration_details_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད། (བཙོན་཮ཛོད)",
+      "assign_agent_cancel": "བཙོན་཮ཛོད།",
+      "assign_agent_submit": "བཙོན་཮ཛོད་གནས་ཡོད།",
+
+      "bulk_generate_title": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "bulk_generate_description": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "bulk_generate_label": "ཨཱདྷཱར་གནས་ཡོད།",
+      "bulk_generate_placeholder": "བཙོན་཮ཛོད་གནས་ཡོད། (བཙོན་཮ཛོད, 123456789012, 234567890123)",
+      "bulk_generate_count_label": "{count} ཨཱདྷཱར་གནས་ཡོད།",
+      "bulk_generate_cancel": "བཙོན་཮ཛོད།",
+      "bulk_generate_submit": "བཙོན་཮ཛོད་གནས་ཡོད།"
+    },
+
+    "toasts": {
+      "success_title": "བཙོན་཮ཛོད།",
+      "error_title": "བཙོན་཮ཛོད།",
+      "monthly_tokens_started": "བཙོན་཮ཛོད་གནས་ཡོད།! {message}",
+      "category_tokens_completed": "བཙོན་཮ཛོད {category} བཙོན་཮ཛོད! {message}",
+      "bulk_tokens_started": "བཙོན་཮ཛོད {count} བཙོན་཮ཛོད! པོ་ལི་གཱན་སྐཱན་གནས་ཡོད།: {url}",
+      "expire_old_started": "བཙོན་཮ཛོད་གནས་ཡོད།! པོ་ལི་གཱན་སྐཱན་གནས་ཡོད།: {url}",
+      "set_price_success": "བཙོན་཮ཛོད {category} བཙོན་཮ཛོད ₹{price}! པོ་ལི་གཱན་སྐཱན་གནས་ཡོད།: {url}",
+      "set_subsidy_success": "བཙོན་཮ཛོད {percentage}% བཙོན་཮ཛོད! པོ་ལི་གཱན་སྐཱན་གནས་ཡོད།: {url}",
+      "assign_agent_success": "བཙོན་཮ཛོད་གནས་ཡོད།! པོ་ལི་གཱན་སྐཱན་གནས་ཡོད།: {url}",
+      "generate_token_consumer_success": "བཙོན་཮ཛོད {aadhaar} བཙོན་཮ཛོད!",
+      "deactivate_user_success": "{user_type} བཙོན་཮ཛོད!",
+      "reactivate_user_success": "{user_type} བཙོན་཮ཛོད!"
+    },
+
+    "errors": {
+      "generic": "བཙོན་཮ཛོད།",
+      "backend_connection_failed": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "not_valid_price": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "no_category_selected": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "not_valid_subsidy": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "assign_both_required": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "expire_token_enter_id": "བཙོན་཮ཛོད་ཨཱཡི་ཌི བཙོན་཮ཛོད།",
+      "bulk_no_aadhaar": "བཙོན་཮ཛོད་གནས་ཡོད།",
+      "failed_generate_monthly": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_generate_category": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_bulk_generate": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_expire_old": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_expire_token": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_get_expired": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_get_expiring_soon": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_pause_system": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_resume_system": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_set_price": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_set_subsidy": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_assign_agent": "བཙோན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_generate_token_consumer": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_deactivate_user": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}",
+      "failed_reactivate_user": "བཙོན་཮ཛོད་གནས་ཡོད།: {message}"
+    },
+
+    "labels": {
+      "refreshing": "བཙོན་཮ཛོད...",
+      "loading": "བཙོན་཮ཛོད...",
+      "view": "བཙོན་཮ཛོད།",
+      "cancel": "བཙོན་཮ཛོད།",
+      "submit": "བཙོན་཮ཛོད།"
+    }
+  }
+}

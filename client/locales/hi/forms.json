@@ -1,0 +1,51 @@
+{
+  "buttons": {
+    "submit": "जमा करें",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "edit": "संपादित करें",
+    "delete": "हटाएँ",
+    "confirm": "पुष्टि करें",
+    "back": "पीछे",
+    "next": "अगला",
+    "finish": "समाप्त करें",
+    "retry": "पुनः प्रयास करें",
+    "refresh": "रीफ़्रेश करें",
+    "export": "निर्यात करें",
+    "import": "आयात करें",
+    "sign_in": "साइन इन करें",
+    "sign_up": "साइन अप करें"
+  },
+  "validation": {
+    "required": "यह फ़ील्ड आवश्यक है",
+    "invalid_email": "कृपया एक मान्य ईमेल दर्ज करें",
+    "invalid_phone": "कृपया एक मान्य फ़ोन नंबर दर्ज करें",
+    "password_too_short": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए",
+    "passwords_no_match": "पासवर्ड मेल नहीं खाते",
+    "invalid_format": "अमान्य प्रारूप"
+  },
+  "placeholders": {
+    "enter_email": "अपना ईमेल दर्ज करें",
+    "enter_phone": "अपना फ़ोन नंबर दर्ज करें",
+    "enter_password": "अपना पासवर्ड दर्ज करें",
+    "search": "खोजें...",
+    "select_option": "एक विकल्प चुनें",
+    "enter_amount": "राशि दर्ज करें",
+    "enter_address": "पता दर्ज करें"
+  },
+  "labels": {
+    "name": "नाम",
+    "email": "ईमेल",
+    "phone": "फ़ोन",
+    "address": "पता",
+    "city": "शहर",
+    "state": "राज्य",
+    "country": "देश",
+    "pincode": "पिन कोड",
+    "date": "तारीख",
+    "time": "समय",
+    "amount": "राशि",
+    "status": "स्थिति",
+    "type": "प्रकार"
+  }
+}

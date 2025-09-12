@@ -1,0 +1,156 @@
+{
+  "delivery_dashboard": {
+    "title": "භාරදාවේ පුද්ගල ඩැශ්බෝර්ඩ්",
+    "welcome_message": "ස්වાગතම්, {name}. ඔබගේ භාරදෑ හා අත්හිටුවන්ට රේෂන් බෝතලෑ වෙන් කිරීම කළමනාකරණය කරන්න.",
+    "tabs": {
+      "overview": "දළදක්‍ෂණය",
+      "active_delivery": "සක්‍රිය භාරදැයි",
+      "transaction_history": "ගනුදෙනු ඉතිහාසය"
+    },
+    "stats_cards": {
+      "assigned_depots": "පවරන ලද ගබඩා",
+      "pending_deliveries": "බලාපොරොත්තුවේ භාරදෑ",
+      "completed_deliveries": "අත්තිකාරම් කළ භාරදෑ",
+      "served_users": "සේවය ලබාදුන් පරිශීලකයන්",
+      "change_positive": "+{value}%",
+      "change_zero": "+0%"
+    },
+    "overview": {
+      "assigned_depots_section_title": "පවරන ලද ගබඩා",
+      "assigned_depots_section_description": "භාරදැයි ආරම්භ කිරීමට ගබඩාවක් තෝරන්න",
+      "assigned_depots_empty": "ඔබට මෙම මොහොතට පවරන ලද ගබඩා නොමැත",
+      "assigned_depots_start_button": "භාරදැයි ආරම්භ කරන්න",
+
+      "pending_deliveries_section_title": "බලාපොරොත්තුවේ භාරදෑ",
+      "pending_deliveries_section_description": "ඔබගේ ක්‍රියාමාර්ගය බලාපොරොත්තු වෙමින්",
+      "pending_deliveries_empty": "බලාපොරොත්තුවේ භාරදෑ නොමැත",
+      "pending_badge": "බලාපොරොත්තුවේ",
+      "pending_scheduled_label": "ඇණවුම: {date}",
+      "pending_start_button": "භාරදැයි ආරම්භ කරන්න",
+
+      "completed_deliveries_section_title": "අත්තිකාරම් කළ භාරදෑ",
+      "completed_deliveries_section_description": "ඔබගේ භාරදැයි ඉතිහාසය",
+      "completed_table_header_delivery_id": "භාරදැයි අංකය",
+      "completed_table_header_depot": "ගබඩාව",
+      "completed_table_header_date": "දිනය",
+      "completed_table_header_users_served": "සේවා ලැබූ පරිශීලකයන්",
+      "completed_table_header_status": "තත්ත්වය",
+      "completed_badge": "අත්තිකාරම්",
+      "completed_row_id_prefix": "DEL-{id}"
+    },
+
+    "active": {
+      "active_card_title": "සක්‍රිය භාරදැයි",
+      "active_card_depot_label": "ගබඩාව: {depot_name}",
+      "badge_authenticated": "තහවුරු කළා",
+      "badge_in_progress": "ක්‍රියාත්මක",
+      "badge_pending": "බලාපොරොත්තුවේ",
+      "badge_completed": "අත්තිකාරම්",
+
+      "notice_title": "භාරදැයි ක්‍රියාවලීන්:",
+      "notice_step_1": "ගබඩාවට ගොස් භාරදැයි සඳහා පැමිණ ඇති බව දන්වන්න",
+      "notice_step_2": "තහවුරු කිරීම සඳහා ගබඩා කළමනාකරුෙන් OTP එකක් ජනනය කරන ලෙස ඉල්ලා සිටින්න",
+      "notice_step_3": "ඔ ඔබගේ හැඳුනුම තහවුරු කිරීමට පහත පෝරමයේ එම OTP ඇතුළත් කරන්න",
+      "notice_step_4": "ස්ථානය තහවුරු කර රේෂන් බෙදාහැරීම සම්පූර්ණ කරන්න",
+
+      "progress_otp_verification": "OTP තහවුරු කිරීම",
+      "progress_location_verification": "ස්ථාන තහවුරු කිරීම",
+      "progress_ration_distribution": "රේෂන් බෙදාහැරීම",
+
+      "otp_title": "ගබඩා සත්‍යාපනය",
+      "otp_label": "ගබඩාවේ OTP ඇතුළත් කරන්න:",
+      "otp_placeholder": "ගබඩාව පෙන්වූ OTP ඇතුළත් කරන්න",
+      "otp_verify_button": "OTP තහවුරු කරන්න",
+      "otp_debug_button": "OTP ਡිබග්",
+      "otp_test_mode_label": "පරික්ෂණ පද්ධතිය සක්‍රිය කරන්න (බ්ලාක්චේන් ගනුදෙනු අනුකරණය)",
+      "otp_important_title": "මහත් වගකීම:",
+      "otp_important_point_1": "1) ප්‍රථමයෙන් ගබඩා කළමනාකරු OTP ජනනය කළ යුතුය",
+      "otp_important_point_2": "2) මෙයින් පද්ධතියේ තත්ත්වය \"In Transit\" බවට පත් වෙයි",
+      "otp_important_point_3": "3) එවිට මෙහි OTP සත්‍යාපනය කළ හැක",
+      "otp_success": "OTP සාර්ථකව තහවුරු කළා! දැන් ස්ථානය තහවුරු කරන්න.",
+      "otp_error_empty": "කරුණාකර ගබඩාව ලබාදුන් OTP ඇතුළත් කරන්න",
+      "otp_error_generic": "OTP තහවුරු කිරීම අසාර්ථකයි: {message}",
+
+      "location_title": "ස්ථාන තහවුරු කිරීම",
+      "location_your_location": "ඔබගේ වත්මන් ස්ථානය:",
+      "location_latitude": "අක්‍ෂාංශ: {lat}",
+      "location_longitude": "දේශාංශ: {lng}",
+      "location_fetching": "ඔබගේ ස්ථානය ලබා ගනිමින්...",
+      "location_verify_button": "ස්ථානය තහවුරු කරන්න",
+      "location_hint": "ගබඩාව සමඟ ඔබගේ ස්ථානය තහවුරු කිරීමට ක්ලික් කරන්න",
+      "location_success": "ස්ථානය සාර්ථකව තහවුරු විය! දැන් රේෂන් බෙදාහැරීම සිදු කළ හැක.",
+      "location_error_no_data": "ස්ථාන දත්ත ലഭ്യമ නැත",
+      "location_error_generic": "ස්ථානය තහවුරු කිරීම අසාර්ථකයි: {message}",
+
+      "ration_title": "රේෂන් බෙදාහැරීම",
+      "ration_table_header_user_id": "පරිශීලක අංකය",
+      "ration_table_header_name": "නම",
+      "ration_table_header_category": "වර්ගය",
+      "ration_table_header_status": "තත්ත්වය",
+      "ration_table_header_action": "ක්‍රියා",
+      "ration_status_allocated": "පිහිටුවා ඇත",
+      "ration_status_pending": "බලාපොරොත්තුවේ",
+      "ration_allocate_button": "රේෂන් වෙන් කිරීම",
+      "ration_allocated_button": "වෙන් කළා",
+      "ration_empty": "මෙම ගබඩාවට පරිශීලකයන් නියම කර නොමැත",
+      "ration_success": "පරිශීලක {user_id} වෙත රේෂන් සාර්ථකව වෙන් කළා!",
+      "ration_error_generic": "රේෂන් වෙන් කිරීම අසාර්ථකයි: {message}",
+
+      "complete_button": "භාරදැයි සම්පූර්ණ කරන්න",
+      "complete_disabled_hint": "සම්පූර්ණ කිරීමට පෙර සියලු පරිශීලකයන්ට සේවය කල යුතුයි",
+      "complete_success_toast": "භාරදැයි සාර්ථකව සම්පූර්ණ වී ඇත! මුදල් ඔබගේ ගිණුමට මාරූ වී ඇත.",
+      "complete_error_generic": "භාරදැයි සම්පූර්ණ කිරීම අසාර්ථකයි: {message}"
+    },
+
+    "transactions": {
+      "title": "ගනුදෙනු ඉතිහාසය",
+      "description": "ඔබගේ බ්ලාක්චේන් ගනුදෙනු පටිපාටිය",
+      "table_header_type": "වර්ගය",
+      "table_header_date": "දිනය",
+      "table_header_details": "විස්තර",
+      "table_header_transaction": "ගනුදෙනුව",
+      "empty": "ගනුදෙනු ඉතිහාසයක් නොමැත",
+      "view": "දැක්ම"
+    },
+
+    "statuses": {
+      "pending": "බලාපොරොත්තුවේ",
+      "in_progress": "ක්‍රියාත්මක",
+      "authenticated": "තහවුරු කළා",
+      "completed": "අත්තිකාරම්",
+      "allocated": "පිහිටුවා ඇත"
+    },
+
+    "loaders": {
+      "connecting_wallet": "වැලට් එකට සම්බන්ධ වෙමින්...",
+      "loading_dashboard": "ඩැශ්බෝර්ඩ් පූරණය වෙමින්..."
+    },
+
+    "errors": {
+      "generic": "යම් දෝෂයක් සිදු විය",
+      "not_delivery_agent": "මෙම වැලට් එක භාරදැයි නියෝගිතයා ලෙස ලියාපදිංචි කර නොමැත",
+      "failed_to_load": "බ්ලාක්චේන් වෙතින් දත්ත පූරණය අසාර්ථකයි: {message}",
+      "no_active_delivery": "සක්‍රිය භාරදැයි නොමැත",
+      "no_selected_depot": "තේරූ ගබඩාව ඔබට පවරා නොමැත",
+      "no_pending_for_depot": "මෙම ගබඩාව සඳහා සක්‍රිය භාරදැයි නොමැත. කරුණාකර පරිපාලක සම්බන්ධ করুন.",
+      "delivery_not_pending": "භාරදැයි දැනටමත් ක්‍රියාත්මක හෝ සම්පූර්ණයි. ගබඩාව යළි සකසන තෙක් බලන්න හෝ පරිපාලක සම්බන්ධ කරන්න.",
+      "refresh_failed": "දත්ත යාවත්කාල කිරීම අසාර්ථකයි: {message}"
+    },
+
+    "toasts": {
+      "data_refreshed": "දත්ත සාර්ථකව යාවත්කාල කර ඇත. විස්තර සඳහා බ්‍රවුසර් කොන්සෝලය බලන්න."
+    },
+
+    "modal": {
+      "title": "MetaMask ගනුදෙනුව",
+      "transaction_type_label": "ගනුදෙනු වර්ගය:",
+      "to_contract_label": "කරාරයට:",
+      "gas_fee_est_label": "ඇස්තමේන්තූ ගෑස් ගාස්තු:",
+      "payment_amount_label": "ගෙවීම් ප්‍රමාණය:",
+      "type_label_otp": "OTP තහවුරු කිරීම",
+      "type_label_location": "ස්ථාන තහවුරු කිරීම",
+      "type_label_complete": "ගෙවීම් සැකසීම",
+      "confirm_prompt": "කරුණාකර ඔබගේ MetaMask වැලට් තුළ මෙම ගනුදෙනුව තහවුරු කරන්න"
+    }
+  }
+}

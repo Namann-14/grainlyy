@@ -1,0 +1,51 @@
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "export": "Export",
+    "import": "Import",
+    "sign_in": "Sign In",
+    "sign_up": "Sign Up"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalid_email": "Please enter a valid email",
+    "invalid_phone": "Please enter a valid phone number",
+    "password_too_short": "Password must be at least 8 characters",
+    "passwords_no_match": "Passwords do not match",
+    "invalid_format": "Invalid format"
+  },
+  "placeholders": {
+    "enter_email": "Enter your email",
+    "enter_phone": "Enter your phone number",
+    "enter_password": "Enter your password",
+    "search": "Search...",
+    "select_option": "Select an option",
+    "enter_amount": "Enter amount",
+    "enter_address": "Enter address"
+  },
+  "labels": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "state": "State",
+    "country": "Country",
+    "pincode": "PIN Code",
+    "date": "Date",
+    "time": "Time",
+    "amount": "Amount",
+    "status": "Status",
+    "type": "Type"
+  }
+}

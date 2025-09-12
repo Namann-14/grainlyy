@@ -1,0 +1,310 @@
+{
+  "shopkeeper_dashboard": {
+    "app_name": "GRAINLY PDS System",
+    "title": "Shopkeeper Dashboard",
+    "loading": "Loading dashboard...",
+    "connect_wallet_required": "Connect your wallet to access the shopkeeper dashboard.",
+    "refresh": "Refresh",
+    "refreshed_success": "Dashboard refreshed successfully",
+    "address_label": "Address",
+    "area_label": "Area",
+    "active_shop_badge": "Active Shopkeeper",
+    "inactive_shop_badge": "Inactive",
+    "stats_consumers_label": "Consumers",
+    "stats_tokens_label": "Tokens",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+
+    "tabs": {
+      "overview": "Overview",
+      "consumers": "Consumers",
+      "inventory": "Inventory",
+      "incoming": "Incoming Deliveries",
+      "deliveries": "Deliveries",
+      "payments": "Payments",
+      "analytics": "Analytics"
+    },
+
+    "cards": {
+      "assigned_consumers_title": "Assigned Consumers",
+      "assigned_consumers_active": "Active",
+      "monthly_tokens_title": "Monthly Tokens",
+      "monthly_tokens_subtitle": "Issued this month",
+      "total_tokens_title": "Total Tokens",
+      "total_tokens_subtitle": "Lifetime total",
+      "total_deliveries_title": "Total Deliveries",
+      "total_deliveries_subtitle": "Completed"
+    },
+
+    "shopkeeper_status": {
+      "title": "Shopkeeper Status",
+      "subtitle": "Your account status and performance metrics",
+      "account_status_label": "Account Status",
+      "registration_date_label": "Registration Date",
+      "performance_rate_label": "Performance Rate",
+      "claim_rate_suffix": "% claim rate"
+    },
+
+    "consumers": {
+      "title": "Assigned Consumers",
+      "subtitle_prefix": "Manage your assigned consumers.",
+      "subtitle_counts": "Total: {total} | Active: {active}",
+      "empty_title": "No consumers yet",
+      "empty_subtitle": "Contact the admin to assign consumers to your shop",
+      "aadhaar_label": "Aadhaar",
+      "wallet_label": "Wallet Address",
+      "btn_mark_delivered": "✓ Mark Delivered & Receipt",
+      "btn_request_delivery": "🚚 Request Delivery Agent",
+      "btn_unclaimed_tokens": "🔍 Unclaimed Tokens",
+      "btn_all_tokens": "📋 All Tokens",
+      "quick_stats": {
+        "title": "Quick Stats",
+        "total_assigned": "Total Assigned",
+        "active": "Active",
+        "monthly_tokens": "Monthly Tokens",
+        "completion_rate": "Completion Rate"
+      }
+    },
+
+    "inventory": {
+      "title": "Token Inventory",
+      "subtitle": "Track DCV tokens for your assigned consumers",
+      "monthly_block_title": "Monthly Tokens",
+      "monthly_block_caption": "Issued this month",
+      "total_block_title": "Total Tokens",
+      "total_block_caption": "Lifetime total",
+      "delivered_block_title": "Deliveries",
+      "delivered_block_caption": "Completed deliveries",
+      "debug_title": "Debug Information",
+      "debug_inventory": "Inventory data",
+      "debug_unclaimed": "Unclaimed tokens",
+      "debug_dashboard": "Dashboard data",
+      "debug_contract": "Contract",
+      "found_unclaimed": "✅ Found {count} unclaimed tokens",
+      "no_unclaimed_title": "No unclaimed tokens",
+      "no_unclaimed_hint_with_total": "All {total} tokens have been delivered",
+      "btn_refresh_tokens": "Refresh Tokens",
+      "distribution_efficiency": "Distribution Efficiency",
+      "claim_rate_label": "Claim Rate"
+    },
+
+    "incoming": {
+      "title": "Incoming Deliveries",
+      "subtitle": "Monitor ration deliveries arriving at your shop",
+      "expected_deliveries": "Expected Deliveries",
+      "btn_refresh": "Refresh",
+      "btn_debug_abi": "Debug ABI",
+      "summary": {
+        "total": "Total Deliveries",
+        "in_transit": "In Transit",
+        "need_confirmation": "🚨 Need Confirmation",
+        "awaiting_delivery": "Awaiting Delivery",
+        "total_ration": "Total Ration",
+        "est_value": "Estimated Value"
+      },
+      "action_required_banner": {
+        "title": "🚨 Action Required",
+        "description": "You have {count} deliveries that need confirmation. Please select “Confirm Receipt” below.",
+        "btn_show": "Show Deliveries"
+      },
+      "empty_title": "No incoming deliveries",
+      "empty_subtitle": "Either all deliveries are completed or none are scheduled",
+      "empty_reasons_title": "Possible reasons",
+      "empty_reasons": [
+        "No deliveries assigned to the shopkeeper",
+        "Contract function getMyShopPickups() is unavailable",
+        "Shopkeeper address is not registered in the system",
+        "Network/contract connection issues"
+      ],
+      "list": {
+        "pickup_badge": "Pickup #{id}",
+        "delivery_details": "Delivery Details",
+        "ration_amount": "Ration Amount",
+        "category": "Category",
+        "from_location": "From Location",
+        "delivery_value": "Delivery Value",
+        "timeline": "Timeline",
+        "assigned": "Assigned",
+        "picked_up": "Picked up from {location}",
+        "in_transit": "In transit to your shop",
+        "eta": "ETA",
+        "delivered_to_shop": "Delivered to Shop",
+        "receipt_confirmed": "Receipt Confirmed",
+        "special_instructions": "Special Instructions",
+        "expected_arrival": "Expected Arrival",
+        "contact_agent": "Contact Agent",
+        "minutes_suffix": "minutes",
+        "on_the_way_badge": "🚚 On the way",
+        "done_badge": "✓ Done",
+        "pending_badge": "Pending",
+        "status_waiting_pickup": "⏳ Waiting for pickup",
+        "status_collected": "📦 Collected by agent",
+        "status_on_way": "🚚 On the way to you",
+        "status_delivered_needs_action": "📍 Delivered - action required!",
+        "status_completed": "✅ Delivery completed and confirmed",
+        "btn_confirm_receipt": "✅ Confirm Receipt",
+        "btn_update_status": "Update Status"
+      }
+    },
+
+    "analytics": {
+      "title": "Performance Analytics",
+      "subtitle": "Your overall performance metrics",
+      "delivery_rate": "Delivery Rate",
+      "active_rate": "Active Rate",
+      "monthly_tokens": "Monthly Tokens",
+      "overview_title": "Performance Overview",
+      "total_assigned": "Total Assigned",
+      "total_delivered": "Total Delivered",
+      "total_tokens": "Total Tokens",
+      "account_status": "Account Status",
+      "recent_activity_title": "Recent Activity",
+      "registered_on": "Registered On",
+      "last_updated": "Last Updated"
+    },
+
+    "deliveries_tab": {
+      "title": "Delivery Management",
+      "subtitle": "Track pending and completed deliveries",
+      "placeholder": "Delivery data will appear here"
+    },
+
+    "payments_tab": {
+      "title": "Payment History",
+      "subtitle": "Your earnings and payments",
+      "placeholder": "Payment data will appear here"
+    },
+
+    "tokens_modal": {
+      "title_unclaimed": "Unclaimed Tokens for Consumer",
+      "title_all": "All Tokens for Consumer",
+      "aadhaar": "Aadhaar",
+      "view_mode_unclaimed": "Unclaimed tokens only",
+      "view_mode_all": "All tokens (claimed + unclaimed)",
+      "table": {
+        "token_id": "Token ID",
+        "ration_amount": "Ration Amount",
+        "category": "Category",
+        "issued": "Issued Date",
+        "expiry": "Expiry Date",
+        "status": "Status",
+        "claimed": "Claimed Date",
+        "actions": "Actions"
+      },
+      "status_claimed": "Claimed",
+      "status_available": "Available",
+      "status_expired": "Expired",
+      "btn_mark_delivered": "Mark Delivered",
+      "badge_delivered": "✓ Delivered",
+      "badge_expired": "⚠ Expired",
+      "summary": {
+        "title": "Summary",
+        "total_tokens": "Total Tokens",
+        "claimed": "Claimed",
+        "available": "Available",
+        "expired": "Expired"
+      },
+      "btn_close": "Close"
+    },
+
+    "receipt_modal": {
+      "title": "🧾 Delivery Receipt Generated",
+      "receipt_id": "Receipt ID",
+      "header_brand": "🏪 GRAINLY PDS SYSTEM",
+      "header_subtitle": "Ration Delivery Receipt",
+      "status_delivery_confirmed": "✅ Delivery Confirmed",
+      "status_pickup_confirmed": "✅ Pickup Confirmed",
+      "pickup_id": "Pickup ID",
+      "date_time": "Date & Time",
+      "consumer": "Consumer",
+      "aadhaar": "Aadhaar",
+      "shopkeeper": "Shopkeeper",
+      "shop_area": "Shop Area",
+      "ration_amount": "Ration Amount",
+      "category": "Category",
+      "total_value": "Total Value",
+      "subsidy": "Subsidy",
+      "consumer_paid": "Consumer Paid",
+      "status": "Status",
+      "timeline_title": "Token Timeline",
+      "issued": "Issued",
+      "claimed": "Claimed",
+      "expires": "Expires",
+      "generated": "Receipt Generated",
+      "delivery_info": "Delivery Information",
+      "method": "Method",
+      "payment_status": "Payment Status",
+      "blockchain_verification": "Blockchain Verification",
+      "network": "Network",
+      "contract": "Contract",
+      "tx_hash": "Transaction Hash",
+      "verified": "Verified",
+      "btn_print": "🖨️ Print",
+      "btn_download": "📥 Download",
+      "btn_copy": "📋 Copy Details",
+      "next_steps_title": "📋 What happens next?",
+      "next_steps_pickup": [
+        "Pickup confirmation has been recorded on the blockchain",
+        "This receipt proves the delivery was received from the agent",
+        "The agent’s task is now completed",
+        "You can print or download this receipt",
+        "Pickup status has been updated to confirmed",
+        "You can now distribute rations to your assigned consumers"
+      ],
+      "next_steps_delivery": [
+        "Delivery has been confirmed on the blockchain",
+        "This receipt is proof of successful distribution",
+        "The consumer has received subsidized rations",
+        "You can print or download this receipt",
+        "The token is marked as claimed and cannot be reused",
+        "Government subsidy has been processed automatically"
+      ]
+    },
+
+    "buttons": {
+      "confirming": "Confirming...",
+      "copy_success": "Receipt details copied!"
+    },
+
+    "statuses": {
+      "assigned": "Assigned",
+      "picked_up": "Picked Up",
+      "in_transit": "In Transit",
+      "delivered": "Delivered",
+      "confirmed": "Confirmed"
+    },
+
+    "alerts": {
+      "error_title": "An error occurred",
+      "success_title": "Success"
+    },
+
+    "errors": {
+      "init_failed": "Failed to initialize dashboard: {message}",
+      "contract_connect_failed": "Failed to connect to contract: {message}",
+      "not_registered": "Your wallet address ({account}) is not registered as a shopkeeper. Please contact the admin.",
+      "confirm_receipt_failed": "Failed to confirm receipt",
+      "user_rejected": "Transaction was rejected by the user",
+      "insufficient_funds": "Insufficient funds for gas fees",
+      "tx_reverted": "Transaction failed — already confirmed or invalid",
+      "only_shopkeeper": "Only the assigned shopkeeper can confirm this",
+      "already_confirmed": "This delivery has already been confirmed",
+      "network_error": "Network error — please ensure you are connected to Polygon Amoy testnet",
+      "unknown_error": "An unknown error occurred",
+      "nonce_error": "Transaction nonce error — please reset MetaMask or try again",
+      "replacement_error": "Transaction replacement error — please wait and try again",
+      "api_failed": "API request failed: {message}",
+      "no_unclaimed": "No unclaimed tokens for this consumer",
+      "missing_aadhaar": "Consumer Aadhaar number is missing",
+      "missing_wallet": "Consumer wallet address is missing",
+      "contract_not_ready": "Contract is not connected"
+    },
+
+    "toasts": {
+      "tx_sent": "Transaction sent! Waiting for confirmation...",
+      "receipt_confirmed": "Receipt confirmed successfully!",
+      "delivery_agent_requested": "Delivery agent requested successfully",
+      "dashboard_refreshed": "Dashboard reloaded"
+    }
+  }
+}

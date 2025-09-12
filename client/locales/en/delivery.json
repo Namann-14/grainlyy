@@ -1,0 +1,121 @@
+{
+  "login": {
+    "title": "Delivery Agent Login",
+    "subtitle": "Connect your wallet to access the delivery dashboard",
+    "connect_wallet_button": "Connect Wallet",
+    "connect_wallet_help": "Connect your MetaMask wallet to continue",
+    "wallet_connected_title": "Wallet Connected",
+    "verifying_status": "Verifying delivery agent status...",
+    "not_registered_error": "Not registered as a delivery agent",
+    "verify_failed_error": "Failed to verify delivery agent status",
+    "please_contact_admin_note": "Please contact the admin to register as a delivery agent.",
+    "agent_verified_title": "Delivery Agent Verified",
+    "field_name": "Name",
+    "field_mobile": "Mobile",
+    "field_status": "Status",
+    "field_status_active": "Active",
+    "field_status_inactive": "Inactive",
+    "field_total_deliveries": "Total Deliveries",
+    "access_dashboard_button": "Access Dashboard",
+    "inactive_warning": "Your account is inactive. Please contact the admin.",
+    "retry_verification_button": "Retry Verification",
+    "help_text": "Need help? Contact your system administrator"
+  },
+  "dashboard": {
+    "title": "Delivery Dashboard",
+    "loading_message": "Loading dashboard...",
+    "connect_wallet_message": "Please connect your wallet to access the delivery dashboard",
+    "errors": {
+      "init_failed": "Failed to initialize dashboard: {message}",
+      "network_error": "Network error - please check your connection and try again. Make sure you're on Polygon Amoy testnet.",
+      "user_rejected": "Transaction was rejected by user",
+      "insufficient_funds": "Insufficient funds for gas fees",
+      "execution_reverted": "Transaction failed - pickup or delivery may already be processed or invalid",
+      "nonce_error": "Transaction nonce error - please reset your MetaMask account or try again",
+      "replacement_error": "Transaction replacement error - please wait and try again",
+      "unknown_error": "Unknown error occurred"
+    },
+    "success": {
+      "refresh_success": "Dashboard refreshed successfully",
+      "tx_sent": "Transaction sent! Waiting for confirmation...",
+      "pickup_marked": "Pickup marked successfully! Refreshing dashboard...",
+      "delivery_marked": "Delivery marked successfully! Refreshing dashboard..."
+    },
+    "fraud": {
+      "report_button": "Report Fraud"
+    },
+    "status": {
+      "assigned": "Assigned",
+      "picked_up": "Picked Up",
+      "in_transit": "In Transit",
+      "delivered": "Delivered",
+      "confirmed": "Confirmed",
+      "unknown": "Unknown"
+    },
+    "agent": {
+      "not_registered": "Unregistered Agent",
+      "not_loaded": "⚠️ Agent details not fully loaded - contact admin if this persists",
+      "inactive": "Inactive",
+      "active": "Active Agent",
+      "mobile": "Mobile",
+      "total_pickups": "Total Pickups",
+      "total_deliveries": "Total Deliveries"
+    },
+    "statistics": {
+      "total_pickups": "Total Pickups",
+      "completed": "Completed",
+      "pending_pickups": "Pending Pickups",
+      "pending_deliveries": "Pending Deliveries",
+      "completion_rate": "Completion Rate"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "pending_pickups": "Pending Pickups",
+      "pending_deliveries": "Pending Deliveries",
+      "history": "History"
+    },
+    "overview": {
+      "recent_activity": "Recent Activity",
+      "no_pickups": "No pickups assigned yet",
+      "quick_actions": "Quick Actions",
+      "view_pending_pickups": "View Pending Pickups ({count})",
+      "view_pending_deliveries": "View Pending Deliveries ({count})",
+      "refresh_button": "Refresh Dashboard"
+    },
+    "pending_pickups": {
+      "title": "Pending Pickups",
+      "none": "No pending pickups",
+      "urgent": "Urgent",
+      "mark_picked_up_button": "Mark Picked Up",
+      "processing": "Processing...",
+      "next_steps_title": "📋 Next Steps:",
+      "instruction_step_1": "Go to pickup location: {pickup_location}",
+      "instruction_step_2": "Collect {amount} kg of {category} ration",
+      "instruction_step_3": "Click 'Mark Picked Up' when collected",
+      "instruction_step_4": "Deliver to shopkeeper address above"
+    },
+    "pending_deliveries": {
+      "title": "Pending Deliveries",
+      "none": "No pending deliveries",
+      "in_transit": "🚚 In Transit",
+      "mark_delivered_button": "Mark Delivered",
+      "progress_picked_up": "Picked Up ✓",
+      "progress_in_transit": "In Transit...",
+      "progress_delivered": "Delivered",
+      "progress_hint": "📍 Click 'Mark Delivered' when you reach the shopkeeper"
+    },
+    "history": {
+      "title": "Pickup History",
+      "none": "No pickup history",
+      "completed": "✅ Completed",
+      "timeline_title": "📅 Delivery Timeline:",
+      "total_delivery_time": "⏱️ Total delivery time: {minutes} minutes",
+      "instructions_title": "Instructions:"
+    },
+    "buttons": {
+      "refresh": "Refresh",
+      "switch_network": "Switch Network",
+      "debug_info": "Debug Info"
+    }
+  }
+}

@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "पीडीएस एडमिन डैशबोर्ड",
+    "subtitle": "भारतीय सार्वजनिक वितरण प्रणाली - ब्लॉकचेन आधारित",
+
+    "connection": {
+      "backend_connected": "बैकएंड कनेक्टेड",
+      "backend_disconnected": "बैकएंड डिस्कनेक्टेड",
+      "connecting_backend_wallet": "बैकएंड वॉलेट से कनेक्ट हो रहा है...",
+      "connected": "कनेक्टेड",
+      "disconnected": "डिस्कनेक्टेड",
+      "copy_success_toast": "क्लिपबोर्ड पर कॉपी किया गया!",
+      "view_contract_button": "कॉन्ट्रैक्ट देखें",
+      "refresh_button": "रिफ्रेश"
+    },
+
+    "tabs": {
+      "overview": "अवलोकन",
+      "tokens": "टोकन प्रबंधन",
+      "users": "उपयोगकर्ता प्रबंधन",
+      "deliveries": "डिलीवरी प्रबंधन",
+      "payments": "भुगतान विश्लेषण",
+      "settings": "सिस्टम सेटिंग्स"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "डैशबोर्ड डेटा सफलतापूर्वक रिफ्रेश किया गया!",
+      "backend_connected_success": "बैकएंड वॉलेट सफलतापूर्वक कनेक्ट हो गया!",
+      "fetch_dashboard_failed": "डैशबोर्ड डेटा लोड करने में विफल: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "कुल उपभोक्ता",
+        "total_consumers_subtitle": "पंजीकृत लाभार्थी",
+        "total_shopkeepers_title": "कुल दुकानदार",
+        "total_shopkeepers_subtitle": "सक्रिय वितरण केंद्र",
+        "delivery_agents_title": "डिलीवरी एजेंट",
+        "delivery_agents_subtitle": "सक्रिय डिलीवरी कर्मी",
+        "system_status_title": "सिस्टम की स्थिति",
+        "system_status_subtitle": "वर्तमान संचालन स्थिति",
+        "system_status_active": "सक्रिय",
+        "system_status_paused": "विराम"
+      },
+
+      "quick_actions_title": "त्वरित क्रियाएँ",
+      "quick_actions_description": "सामान्य प्रशासनिक कार्य",
+      "quick_actions_generate_monthly_tokens": "मासिक टोकन जनरेट करें",
+      "quick_actions_consumer_requests": "उपभोक्ता अनुरोध",
+      "quick_actions_expire_old_tokens": "पुराने टोकन समाप्त करें",
+
+      "categories_title": "उपभोक्ता श्रेणियाँ",
+      "categories_description": "राशन कार्ड प्रकार के अनुसार वितरण",
+      "categories_generate_tokens_button": "टोकन जनरेट करें",
+      "categories_count_label": "{category} श्रेणी ({count})",
+
+      "anomalies_title": "सिस्टम विसंगतियाँ",
+      "anomalies_description": "वितरण में पाई गई अनियमितताएँ",
+      "anomalies_total_records_badge": "{count} कुल रिकॉर्ड",
+      "anomalies_ml_label": "एमएल विसंगतियाँ:",
+      "anomalies_rule_label": "नियम आधारित:",
+      "anomalies_recent_label": "हाल की पाई गई विसंगतियाँ",
+      "anomalies_token_id": "टोकन आईडी: {token_id}",
+      "anomalies_aadhaar": "आधार: {aadhaar}",
+      "anomalies_issued_claimed": "जारी: {issued} | दावा: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "विसंगतियाँ रिफ्रेश करें"
+    },
+
+    "tokens": {
+      "monthly_title": "मासिक टोकन जनरेशन",
+      "monthly_description": "सभी पात्र उपभोक्ताओं के लिए टोकन जनरेट करें",
+      "monthly_cta": "मासिक टोकन जनरेट करें",
+      "monthly_hint": "यह उन सभी उपभोक्ताओं के लिए टोकन बनाएगा जिन्हें इस महीने टोकन नहीं मिले हैं",
+
+      "category_title": "श्रेणी अनुसार जनरेशन",
+      "category_description": "राशन कार्ड श्रेणी के अनुसार टोकन जनरेट करें",
+      "category_button_label": "{category} श्रेणी ({count})",
+
+      "bulk_title": "बल्क ऑपरेशंस",
+      "bulk_description": "उन्नत टोकन प्रबंधन",
+      "bulk_generate_button": "बल्क टोकन जनरेट करें",
+      "bulk_expire_old_button": "पुराने टोकन समाप्त करें",
+
+      "manual_expiration_title": "मैन्युअल टोकन समाप्ति",
+      "manual_expiration_description": "विशिष्ट टोकन को आईडी द्वारा समाप्त करें",
+      "manual_expiration_token_id_label": "टोकन आईडी",
+      "manual_expiration_placeholder": "टोकन आईडी दर्ज करें",
+      "manual_expiration_cta": "टोकन समाप्त करें",
+
+      "expired_title": "समाप्त टोकन",
+      "expired_description": "सभी समाप्त टोकन देखें",
+      "expired_fetch_button": "समाप्त टोकन प्राप्त करें",
+      "expired_found_label": "{count} समाप्त टोकन मिले",
+      "expired_item_token_id": "टोकन आईडी: {token_id}",
+      "expired_item_aadhaar": "आधार: {aadhaar}",
+      "expired_item_category": "श्रेणी: {category}",
+      "expired_item_expired": "समाप्त: {date}",
+      "expired_more_label": "... और {count} अन्य",
+
+      "expiring_soon_title": "जल्द समाप्त होने वाले",
+      "expiring_soon_description": "7 दिनों के भीतर समाप्त होने वाले टोकन",
+      "expiring_soon_fetch_button": "जल्द समाप्त होने वाले प्राप्त करें",
+      "expiring_soon_found_label": "{count} टोकन जल्द समाप्त होंगे",
+      "expiring_soon_item_token_id": "टोकन आईडी: {token_id}",
+      "expiring_soon_item_aadhaar": "आधार: {aadhaar}",
+      "expiring_soon_item_category": "श्रेणी: {category}",
+      "expiring_soon_item_expires": "समाप्ति: {date}",
+      "expiring_soon_item_days_left": "दिन शेष: {days}"
+    },
+
+    "users": {
+      "consumers_title": "उपभोक्ता",
+      "consumers_subtitle": "पंजीकृत लाभार्थी",
+      "consumers_manage_button": "उपभोक्ताओं का प्रबंधन करें",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "दुकानदार",
+      "shopkeepers_subtitle": "वितरण केंद्र",
+      "shopkeepers_active_label": "सक्रिय:",
+      "shopkeepers_inactive_label": "निष्क्रिय:",
+      "shopkeepers_manage_button": "दुकानदारों का प्रबंधन करें",
+
+      "delivery_agents_title": "डिलीवरी एजेंट",
+      "delivery_agents_subtitle": "डिलीवरी कर्मी",
+      "delivery_agents_active_label": "सक्रिय:",
+      "delivery_agents_inactive_label": "निष्क्रिय:",
+      "delivery_agents_manage_button": "एजेंट प्रबंधित करें"
+    },
+
+    "deliveries": {
+      "assign_title": "डिलीवरी एजेंट असाइन करें",
+      "assign_description": "डिलीवरी एजेंट को दुकानदारों को असाइन करें",
+      "assign_cta": "एजेंट असाइन करें",
+
+      "active_deliveries_title": "सक्रिय डिलीवरी",
+      "active_deliveries_description": "चालू डिलीवरी की निगरानी करें",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "चालू डिलीवरी",
+      "active_deliveries_view_all": "सभी डिलीवरी देखें"
+    },
+
+    "payments": {
+      "total_payments_title": "कुल भुगतान",
+      "total_payments_subtext": "पूर्ण लेनदेन",
+      "total_amount_title": "कुल राशि",
+      "total_amount_subtext": "कुल संसाधित",
+      "pending_payments_title": "लंबित भुगतान",
+      "pending_payments_subtext": "प्रसंस्करण की प्रतीक्षा में",
+      "management_title": "भुगतान प्रबंधन",
+      "management_description": "विस्तृत भुगतान विश्लेषण और प्रबंधन तक पहुँचें",
+      "management_cta": "भुगतान डैशबोर्ड देखें"
+    },
+
+    "settings": {
+      "price_settings_title": "मूल्य सेटिंग्स",
+      "price_settings_description": "राशन मूल्य और सब्सिडी कॉन्फ़िगर करें",
+      "price_category_label": "राशन कार्ड श्रेणी",
+      "price_category_placeholder": "श्रेणी चुनें",
+      "price_category_bpl": "बीपीएल (गरीबी रेखा से नीचे)",
+      "price_category_apl": "एपीएल (गरीबी रेखा से ऊपर)",
+      "price_category_aay": "एएवाई (अंत्योदय अन्न योजना)",
+      "price_category_phh": "पीएचएच (प्राथमिकता परिवार)",
+      "price_ration_label": "{category} के लिए राशन मूल्य (₹ प्रति किग्रा)",
+      "price_ration_placeholder": "प्रति किग्रा मूल्य दर्ज करें",
+      "price_subsidy_label": "सब्सिडी प्रतिशत (%)",
+      "price_subsidy_placeholder": "प्रतिशत दर्ज करें",
+      "price_set_cta": "{category} मूल्य सेट करें",
+      "subsidy_set_cta": "सब्सिडी सेट करें",
+
+      "system_control_title": "सिस्टम नियंत्रण",
+      "system_control_description": "आपातकालीन सिस्टम नियंत्रण",
+      "system_control_status_title": "सिस्टम की स्थिति",
+      "system_control_status_subtext": "वर्तमान संचालन स्थिति",
+      "system_control_pause_cta": "सिस्टम रोकें",
+      "system_control_resume_cta": "सिस्टम पुनः शुरू करें",
+
+      "system_info_title": "सिस्टम जानकारी",
+      "system_info_description": "ब्लॉकचेन और कॉन्ट्रैक्ट विवरण",
+      "system_info_contract_address": "कॉन्ट्रैक्ट पता:",
+      "system_info_admin_wallet": "एडमिन वॉलेट:",
+      "system_info_network": "नेटवर्क:",
+      "system_info_network_value": "पॉलीगॉन अमोय टेस्टनेट",
+      "system_info_connection_status": "कनेक्शन स्थिति:",
+      "system_info_connection_connected": "कनेक्टेड",
+      "system_info_connection_disconnected": "डिस्कनेक्टेड"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "डिलीवरी एजेंट को दुकानदार को असाइन करें",
+      "assign_agent_description": "डिलीवरी एजेंट और दुकानदार चुनें",
+      "assign_agent_order_id_label": "ऑर्डर आईडी",
+      "assign_agent_order_id_placeholder": "ऑर्डर आईडी दर्ज करें",
+      "assign_agent_agent_label": "डिलीवरी एजेंट",
+      "assign_agent_agent_placeholder": "एजेंट चुनें",
+      "assign_agent_shopkeeper_label": "दुकानदार",
+      "assign_agent_shopkeeper_placeholder": "दुकानदार चुनें",
+      "assign_agent_ration_details_label": "राशन विवरण",
+      "assign_agent_ration_details_placeholder": "राशन विवरण दर्ज करें (वैकल्पिक)",
+      "assign_agent_cancel": "रद्द करें",
+      "assign_agent_submit": "एजेंट असाइन करें",
+
+      "bulk_generate_title": "बल्क टोकन जनरेट करें",
+      "bulk_generate_description": "कॉमा से अलग किए गए आधार नंबर दर्ज करें",
+      "bulk_generate_label": "आधार नंबर",
+      "bulk_generate_placeholder": "आधार नंबर कॉमा से अलग करके दर्ज करें (उदा: 123456789012, 234567890123)",
+      "bulk_generate_count_label": "{count} आधार नंबर",
+      "bulk_generate_cancel": "रद्द करें",
+      "bulk_generate_submit": "टोकन जनरेट करें"
+    },
+
+    "toasts": {
+      "success_title": "सफलता",
+      "error_title": "त्रुटि",
+      "monthly_tokens_started": "मासिक टोकन जनरेशन शुरू हुआ! {message}",
+      "category_tokens_completed": "{category} श्रेणी के लिए टोकन जनरेशन पूर्ण! {message}",
+      "bulk_tokens_started": "{count} उपभोक्ताओं के लिए बल्क टोकन जनरेशन शुरू! PolygonScan देखें: {url}",
+      "expire_old_started": "पुराने टोकन समाप्ति शुरू! PolygonScan देखें: {url}",
+      "set_price_success": "{category} के लिए राशन मूल्य ₹{price} अपडेट हुआ! PolygonScan देखें: {url}",
+      "set_subsidy_success": "सब्सिडी प्रतिशत {percentage}% अपडेट हुआ! PolygonScan देखें: {url}",
+      "assign_agent_success": "डिलीवरी एजेंट सफलतापूर्वक असाइन हुआ! PolygonScan देखें: {url}",
+      "generate_token_consumer_success": "उपभोक्ता {aadhaar} के लिए टोकन सफलतापूर्वक बना!",
+      "deactivate_user_success": "{user_type} सफलतापूर्वक निष्क्रिय किया गया!",
+      "reactivate_user_success": "{user_type} सफलतापूर्वक पुनः सक्रिय किया गया!"
+    },
+
+    "errors": {
+      "generic": "कुछ गलत हो गया",
+      "backend_connection_failed": "बैकएंड कनेक्शन विफल: {message}",
+      "not_valid_price": "कृपया सही राशन मूल्य दर्ज करें",
+      "no_category_selected": "कृपया श्रेणी चुनें",
+      "not_valid_subsidy": "कृपया सही सब्सिडी प्रतिशत दर्ज करें",
+      "assign_both_required": "कृपया डिलीवरी एजेंट और दुकानदार दोनों चुनें",
+      "expire_token_enter_id": "कृपया टोकन आईडी दर्ज करें",
+      "bulk_no_aadhaar": "कृपया कम से कम एक आधार नंबर दर्ज करें",
+      "failed_generate_monthly": "मासिक टोकन जनरेट करने में विफल: {message}",
+      "failed_generate_category": "श्रेणी टोकन जनरेट करने में विफल: {message}",
+      "failed_bulk_generate": "बल्क टोकन जनरेट करने में विफल: {message}",
+      "failed_expire_old": "पुराने टोकन समाप्त करने में विफल: {message}",
+      "failed_expire_token": "टोकन समाप्त करने में विफल: {message}",
+      "failed_get_expired": "समाप्त टोकन लाने में विफल: {message}",
+      "failed_get_expiring_soon": "जल्द समाप्त होने वाले टोकन लाने में विफल: {message}",
+      "failed_pause_system": "सिस्टम रोकने में विफल: {message}",
+      "failed_resume_system": "सिस्टम पुनः शुरू करने में विफल: {message}",
+      "failed_set_price": "राशन मूल्य सेट करने में विफल: {message}",
+      "failed_set_subsidy": "सब्सिडी प्रतिशत सेट करने में विफल: {message}",
+      "failed_assign_agent": "डिलीवरी एजेंट असाइन करने में विफल: {message}",
+      "failed_generate_token_consumer": "टोकन जनरेट करने में विफल: {message}",
+      "failed_deactivate_user": "उपयोगकर्ता निष्क्रिय करने में विफल: {message}",
+      "failed_reactivate_user": "उपयोगकर्ता पुनः सक्रिय करने में विफल: {message}"
+    },
+
+    "labels": {
+      "refreshing": "रिफ्रेश हो रहा है...",
+      "loading": "लोड हो रहा है...",
+      "view": "देखें",
+      "cancel": "रद्द करें",
+      "submit": "सबमिट करें"
+    }
+  }
+}

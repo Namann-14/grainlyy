@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "PDS Admin Dashboard",
+    "subtitle": "Indian Public Distribution System - Blockchain Powered",
+
+    "connection": {
+      "backend_connected": "Backend Connected",
+      "backend_disconnected": "Backend Disconnected",
+      "connecting_backend_wallet": "Connecting to backend wallet...",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "copy_success_toast": "Copied to clipboard!",
+      "view_contract_button": "View Contract",
+      "refresh_button": "Refresh"
+    },
+
+    "tabs": {
+      "overview": "Overview",
+      "tokens": "Token Management",
+      "users": "User Management",
+      "deliveries": "Delivery Management",
+      "payments": "Payment Analytics",
+      "settings": "System Settings"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "Dashboard data refreshed successfully!",
+      "backend_connected_success": "Backend wallet connected successfully!",
+      "fetch_dashboard_failed": "Failed to fetch dashboard data: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "Total Consumers",
+        "total_consumers_subtitle": "Registered beneficiaries",
+        "total_shopkeepers_title": "Total Shopkeepers",
+        "total_shopkeepers_subtitle": "Active distribution points",
+        "delivery_agents_title": "Delivery Agents",
+        "delivery_agents_subtitle": "Active delivery personnel",
+        "system_status_title": "System Status",
+        "system_status_subtitle": "Current operational status",
+        "system_status_active": "Active",
+        "system_status_paused": "Paused"
+      },
+
+      "quick_actions_title": "Quick Actions",
+      "quick_actions_description": "Common administrative tasks",
+      "quick_actions_generate_monthly_tokens": "Generate Monthly Tokens",
+      "quick_actions_consumer_requests": "Consumer Requests",
+      "quick_actions_expire_old_tokens": "Expire Old Tokens",
+
+      "categories_title": "Consumer Categories",
+      "categories_description": "Distribution by ration card type",
+      "categories_generate_tokens_button": "Generate Tokens",
+      "categories_count_label": "{category} Category ({count})",
+
+      "anomalies_title": "System Anomalies",
+      "anomalies_description": "Detected irregularities in distribution",
+      "anomalies_total_records_badge": "{count} Total Records",
+      "anomalies_ml_label": "ML Anomalies:",
+      "anomalies_rule_label": "Rule-based:",
+      "anomalies_recent_label": "Recent anomalies detected",
+      "anomalies_token_id": "Token ID: {token_id}",
+      "anomalies_aadhaar": "Aadhaar: {aadhaar}",
+      "anomalies_issued_claimed": "Issued: {issued} | Claimed: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "Refresh Anomalies"
+    },
+
+    "tokens": {
+      "monthly_title": "Monthly Token Generation",
+      "monthly_description": "Generate tokens for all eligible consumers",
+      "monthly_cta": "Generate Monthly Tokens",
+      "monthly_hint": "This will generate tokens for all consumers who haven't received tokens this month",
+
+      "category_title": "Category-wise Generation",
+      "category_description": "Generate tokens by ration card category",
+      "category_button_label": "{category} Category ({count})",
+
+      "bulk_title": "Bulk Operations",
+      "bulk_description": "Advanced token management",
+      "bulk_generate_button": "Bulk Generate Tokens",
+      "bulk_expire_old_button": "Expire Old Tokens",
+
+      "manual_expiration_title": "Manual Token Expiration",
+      "manual_expiration_description": "Expire specific tokens by ID",
+      "manual_expiration_token_id_label": "Token ID",
+      "manual_expiration_placeholder": "Enter token ID",
+      "manual_expiration_cta": "Expire Token",
+
+      "expired_title": "Expired Tokens",
+      "expired_description": "View all expired tokens",
+      "expired_fetch_button": "Get Expired Tokens",
+      "expired_found_label": "Found {count} expired tokens",
+      "expired_item_token_id": "Token ID: {token_id}",
+      "expired_item_aadhaar": "Aadhaar: {aadhaar}",
+      "expired_item_category": "Category: {category}",
+      "expired_item_expired": "Expired: {date}",
+      "expired_more_label": "... and {count} more",
+
+      "expiring_soon_title": "Expiring Soon",
+      "expiring_soon_description": "Tokens expiring within 7 days",
+      "expiring_soon_fetch_button": "Get Expiring Soon",
+      "expiring_soon_found_label": "Found {count} tokens expiring soon",
+      "expiring_soon_item_token_id": "Token ID: {token_id}",
+      "expiring_soon_item_aadhaar": "Aadhaar: {aadhaar}",
+      "expiring_soon_item_category": "Category: {category}",
+      "expiring_soon_item_expires": "Expires: {date}",
+      "expiring_soon_item_days_left": "Days left: {days}"
+    },
+
+    "users": {
+      "consumers_title": "Consumers",
+      "consumers_subtitle": "Registered beneficiaries",
+      "consumers_manage_button": "Manage Consumers",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "Shopkeepers",
+      "shopkeepers_subtitle": "Distribution points",
+      "shopkeepers_active_label": "Active:",
+      "shopkeepers_inactive_label": "Inactive:",
+      "shopkeepers_manage_button": "Manage Shopkeepers",
+
+      "delivery_agents_title": "Delivery Agents",
+      "delivery_agents_subtitle": "Delivery personnel",
+      "delivery_agents_active_label": "Active:",
+      "delivery_agents_inactive_label": "Inactive:",
+      "delivery_agents_manage_button": "Manage Agents"
+    },
+
+    "deliveries": {
+      "assign_title": "Assign Delivery Agent",
+      "assign_description": "Assign delivery agents to shopkeepers",
+      "assign_cta": "Assign Agent to Shopkeeper",
+
+      "active_deliveries_title": "Active Deliveries",
+      "active_deliveries_description": "Monitor ongoing deliveries",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "Deliveries in progress",
+      "active_deliveries_view_all": "View All Deliveries"
+    },
+
+    "payments": {
+      "total_payments_title": "Total Payments",
+      "total_payments_subtext": "Completed transactions",
+      "total_amount_title": "Total Amount",
+      "total_amount_subtext": "Total processed",
+      "pending_payments_title": "Pending Payments",
+      "pending_payments_subtext": "Awaiting processing",
+      "management_title": "Payment Management",
+      "management_description": "Access detailed payment analytics and management",
+      "management_cta": "View Payment Dashboard"
+    },
+
+    "settings": {
+      "price_settings_title": "Price Settings",
+      "price_settings_description": "Configure ration pricing and subsidies",
+      "price_category_label": "Ration Card Category",
+      "price_category_placeholder": "Select category",
+      "price_category_bpl": "BPL (Below Poverty Line)",
+      "price_category_apl": "APL (Above Poverty Line)",
+      "price_category_aay": "AAY (Antyodaya Anna Yojana)",
+      "price_category_phh": "PHH (Priority Households)",
+      "price_ration_label": "Ration Price (₹ per kg) for {category}",
+      "price_ration_placeholder": "Enter price per kg",
+      "price_subsidy_label": "Subsidy Percentage (%)",
+      "price_subsidy_placeholder": "Enter percentage",
+      "price_set_cta": "Set {category} Price",
+      "subsidy_set_cta": "Set Subsidy",
+
+      "system_control_title": "System Control",
+      "system_control_description": "Emergency system controls",
+      "system_control_status_title": "System Status",
+      "system_control_status_subtext": "Current operational status",
+      "system_control_pause_cta": "Pause System",
+      "system_control_resume_cta": "Resume System",
+
+      "system_info_title": "System Information",
+      "system_info_description": "Blockchain and contract details",
+      "system_info_contract_address": "Contract Address:",
+      "system_info_admin_wallet": "Admin Wallet:",
+      "system_info_network": "Network:",
+      "system_info_network_value": "Polygon Amoy Testnet",
+      "system_info_connection_status": "Connection Status:",
+      "system_info_connection_connected": "Connected",
+      "system_info_connection_disconnected": "Disconnected"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "Assign Delivery Agent to Shopkeeper",
+      "assign_agent_description": "Select a delivery agent and shopkeeper to create an assignment",
+      "assign_agent_order_id_label": "Order ID",
+      "assign_agent_order_id_placeholder": "Enter order ID",
+      "assign_agent_agent_label": "Delivery Agent",
+      "assign_agent_agent_placeholder": "Select delivery agent",
+      "assign_agent_shopkeeper_label": "Shopkeeper",
+      "assign_agent_shopkeeper_placeholder": "Select shopkeeper",
+      "assign_agent_ration_details_label": "Ration Details",
+      "assign_agent_ration_details_placeholder": "Enter ration details (optional)",
+      "assign_agent_cancel": "Cancel",
+      "assign_agent_submit": "Assign Agent",
+
+      "bulk_generate_title": "Bulk Generate Tokens",
+      "bulk_generate_description": "Enter Aadhaar numbers separated by commas to generate tokens in bulk",
+      "bulk_generate_label": "Aadhaar Numbers",
+      "bulk_generate_placeholder": "Enter Aadhaar numbers separated by commas (e.g., 123456789012, 234567890123)",
+      "bulk_generate_count_label": "{count} Aadhaar numbers",
+      "bulk_generate_cancel": "Cancel",
+      "bulk_generate_submit": "Generate Tokens"
+    },
+
+    "toasts": {
+      "success_title": "Success",
+      "error_title": "Error",
+      "monthly_tokens_started": "Monthly tokens generation started! {message}",
+      "category_tokens_completed": "Tokens generation completed for {category} category! {message}",
+      "bulk_tokens_started": "Bulk token generation started for {count} consumers! View on PolygonScan: {url}",
+      "expire_old_started": "Old tokens expiration started! View on PolygonScan: {url}",
+      "set_price_success": "Ration price for {category} updated to ₹{price}! View on PolygonScan: {url}",
+      "set_subsidy_success": "Subsidy percentage updated to {percentage}%! View on PolygonScan: {url}",
+      "assign_agent_success": "Delivery agent assigned successfully! View on PolygonScan: {url}",
+      "generate_token_consumer_success": "Token generated successfully for consumer {aadhaar}!",
+      "deactivate_user_success": "{user_type} deactivated successfully!",
+      "reactivate_user_success": "{user_type} reactivated successfully!"
+    },
+
+    "errors": {
+      "generic": "Something went wrong",
+      "backend_connection_failed": "Backend connection failed: {message}",
+      "not_valid_price": "Please enter a valid ration price",
+      "no_category_selected": "Please select a category",
+      "not_valid_subsidy": "Please enter a valid subsidy percentage",
+      "assign_both_required": "Please select both delivery agent and shopkeeper",
+      "expire_token_enter_id": "Please enter a token ID to expire",
+      "bulk_no_aadhaar": "Please enter at least one Aadhaar number",
+      "failed_generate_monthly": "Failed to generate monthly tokens: {message}",
+      "failed_generate_category": "Failed to generate category tokens: {message}",
+      "failed_bulk_generate": "Failed to bulk generate tokens: {message}",
+      "failed_expire_old": "Failed to expire old tokens: {message}",
+      "failed_expire_token": "Failed to expire token: {message}",
+      "failed_get_expired": "Failed to get expired tokens: {message}",
+      "failed_get_expiring_soon": "Failed to get expiring soon tokens: {message}",
+      "failed_pause_system": "Failed to pause system: {message}",
+      "failed_resume_system": "Failed to resume system: {message}",
+      "failed_set_price": "Failed to set ration price: {message}",
+      "failed_set_subsidy": "Failed to set subsidy percentage: {message}",
+      "failed_assign_agent": "Failed to assign delivery agent: {message}",
+      "failed_generate_token_consumer": "Failed to generate token: {message}",
+      "failed_deactivate_user": "Failed to deactivate user: {message}",
+      "failed_reactivate_user": "Failed to reactivate user: {message}"
+    },
+
+    "labels": {
+      "refreshing": "Refreshing...",
+      "loading": "Loading...",
+      "view": "View",
+      "cancel": "Cancel",
+      "submit": "Submit"
+    }
+  }
+}

@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "পিডিএস অ্যাডমিন ড্যাশবোর্ড",
+    "subtitle": "ভারতীয় গণবন্টন ব্যবস্থা - ব্লকচেইন চালিত",
+
+    "connection": {
+      "backend_connected": "ব্যাকএন্ড সংযুক্ত",
+      "backend_disconnected": "ব্যাকএন্ড বিচ্ছিন্ন",
+      "connecting_backend_wallet": "ব্যাকএন্ড ওয়ালেটে সংযুক্ত হচ্ছে...",
+      "connected": "সংযুক্ত",
+      "disconnected": "বিচ্ছিন্ন",
+      "copy_success_toast": "ক্লিপবোর্ডে কপি হয়েছে!",
+      "view_contract_button": "চুক্তি দেখুন",
+      "refresh_button": "রিফ্রেশ"
+    },
+
+    "tabs": {
+      "overview": "ওভারভিউ",
+      "tokens": "টোকেন ম্যানেজমেন্ট",
+      "users": "ব্যবহারকারী ম্যানেজমেন্ট",
+      "deliveries": "ডেলিভারি ম্যানেজমেন্ট",
+      "payments": "পেমেন্ট বিশ্লেষণ",
+      "settings": "সিস্টেম সেটিংস"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "ড্যাশবোর্ড তথ্য সফলভাবে রিফ্রেশ হয়েছে!",
+      "backend_connected_success": "ব্যাকএন্ড ওয়ালেট সফলভাবে সংযুক্ত হয়েছে!",
+      "fetch_dashboard_failed": "ড্যাশবোর্ড তথ্য লোড ব্যর্থ: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "মোট ভোক্তা",
+        "total_consumers_subtitle": "নিবন্ধিত সুবিধাভোগী",
+        "total_shopkeepers_title": "মোট দোকানদার",
+        "total_shopkeepers_subtitle": "সক্রিয় বিতরণ কেন্দ্র",
+        "delivery_agents_title": "ডেলিভারি এজেন্ট",
+        "delivery_agents_subtitle": "সক্রিয় ডেলিভারি কর্মী",
+        "system_status_title": "সিস্টেমের অবস্থা",
+        "system_status_subtitle": "বর্তমান কার্যক্রমের অবস্থা",
+        "system_status_active": "সক্রিয়",
+        "system_status_paused": "বিরত"
+      },
+
+      "quick_actions_title": "দ্রুত কার্যাবলী",
+      "quick_actions_description": "সাধারণ প্রশাসনিক কাজ",
+      "quick_actions_generate_monthly_tokens": "মাসিক টোকেন তৈরি করুন",
+      "quick_actions_consumer_requests": "ভোক্তা অনুরোধ",
+      "quick_actions_expire_old_tokens": "পুরানো টোকেনের মেয়াদ শেষ করুন",
+
+      "categories_title": "ভোক্তা শ্রেণীবিভাগ",
+      "categories_description": "রেশন কার্ডের প্রকার অনুযায়ী বন্টন",
+      "categories_generate_tokens_button": "টোকেন তৈরি করুন",
+      "categories_count_label": "{category} শ্রেণী ({count})",
+
+      "anomalies_title": "সিস্টেম ত্রুটি",
+      "anomalies_description": "বিতরণে সনাক্ত অনিয়ম",
+      "anomalies_total_records_badge": "{count} মোট রেকর্ড",
+      "anomalies_ml_label": "এমএল ত্রুটি:",
+      "anomalies_rule_label": "নিয়ম ভিত্তিক:",
+      "anomalies_recent_label": "সাম্প্রতিক সনাক্ত ত্রুটি",
+      "anomalies_token_id": "টোকেন আইডি: {token_id}",
+      "anomalies_aadhaar": "আধার: {aadhaar}",
+      "anomalies_issued_claimed": "জারি: {issued} | দাবি: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "ত্রুটি রিফ্রেশ করুন"
+    },
+
+    "tokens": {
+      "monthly_title": "মাসিক টোকেন তৈরি",
+      "monthly_description": "সমস্ত যোগ্য ভোক্তার জন্য টোকেন তৈরি করুন",
+      "monthly_cta": "মাসিক টোকেন তৈরি করুন",
+      "monthly_hint": "এটি সেই সমস্ত ভোক্তাদের জন্য টোকেন তৈরি করবে যারা এই মাসে টোকেন পাননি",
+
+      "category_title": "শ্রেণী অনুযায়ী তৈরি",
+      "category_description": "রেশন কার্ড শ্রেণী অনুযায়ী টোকেন তৈরি করুন",
+      "category_button_label": "{category} শ্রেণী ({count})",
+
+      "bulk_title": "বাল্ক অপারেশন",
+      "bulk_description": "উন্নত টোকেন ব্যবস্থাপনা",
+      "bulk_generate_button": "বাল্ক টোকেন তৈরি করুন",
+      "bulk_expire_old_button": "পুরানো টোকেনের মেয়াদ শেষ করুন",
+
+      "manual_expiration_title": "ম্যানুয়াল টোকেন মেয়াদ শেষ",
+      "manual_expiration_description": "নির্দিষ্ট টোকেন আইডি দ্বারা মেয়াদ শেষ করুন",
+      "manual_expiration_token_id_label": "টোকেন আইডি",
+      "manual_expiration_placeholder": "টোকেন আইডি লিখুন",
+      "manual_expiration_cta": "টোকেন মেয়াদ শেষ করুন",
+
+      "expired_title": "মেয়াদোত্তীর্ণ টোকেন",
+      "expired_description": "সমস্ত মেয়াদোত্তীর্ণ টোকেন দেখুন",
+      "expired_fetch_button": "মেয়াদোত্তীর্ণ টোকেন আনুন",
+      "expired_found_label": "{count} মেয়াদোত্তীর্ণ টোকেন পাওয়া গেছে",
+      "expired_item_token_id": "টোকেন আইডি: {token_id}",
+      "expired_item_aadhaar": "আধার: {aadhaar}",
+      "expired_item_category": "শ্রেণী: {category}",
+      "expired_item_expired": "মেয়াদ শেষ: {date}",
+      "expired_more_label": "... এবং আরও {count} টি",
+
+      "expiring_soon_title": "শীঘ্রই মেয়াদ শেষ হবে",
+      "expiring_soon_description": "৭ দিনের মধ্যে মেয়াদ শেষ হবে",
+      "expiring_soon_fetch_button": "শীঘ্রই মেয়াদ শেষ হবে এমন টোকেন আনুন",
+      "expiring_soon_found_label": "{count} টোকেন শীঘ্রই মেয়াদ শেষ হবে",
+      "expiring_soon_item_token_id": "টোকেন আইডি: {token_id}",
+      "expiring_soon_item_aadhaar": "আধার: {aadhaar}",
+      "expiring_soon_item_category": "শ্রেণী: {category}",
+      "expiring_soon_item_expires": "মেয়াদ শেষ: {date}",
+      "expiring_soon_item_days_left": "দিন বাকি: {days}"
+    },
+
+    "users": {
+      "consumers_title": "ভোক্তা",
+      "consumers_subtitle": "নিবন্ধিত সুবিধাভোগী",
+      "consumers_manage_button": "ভোক্তাদের ম্যানেজ করুন",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "দোকানদার",
+      "shopkeepers_subtitle": "বিতরণ কেন্দ্র",
+      "shopkeepers_active_label": "সক্রিয়:",
+      "shopkeepers_inactive_label": "নিষ্ক্রিয়:",
+      "shopkeepers_manage_button": "দোকানদার ম্যানেজ করুন",
+
+      "delivery_agents_title": "ডেলিভারি এজেন্ট",
+      "delivery_agents_subtitle": "ডেলিভারি কর্মী",
+      "delivery_agents_active_label": "সক্রিয়:",
+      "delivery_agents_inactive_label": "নিষ্ক্রিয়:",
+      "delivery_agents_manage_button": "এজেন্ট ম্যানেজ করুন"
+    },
+
+    "deliveries": {
+      "assign_title": "ডেলিভারি এজেন্ট অ্যাসাইন করুন",
+      "assign_description": "ডেলিভারি এজেন্টকে দোকানদারদের অ্যাসাইন করুন",
+      "assign_cta": "এজেন্ট অ্যাসাইন করুন",
+
+      "active_deliveries_title": "সক্রিয় ডেলিভারি",
+      "active_deliveries_description": "চলমান ডেলিভারি পর্যবেক্ষণ করুন",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "চলমান ডেলিভারি",
+      "active_deliveries_view_all": "সমস্ত ডেলিভারি দেখুন"
+    },
+
+    "payments": {
+      "total_payments_title": "মোট পেমেন্ট",
+      "total_payments_subtext": "সম্পন্ন লেনদেন",
+      "total_amount_title": "মোট পরিমাণ",
+      "total_amount_subtext": "মোট প্রসেসড",
+      "pending_payments_title": "অপেক্ষমাণ পেমেন্ট",
+      "pending_payments_subtext": "প্রসেসিং এর অপেক্ষায়",
+      "management_title": "পেমেন্ট ম্যানেজমেন্ট",
+      "management_description": "বিস্তারিত পেমেন্ট বিশ্লেষণ এবং ম্যানেজমেন্ট অ্যাক্সেস করুন",
+      "management_cta": "পেমেন্ট ড্যাশবোর্ড দেখুন"
+    },
+
+    "settings": {
+      "price_settings_title": "মূল্য সেটিংস",
+      "price_settings_description": "রেশন মূল্য এবং ভর্তুকি কনফিগার করুন",
+      "price_category_label": "রেশন কার্ড শ্রেণী",
+      "price_category_placeholder": "শ্রেণী নির্বাচন করুন",
+      "price_category_bpl": "বিপিএল (দারিদ্র্যসীমার নিচে)",
+      "price_category_apl": "এপিএল (দারিদ্র্যসীমার উপরে)",
+      "price_category_aay": "এএওয়াই (অন্ত্যোদয় অন্ন যোজনা)",
+      "price_category_phh": "পিএইচএইচ (প্রাধান্য পরিবার)",
+      "price_ration_label": "{category} এর জন্য রেশন মূল্য (₹ প্রতি কেজি)",
+      "price_ration_placeholder": "প্রতি কেজি মূল্য লিখুন",
+      "price_subsidy_label": "ভর্তুকি শতাংশ (%)",
+      "price_subsidy_placeholder": "শতাংশ লিখুন",
+      "price_set_cta": "{category} মূল্য সেট করুন",
+      "subsidy_set_cta": "ভর্তুকি সেট করুন",
+
+      "system_control_title": "সিস্টেম নিয়ন্ত্রণ",
+      "system_control_description": "জরুরি সিস্টেম নিয়ন্ত্রণ",
+      "system_control_status_title": "সিস্টেমের অবস্থা",
+      "system_control_status_subtext": "বর্তমান কার্যক্রমের অবস্থা",
+      "system_control_pause_cta": "সিস্টেম বিরত করুন",
+      "system_control_resume_cta": "সিস্টেম পুনরায় চালু করুন",
+
+      "system_info_title": "সিস্টেম তথ্য",
+      "system_info_description": "ব্লকচেইন এবং চুক্তির বিবরণ",
+      "system_info_contract_address": "চুক্তি ঠিকানা:",
+      "system_info_admin_wallet": "অ্যাডমিন ওয়ালেট:",
+      "system_info_network": "নেটওয়ার্ক:",
+      "system_info_network_value": "পলিগন অ্যাময় টেস্টনেট",
+      "system_info_connection_status": "সংযোগের অবস্থা:",
+      "system_info_connection_connected": "সংযুক্ত",
+      "system_info_connection_disconnected": "বিচ্ছিন্ন"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "ডেলিভারি এজেন্টকে দোকানদারকে অ্যাসাইন করুন",
+      "assign_agent_description": "ডেলিভারি এজেন্ট এবং দোকানদার নির্বাচন করুন",
+      "assign_agent_order_id_label": "অর্ডার আইডি",
+      "assign_agent_order_id_placeholder": "অর্ডার আইডি লিখুন",
+      "assign_agent_agent_label": "ডেলিভারি এজেন্ট",
+      "assign_agent_agent_placeholder": "এজেন্ট নির্বাচন করুন",
+      "assign_agent_shopkeeper_label": "দোকানদার",
+      "assign_agent_shopkeeper_placeholder": "দোকানদার নির্বাচন করুন",
+      "assign_agent_ration_details_label": "রেশন বিবরণ",
+      "assign_agent_ration_details_placeholder": "রেশন বিবরণ লিখুন (ঐচ্ছিক)",
+      "assign_agent_cancel": "বাতিল",
+      "assign_agent_submit": "এজেন্ট অ্যাসাইন করুন",
+
+      "bulk_generate_title": "বাল্ক টোকেন তৈরি করুন",
+      "bulk_generate_description": "কমা দ্বারা পৃথক আধার নম্বর লিখুন",
+      "bulk_generate_label": "আধার নম্বর",
+      "bulk_generate_placeholder": "কমা দ্বারা পৃথক আধার নম্বর লিখুন (যেমন: 123456789012, 234567890123)",
+      "bulk_generate_count_label": "{count} আধার নম্বর",
+      "bulk_generate_cancel": "বাতিল",
+      "bulk_generate_submit": "টোকেন তৈরি করুন"
+    },
+
+    "toasts": {
+      "success_title": "সফলতা",
+      "error_title": "ত্রুটি",
+      "monthly_tokens_started": "মাসিক টোকেন তৈরি শুরু হয়েছে! {message}",
+      "category_tokens_completed": "{category} শ্রেণীর জন্য টোকেন তৈরি সম্পন্ন! {message}",
+      "bulk_tokens_started": "{count} ভোক্তার জন্য বাল্ক টোকেন তৈরি শুরু হয়েছে! PolygonScan দেখুন: {url}",
+      "expire_old_started": "পুরানো টোকেনের মেয়াদ শেষ শুরু হয়েছে! PolygonScan দেখুন: {url}",
+      "set_price_success": "{category} এর জন্য রেশন মূল্য ₹{price} আপডেট হয়েছে! PolygonScan দেখুন: {url}",
+      "set_subsidy_success": "ভর্তুকি শতাংশ {percentage}% আপডেট হয়েছে! PolygonScan দেখুন: {url}",
+      "assign_agent_success": "ডেলিভারি এজেন্ট সফলভাবে অ্যাসাইন হয়েছে! PolygonScan দেখুন: {url}",
+      "generate_token_consumer_success": "ভোক্তা {aadhaar} এর জন্য টোকেন সফলভাবে তৈরি হয়েছে!",
+      "deactivate_user_success": "{user_type} সফলভাবে নিষ্ক্রিয় করা হয়েছে!",
+      "reactivate_user_success": "{user_type} সফলভাবে পুনরায় সক্রিয় করা হয়েছে!"
+    },
+
+    "errors": {
+      "generic": "কিছু ভুল হয়েছে",
+      "backend_connection_failed": "ব্যাকএন্ড সংযোগ ব্যর্থ: {message}",
+      "not_valid_price": "দয়া করে বৈধ রেশন মূল্য লিখুন",
+      "no_category_selected": "দয়া করে একটি শ্রেণী নির্বাচন করুন",
+      "not_valid_subsidy": "দয়া করে বৈধ ভর্তুকি শতাংশ লিখুন",
+      "assign_both_required": "দয়া করে ডেলিভারি এজেন্ট এবং দোকানদার উভয়কেই নির্বাচন করুন",
+      "expire_token_enter_id": "দয়া করে টোকেন আইডি লিখুন",
+      "bulk_no_aadhaar": "দয়া করে অন্তত একটি আধার নম্বর লিখুন",
+      "failed_generate_monthly": "মাসিক টোকেন তৈরি ব্যর্থ: {message}",
+      "failed_generate_category": "শ্রেণী টোকেন তৈরি ব্যর্থ: {message}",
+      "failed_bulk_generate": "বাল্ক টোকেন তৈরি ব্যর্থ: {message}",
+      "failed_expire_old": "পুরানো টোকেনের মেয়াদ শেষ ব্যর্থ: {message}",
+      "failed_expire_token": "টোকেন মেয়াদ শেষ ব্যর্থ: {message}",
+      "failed_get_expired": "মেয়াদোত্তীর্ণ টোকেন আনতে ব্যর্থ: {message}",
+      "failed_get_expiring_soon": "শীঘ্রই মেয়াদ শেষ হবে এমন টোকেন আনতে ব্যর্থ: {message}",
+      "failed_pause_system": "সিস্টেম বিরত করতে ব্যর্থ: {message}",
+      "failed_resume_system": "সিস্টেম পুনরায় চালু করতে ব্যর্থ: {message}",
+      "failed_set_price": "রেশন মূল্য সেট করতে ব্যর্থ: {message}",
+      "failed_set_subsidy": "ভর্তুকি শতাংশ সেট করতে ব্যর্থ: {message}",
+      "failed_assign_agent": "ডেলিভারি এজেন্ট অ্যাসাইন করতে ব্যর্থ: {message}",
+      "failed_generate_token_consumer": "টোকেন তৈরি করতে ব্যর্থ: {message}",
+      "failed_deactivate_user": "ব্যবহারকারী নিষ্ক্রিয় করতে ব্যর্থ: {message}",
+      "failed_reactivate_user": "ব্যবহারকারী পুনরায় সক্রিয় করতে ব্যর্থ: {message}"
+    },
+
+    "labels": {
+      "refreshing": "রিফ্রেশ হচ্ছে...",
+      "loading": "লোড হচ্ছে...",
+      "view": "দেখুন",
+      "cancel": "বাতিল",
+      "submit": "জমা দিন"
+    }
+  }
+}

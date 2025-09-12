@@ -1,0 +1,156 @@
+{
+  "delivery_dashboard": {
+    "title": "Delivery Person Dashboard",
+    "welcome_message": "Welcome, {name}. Manage your deliveries and ration distributions.",
+    "tabs": {
+      "overview": "Overview",
+      "active_delivery": "Active Delivery",
+      "transaction_history": "Transaction History"
+    },
+    "stats_cards": {
+      "assigned_depots": "Assigned Depots",
+      "pending_deliveries": "Pending Deliveries",
+      "completed_deliveries": "Completed Deliveries",
+      "served_users": "Served Users",
+      "change_positive": "+{value}%",
+      "change_zero": "+0%"
+    },
+    "overview": {
+      "assigned_depots_section_title": "Assigned Depots",
+      "assigned_depots_section_description": "Select a depot to start a delivery",
+      "assigned_depots_empty": "You don't have any assigned depots yet",
+      "assigned_depots_start_button": "Start Delivery",
+
+      "pending_deliveries_section_title": "Pending Deliveries",
+      "pending_deliveries_section_description": "Deliveries awaiting your action",
+      "pending_deliveries_empty": "No pending deliveries",
+      "pending_badge": "Pending",
+      "pending_scheduled_label": "Scheduled: {date}",
+      "pending_start_button": "Start Delivery",
+
+      "completed_deliveries_section_title": "Completed Deliveries",
+      "completed_deliveries_section_description": "Your delivery history",
+      "completed_table_header_delivery_id": "Delivery ID",
+      "completed_table_header_depot": "Depot",
+      "completed_table_header_date": "Date",
+      "completed_table_header_users_served": "Users Served",
+      "completed_table_header_status": "Status",
+      "completed_badge": "Completed",
+      "completed_row_id_prefix": "DEL-{id}"
+    },
+
+    "active": {
+      "active_card_title": "Active Delivery",
+      "active_card_depot_label": "Depot: {depot_name}",
+      "badge_authenticated": "Authenticated",
+      "badge_in_progress": "In Progress",
+      "badge_pending": "Pending",
+      "badge_completed": "Completed",
+
+      "notice_title": "Delivery Process Instructions:",
+      "notice_step_1": "Go to the depot and inform them you've arrived for delivery",
+      "notice_step_2": "Ask the depot manager to generate an OTP for verification",
+      "notice_step_3": "Enter that OTP in the form below to verify your identity",
+      "notice_step_4": "Complete location verification and ration distribution",
+
+      "progress_otp_verification": "OTP Verification",
+      "progress_location_verification": "Location Verification",
+      "progress_ration_distribution": "Ration Distribution",
+
+      "otp_title": "Depot Authentication",
+      "otp_label": "Enter OTP from Depot:",
+      "otp_placeholder": "Enter the OTP shown by depot",
+      "otp_verify_button": "Verify OTP",
+      "otp_debug_button": "Debug OTP",
+      "otp_test_mode_label": "Enable test mode (simulates blockchain transactions)",
+      "otp_important_title": "IMPORTANT:",
+      "otp_important_point_1": "1. The depot manager MUST generate an OTP first",
+      "otp_important_point_2": "2. This sets the delivery status to \"In Transit\" in the system",
+      "otp_important_point_3": "3. Then you can enter and verify that OTP here",
+      "otp_success": "OTP verified successfully! Please proceed with location verification.",
+      "otp_error_empty": "Please enter the OTP provided by the depot",
+      "otp_error_generic": "Failed to verify OTP: {message}",
+
+      "location_title": "Location Verification",
+      "location_your_location": "Your Current Location:",
+      "location_latitude": "Latitude: {lat}",
+      "location_longitude": "Longitude: {lng}",
+      "location_fetching": "Fetching your location...",
+      "location_verify_button": "Verify Location",
+      "location_hint": "Click to verify your location with the depot",
+      "location_success": "Location verified successfully! You can now proceed with ration distribution.",
+      "location_error_no_data": "Location data not available",
+      "location_error_generic": "Failed to verify location: {message}",
+
+      "ration_title": "Ration Distribution",
+      "ration_table_header_user_id": "User ID",
+      "ration_table_header_name": "Name",
+      "ration_table_header_category": "Category",
+      "ration_table_header_status": "Status",
+      "ration_table_header_action": "Action",
+      "ration_status_allocated": "Allocated",
+      "ration_status_pending": "Pending",
+      "ration_allocate_button": "Allocate Ration",
+      "ration_allocated_button": "Allocated",
+      "ration_empty": "No users assigned to this depot",
+      "ration_success": "Ration allocated successfully to user {user_id}!",
+      "ration_error_generic": "Failed to allocate ration: {message}",
+
+      "complete_button": "Complete Delivery",
+      "complete_disabled_hint": "All users must be served before completing delivery",
+      "complete_success_toast": "Delivery completed successfully! Funds have been transferred to your account.",
+      "complete_error_generic": "Failed to complete delivery: {message}"
+    },
+
+    "transactions": {
+      "title": "Transaction History",
+      "description": "Record of your blockchain transactions",
+      "table_header_type": "Type",
+      "table_header_date": "Date",
+      "table_header_details": "Details",
+      "table_header_transaction": "Transaction",
+      "empty": "No transaction history available",
+      "view": "View"
+    },
+
+    "statuses": {
+      "pending": "Pending",
+      "in_progress": "In Progress",
+      "authenticated": "Authenticated",
+      "completed": "Completed",
+      "allocated": "Allocated"
+    },
+
+    "loaders": {
+      "connecting_wallet": "Connecting to wallet...",
+      "loading_dashboard": "Loading your dashboard..."
+    },
+
+    "errors": {
+      "generic": "Something went wrong",
+      "not_delivery_agent": "This wallet is not registered as a delivery agent",
+      "failed_to_load": "Failed to load your data from blockchain: {message}",
+      "no_active_delivery": "No active delivery found",
+      "no_selected_depot": "Selected depot not found in your assigned depots",
+      "no_pending_for_depot": "No active deliveries found for this depot. Please contact the administrator to allocate a ration delivery.",
+      "delivery_not_pending": "This delivery is already in progress or completed. Please wait for the depot to reset or contact admin.",
+      "refresh_failed": "Failed to refresh data: {message}"
+    },
+
+    "toasts": {
+      "data_refreshed": "Data refreshed successfully. Check browser console for delivery details."
+    },
+
+    "modal": {
+      "title": "MetaMask Transaction",
+      "transaction_type_label": "Transaction Type:",
+      "to_contract_label": "To Contract:",
+      "gas_fee_est_label": "Gas Fee (est.):",
+      "payment_amount_label": "Payment Amount:",
+      "type_label_otp": "OTP Verification",
+      "type_label_location": "Location Verification",
+      "type_label_complete": "Payment Processing",
+      "confirm_prompt": "Please confirm this transaction in your MetaMask wallet"
+    }
+  }
+}

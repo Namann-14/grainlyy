@@ -1,0 +1,156 @@
+{
+  "delivery_dashboard": {
+    "title": "ডেলিভারি পার্সন ড্যাশবোর্ড",
+    "welcome_message": "স্বাগতম, {name}। আপনার ডেলিভারি ও রেশন বিতরণ পরিচালনা করুন।",
+    "tabs": {
+      "overview": "ওভারভিউ",
+      "active_delivery": "সক্রিয় ডেলিভারি",
+      "transaction_history": "লেনদেনের ইতিহাস"
+    },
+    "stats_cards": {
+      "assigned_depots": "বরাদ্দ ডিপো",
+      "pending_deliveries": "অমীমাংসিত ডেলিভারি",
+      "completed_deliveries": "সম্পন্ন ডেলিভারি",
+      "served_users": "সেবাপ্রাপ্ত ব্যবহারকারী",
+      "change_positive": "+{value}%",
+      "change_zero": "+0%"
+    },
+    "overview": {
+      "assigned_depots_section_title": "বরাদ্দ ডিপো",
+      "assigned_depots_section_description": "ডেলিভারি শুরু করতে একটি ডিপো নির্বাচন করুন",
+      "assigned_depots_empty": "আপনার বরাদ্দ কোনো ডিপো নেই",
+      "assigned_depots_start_button": "ডেলিভারি শুরু করুন",
+
+      "pending_deliveries_section_title": "অমীমাংসিত ডেলিভারি",
+      "pending_deliveries_section_description": "আপনার পদক্ষেপের অপেক্ষায় থাকা ডেলিভারি",
+      "pending_deliveries_empty": "কোনো অমীমাংসিত ডেলিভারি নেই",
+      "pending_badge": "অপেক্ষমাণ",
+      "pending_scheduled_label": "নির্ধারিত: {date}",
+      "pending_start_button": "ডেলিভারি শুরু করুন",
+
+      "completed_deliveries_section_title": "সম্পন্ন ডেলিভারি",
+      "completed_deliveries_section_description": "আপনার ডেলিভারি ইতিহাস",
+      "completed_table_header_delivery_id": "ডেলিভারি আইডি",
+      "completed_table_header_depot": "ডিপো",
+      "completed_table_header_date": "তারিখ",
+      "completed_table_header_users_served": "সেবাপ্রাপ্ত ব্যবহারকারী",
+      "completed_table_header_status": "অবস্থা",
+      "completed_badge": "সম্পন্ন",
+      "completed_row_id_prefix": "DEL-{id}"
+    },
+
+    "active": {
+      "active_card_title": "সক্রিয় ডেলিভারি",
+      "active_card_depot_label": "ডিপো: {depot_name}",
+      "badge_authenticated": "প্রমাণিত",
+      "badge_in_progress": "চলমান",
+      "badge_pending": "অপেক্ষমাণ",
+      "badge_completed": "সম্পন্ন",
+
+      "notice_title": "ডেলিভারি প্রক্রিয়ার নির্দেশাবলী:",
+      "notice_step_1": "ডিপোতে যান এবং জানান যে আপনি ডেলিভারির জন্য এসেছেন",
+      "notice_step_2": "ভেরিফিকেশনের জন্য ডিপো ম্যানেজারকে একটি ওটিপি জেনারেট করতে বলুন",
+      "notice_step_3": "নিজের পরিচয় যাচাইয়ে নিচের ফর্মে সেই ওটিপি লিখুন",
+      "notice_step_4": "লোকেশন ভেরিফিকেশন এবং রেশন বিতরণ সম্পন্ন করুন",
+
+      "progress_otp_verification": "ওটিপি ভেরিফিকেশন",
+      "progress_location_verification": "লোকেশন ভেরিফিকেশন",
+      "progress_ration_distribution": "রেশন বিতরণ",
+
+      "otp_title": "ডিপো অথেনটিকেশন",
+      "otp_label": "ডিপোর ওটিপি লিখুন:",
+      "otp_placeholder": "ডিপো প্রদর্শিত ওটিপি লিখুন",
+      "otp_verify_button": "ওটিপি যাচাই করুন",
+      "otp_debug_button": "ডিবাগ ওটিপি",
+      "otp_test_mode_label": "টেস্ট মোড সক্রিয় করুন (ব্লকচেইন লেনদেন সিমুলেশন)",
+      "otp_important_title": "গুরুত্বপূর্ণ:",
+      "otp_important_point_1": "১) ডিপো ম্যানেজারকে আগে ওটিপি জেনারেট করতে হবে",
+      "otp_important_point_2": "২) এতে সিস্টেমে ডেলিভারির স্ট্যাটাস \"ইন ট্রানজিট\" হয়",
+      "otp_important_point_3": "৩) এরপর এখানে ওটিপি লিখে যাচাই করুন",
+      "otp_success": "ওটিপি সফলভাবে যাচাই হয়েছে! এখন লোকেশন ভেরিফিকেশন করুন।",
+      "otp_error_empty": "ডিপো থেকে প্রাপ্ত ওটিপি লিখুন",
+      "otp_error_generic": "ওটিপি যাচাই ব্যর্থ: {message}",
+
+      "location_title": "লোকেশন ভেরিফিকেশন",
+      "location_your_location": "আপনার বর্তমান অবস্থান:",
+      "location_latitude": "অক্ষাংশ: {lat}",
+      "location_longitude": "দ্রাঘিমাংশ: {lng}",
+      "location_fetching": "আপনার অবস্থান আনা হচ্ছে...",
+      "location_verify_button": "লোকেশন যাচাই করুন",
+      "location_hint": "ডিপোর সাথে আপনার অবস্থান যাচাই করতে ক্লিক করুন",
+      "location_success": "লোকেশন সফলভাবে যাচাই হয়েছে! এখন রেশন বিতরণ করতে পারেন।",
+      "location_error_no_data": "লোকেশন ডেটা পাওয়া যায়নি",
+      "location_error_generic": "লোকেশন যাচাই ব্যর্থ: {message}",
+
+      "ration_title": "রেশন বিতরণ",
+      "ration_table_header_user_id": "ব্যবহারকারী আইডি",
+      "ration_table_header_name": "নাম",
+      "ration_table_header_category": "শ্রেণি",
+      "ration_table_header_status": "অবস্থা",
+      "ration_table_header_action": "অ্যাকশন",
+      "ration_status_allocated": "বরাদ্দ",
+      "ration_status_pending": "অপেক্ষমাণ",
+      "ration_allocate_button": "রেশন বরাদ্দ করুন",
+      "ration_allocated_button": "বরাদ্দ",
+      "ration_empty": "এই ডিপোতে কোনো ব্যবহারকারী বরাদ্দ নেই",
+      "ration_success": "ব্যবহারকারী {user_id}-কে রেশন সফলভাবে বরাদ্দ করা হয়েছে!",
+      "ration_error_generic": "রেশন বরাদ্দ ব্যর্থ: {message}",
+
+      "complete_button": "ডেলিভারি সম্পন্ন করুন",
+      "complete_disabled_hint": "ডেলিভারি সম্পন্নের আগে সকল ব্যবহারকারীকে সেবা দিতে হবে",
+      "complete_success_toast": "ডেলিভারি সফলভাবে সম্পন্ন! অর্থ আপনার অ্যাকাউন্টে পাঠানো হয়েছে।",
+      "complete_error_generic": "ডেলিভারি সম্পন্ন ব্যর্থ: {message}"
+    },
+
+    "transactions": {
+      "title": "লেনদেনের ইতিহাস",
+      "description": "আপনার ব্লকচেইন লেনদেনের রেকর্ড",
+      "table_header_type": "ধরন",
+      "table_header_date": "তারিখ",
+      "table_header_details": "বিবরণ",
+      "table_header_transaction": "লেনদেন",
+      "empty": "কোনো লেনদেনের ইতিহাস নেই",
+      "view": "দেখুন"
+    },
+
+    "statuses": {
+      "pending": "অপেক্ষমাণ",
+      "in_progress": "চলমান",
+      "authenticated": "প্রমাণিত",
+      "completed": "সম্পন্ন",
+      "allocated": "বরাদ্দ"
+    },
+
+    "loaders": {
+      "connecting_wallet": "ওয়ালেটে সংযোগ করা হচ্ছে...",
+      "loading_dashboard": "ড্যাশবোর্ড লোড হচ্ছে..."
+    },
+
+    "errors": {
+      "generic": "কিছু ভুল হয়েছে",
+      "not_delivery_agent": "এই ওয়ালেটটি ডেলিভারি এজেন্ট হিসেবে নিবন্ধিত নয়",
+      "failed_to_load": "ব্লকচেইন থেকে ডেটা লোড ব্যর্থ: {message}",
+      "no_active_delivery": "কোনো সক্রিয় ডেলিভারি পাওয়া যায়নি",
+      "no_selected_depot": "নির্বাচিত ডিপো আপনার বরাদ্দ ডিপো তালিকায় নেই",
+      "no_pending_for_depot": "এই ডিপোর জন্য কোনো সক্রিয় ডেলিভারি নেই। অনুগ্রহ করে প্রশাসকের সাথে যোগাযোগ করুন।",
+      "delivery_not_pending": "ডেলিভারি ইতিমধ্যেই চলমান বা সম্পন্ন। ডিপো রিসেটের অপেক্ষা করুন বা প্রশাসকের সাথে যোগাযোগ করুন।",
+      "refresh_failed": "ডেটা রিফ্রেশ ব্যর্থ: {message}"
+    },
+
+    "toasts": {
+      "data_refreshed": "ডেটা সফলভাবে রিফ্রেশ হয়েছে। বিস্তারিত দেখতে ব্রাউজার কনসোল দেখুন।"
+    },
+
+    "modal": {
+      "title": "MetaMask লেনদেন",
+      "transaction_type_label": "লেনদেনের ধরন:",
+      "to_contract_label": "কন্ট্র্যাক্টে:",
+      "gas_fee_est_label": "আনুমানিক গ্যাস ফি:",
+      "payment_amount_label": "পেমেন্ট পরিমাণ:",
+      "type_label_otp": "ওটিপি যাচাই",
+      "type_label_location": "লোকেশন যাচাই",
+      "type_label_complete": "পেমেন্ট প্রসেসিং",
+      "confirm_prompt": "অনুগ্রহ করে আপনার MetaMask ওয়ালেটে এই লেনদেনটি নিশ্চিত করুন"
+    }
+  }
+}

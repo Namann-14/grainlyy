@@ -1,0 +1,133 @@
+{
+  "dashboard": {
+    "title": "Consumer Dashboard",
+    "welcome_message": "Welcome back, {name}",
+    "overview": "Overview",
+    "my_orders": "My Orders",
+    "transaction_history": "Transaction History",
+    "profile": "Profile",
+    "wallet": "Wallet",
+    "settings": "Settings",
+    "loading_title": "Loading dashboard...",
+    "loading_subtitle": "Fetching data from blockchain for Aadhaar: {aadhaar}",
+    "error_title": "Error Loading Dashboard",
+    "error_auth_required": "Please log in to access your dashboard.",
+    "error_invalid_auth": "Invalid authentication. Please log in again.",
+    "error_aadhaar_missing": "Aadhaar not provided.",
+    "error_mismatch": "Authentication mismatch. Please log in with the correct account.",
+    "error_not_found": "Consumer with Aadhaar {aadhaar} not found on blockchain.",
+    "error_retry_login": "Go to Login Page",
+    "error_test_hint": "Try using Aadhaar: 999888777666 (test consumer in the system)",
+    "fraud_report_button": "Report Fraud",
+    "fraud_reporting": "Reporting...",
+    "fraud_success": "Fraud report submitted successfully.",
+    "fraud_failure": "Failed to submit fraud report."
+  },
+  "orders": {
+    "title": "My Orders",
+    "order_id": "Order ID",
+    "status": "Status",
+    "date": "Date",
+    "amount": "Amount",
+    "delivery_address": "Delivery Address",
+    "status_pending": "Pending",
+    "status_confirmed": "Confirmed",
+    "status_in_transit": "In Transit",
+    "status_delivered": "Delivered",
+    "status_cancelled": "Cancelled"
+  },
+  "transactions": {
+    "title": "Transaction History",
+    "transaction_id": "Transaction ID",
+    "type": "Type",
+    "amount": "Amount",
+    "date": "Date",
+    "status": "Status"
+  },
+  "profile": {
+    "title": "My Profile",
+    "personal_info": "Personal Information",
+    "contact_details": "Contact Details",
+    "save_changes_button": "Save Changes",
+    "update_password_button": "Update Password",
+    "account_settings": "Account Settings",
+    "field_name": "Name",
+    "field_aadhaar": "Aadhaar",
+    "field_mobile": "Mobile",
+    "field_category": "Category",
+    "field_registered": "Registered",
+    "field_status": "Status",
+    "field_status_active": "Active",
+    "field_status_inactive": "Inactive"
+  },
+  "shopkeeper": {
+    "title": "Assigned Shopkeeper",
+    "field_name": "Name",
+    "field_area": "Area",
+    "field_address": "Address",
+    "field_status": "Status",
+    "field_status_active": "Active",
+    "field_status_inactive": "Inactive"
+  },
+  "tokens": {
+    "unclaimed_ids": "Your Unclaimed Ration Token IDs",
+    "show_to_collect": "Show any of these token numbers at your shop to collect your ration.",
+    "unclaimed_count": "Unclaimed Tokens",
+    "current_month": "Current Month Token",
+    "active": "Active Tokens",
+    "total": "Total Tokens",
+    "none": "No unclaimed tokens.",
+    "monthly_status_title": "Monthly Token Status",
+    "monthly_status_received": "You have received your token for this month.",
+    "monthly_status_not_received": "You have not received your token for this month.",
+    "dcv_section": "Your Ration Tokens (DCVToken)",
+    "dcv_stats_total": "Total Tokens",
+    "dcv_stats_available": "Available",
+    "dcv_stats_claimed": "Claimed",
+    "dcv_stats_expired": "Expired",
+    "status_claimed": "CLAIMED",
+    "status_expired": "EXPIRED",
+    "status_available": "AVAILABLE",
+    "usage_hint": "💡 Show this token number at your assigned shop to collect your ration!"
+  },
+  "dashboard_info": {
+    "title": "Dashboard Info",
+    "tokens_received": "Total Tokens Received",
+    "tokens_claimed": "Total Tokens Claimed",
+    "active_tokens": "Active Tokens",
+    "has_month_token": "Current Month Token",
+    "monthly_ration": "Monthly Ration Amount",
+    "last_issued": "Last Token Issued"
+  },
+  "system_info": {
+    "title": "System Information",
+    "month": "Current Month",
+    "year": "Current Year",
+    "status": "System Status"
+  },
+  "pending_deliveries": {
+    "title": "You have {count} pending delivery(ies)"
+  },
+  "distribution_history": {
+    "title": "Distribution History (last 6 months)",
+    "month": "Month",
+    "year": "Year",
+    "token_received": "Token Received",
+    "token_claimed": "Token Claimed",
+    "none": "No distribution history found."
+  },
+  "wallet": {
+    "title": "Linked Wallet",
+    "none": "No wallet linked"
+  },
+  "system_stats": {
+    "title": "System Stats",
+    "consumers": "Total Consumers",
+    "shopkeepers": "Total Shopkeepers",
+    "delivery_agents": "Total Delivery Agents",
+    "tokens_issued": "Total Tokens Issued"
+  },
+  "ration_amounts": {
+    "title": "Ration Amounts Per Category"
+  }
+}

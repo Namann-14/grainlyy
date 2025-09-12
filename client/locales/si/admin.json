@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "PDS පරිපාලක ඩැෂ්බෝර්ඩ්",
+    "subtitle": "ඉන්දියානු පොදු බෙදාහැරීමේ පද්ධතිය - බ්ලොක්චේන් බලගැන්වූ",
+
+    "connection": {
+      "backend_connected": "පසුබිම සම්බන්ධයි",
+      "backend_disconnected": "පසුබිම විසන්ධි වී ඇත",
+      "connecting_backend_wallet": "පසුබිම් පසුම්බියට සම්බන්ධ වෙමින්...",
+      "connected": "සම්බන්ධයි",
+      "disconnected": "විසන්ධි",
+      "copy_success_toast": "ක්ලිප්බෝඩ් එකට පිටපත් කරන ලදි!",
+      "view_contract_button": "කොන්ත්රාත් බලන්න",
+      "refresh_button": "නවීකරණය කරන්න"
+    },
+
+    "tabs": {
+      "overview": "දළ විශ්ලේෂණය",
+      "tokens": "ටෝකන කළමනාකරණය",
+      "users": "පරිශීලක කළමනාකරණය",
+      "deliveries": "බෙදාහැරීම් කළමනාකරණය",
+      "payments": "ගෙවීම් විශ්ලේෂණය",
+      "settings": "පද්ධති සැකසුම්"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "ඩැෂ්බෝර්ඩ් දත්ත සාර්ථකව නැවත පූරණය කරන ලදි!",
+      "backend_connected_success": "පසුබිම් පසුම්බිය සාර්ථකව සම්බන්ධ කරන ලදි!",
+      "fetch_dashboard_failed": "ඩැෂ්බෝර්ඩ් දත්ත ලබා ගැනීමට අසමත්: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "මුළු පරිභෝජකයින්",
+        "total_consumers_subtitle": "ලියාපදිංචි ප්‍රතිලාභලාභීන්",
+        "total_shopkeepers_title": "මුළු වෙළෙන්දෝ",
+        "total_shopkeepers_subtitle": "සක්‍රීය බෙදාහැරීම් ස්ථාන",
+        "delivery_agents_title": "බෙදාහැරීම් නියෝජිතයින්",
+        "delivery_agents_subtitle": "සක්‍රීය බෙදාහැරීම් කාර්ය මණ්ඩලය",
+        "system_status_title": "පද්ධති තත්ත්වය",
+        "system_status_subtitle": "වත්මන් මෙහෙයුම් තත්ත්වය",
+        "system_status_active": "සක්‍රීයයි",
+        "system_status_paused": "විරාම දී ඇත"
+      },
+
+      "quick_actions_title": "ඉක්මන් ක්‍රියාමාර්ග",
+      "quick_actions_description": "සාමාන්‍ය පරිපාලන කාර්යයන්",
+      "quick_actions_generate_monthly_tokens": "මාසික ටෝකන ජනනය",
+      "quick_actions_consumer_requests": "පරිභෝජක ඉල්ලීම්",
+      "quick_actions_expire_old_tokens": "පරණ ටෝකන අවලංගු කරන්න",
+
+      "categories_title": "පරිභෝජක කාණ්ඩ",
+      "categories_description": "ඇල්ලෙන කාඩ් වර්ග අනුව බෙදාහැරීම",
+      "categories_generate_tokens_button": "ටෝකන ජනනය",
+      "categories_count_label": "{category} කාණ්ඩය ({count})",
+
+      "anomalies_title": "පද්ධති අපචාර",
+      "anomalies_description": "බෙදාහැරීම් කාලයේ හදුනාගත් අසාමාන්‍යතා",
+      "anomalies_total_records_badge": "මුළු වාර්තා {count}",
+      "anomalies_ml_label": "යංඥා/ML අපචාර:",
+      "anomalies_rule_label": "නීති-මූලික:",
+      "anomalies_recent_label": "මෑතකදී හඳුනාගත් අපචාර",
+      "anomalies_token_id": "ටෝකන හැඳුනුම්: {token_id}",
+      "anomalies_aadhaar": "ආධාර්: {aadhaar}",
+      "anomalies_issued_claimed": "නිකුත් කළ දිනය: {issued} | විමසූ: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "අපචාර නැවත පූරණය කරන්න"
+    },
+
+    "tokens": {
+      "monthly_title": "මාසික ටෝකන ජනනය",
+      "monthly_description": "සියලු සුදුසු පරිභෝජකයින් සඳහා ටෝකන ජනනය කරන්න",
+      "monthly_cta": "මාසික ටෝකන ජනනය",
+      "monthly_hint": "මෙය මෙම මාසයේ ටෝකන නොලැබූ සියලු පරිභෝජකයින් සඳහා ටෝකන ජනනය කරයි",
+
+      "category_title": "කාණ්ඩ අනුව ජනනය",
+      "category_description": "ඇල්ලෙන කාඩ් කාණ්ඩ අනුව ටෝකන ජනනය කරන්න",
+      "category_button_label": "{category} කාණ්ඩය ({count})",
+
+      "bulk_title": "තොග මෙහෙයුම්",
+      "bulk_description": "උසස් ටෝකන කළමනාකරණය",
+      "bulk_generate_button": "තොග ටෝකන ජනනය",
+      "bulk_expire_old_button": "පරණ ටෝකන අවලංගු කරන්න",
+
+      "manual_expiration_title": "අත්මගින් ටෝකන අවලංගු කිරීම",
+      "manual_expiration_description": "හැඳුනුම් අනුව විශේෂිත ටෝකන අවලංගු කරන්න",
+      "manual_expiration_token_id_label": "ටෝකන හැඳුනුම්",
+      "manual_expiration_placeholder": "ටෝකන හැඳුනුම් ඇතුළත් කරන්න",
+      "manual_expiration_cta": "ටෝකන අවලංගු කරන්න",
+
+      "expired_title": "අවලංගු වූ ටෝකන",
+      "expired_description": "සියලුම අවලංගු වූ ටෝකන බලන්න",
+      "expired_fetch_button": "අවලංගු වූ ටෝකන ලබාගන්න",
+      "expired_found_label": "අවලංගු වූ ටෝකන {count} හමු වී ඇත",
+      "expired_item_token_id": "ටෝකන හැඳුනුම්: {token_id}",
+      "expired_item_aadhaar": "ආධාර්: {aadhaar}",
+      "expired_item_category": "කාණ්ඩය: {category}",
+      "expired_item_expired": "අවලංගු වූ දිනය: {date}",
+      "expired_more_label": "... තවත් {count}ක්",
+
+      "expiring_soon_title": "ඉක්මනින් අවලංගු වේ",
+      "expiring_soon_description": "දින 7ක අතළගින් අවලංගු වන ටෝකන",
+      "expiring_soon_fetch_button": "ඉක්මනින් අවලංගු වන ටෝකන ලබාගන්න",
+      "expiring_soon_found_label": "ඉක්මනින් අවලංගු වන ටෝකන {count} හමුවිය",
+      "expiring_soon_item_token_id": "ටෝකන හැඳුනුම්: {token_id}",
+      "expiring_soon_item_aadhaar": "ආධාර්: {aadhaar}",
+      "expiring_soon_item_category": "කාණ්ඩය: {category}",
+      "expiring_soon_item_expires": "අවලංගු වන දිනය: {date}",
+      "expiring_soon_item_days_left": "අවශේෂ දින: {days}"
+    },
+
+    "users": {
+      "consumers_title": "පරිභෝජකයින්",
+      "consumers_subtitle": "ලියාපදිංචි ප්‍රතිලාභලාභීන්",
+      "consumers_manage_button": "පරිභෝජකයින් කළමනාකරණය කරන්න",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "වෙළෙන්දෝ",
+      "shopkeepers_subtitle": "බෙදාහැරීම් ස්ථාන",
+      "shopkeepers_active_label": "සක්‍රීය:",
+      "shopkeepers_inactive_label": "අක්‍රීය:",
+      "shopkeepers_manage_button": "වෙළෙන්දන් කළමනාකරණය කරන්න",
+
+      "delivery_agents_title": "බෙදාහැරීම් නියෝජිතයින්",
+      "delivery_agents_subtitle": "බෙදාහැරීම් කාර්ය මණ්ඩලය",
+      "delivery_agents_active_label": "සක්‍රීය:",
+      "delivery_agents_inactive_label": "අක්‍රීය:",
+      "delivery_agents_manage_button": "නියෝජිතයින් කළමනාකරණය කරන්න"
+    },
+
+    "deliveries": {
+      "assign_title": "බෙදාහැරීම් නියෝජිතයෙකු පත් කරන්න",
+      "assign_description": "වෙළෙන්දන් වෙත නියෝජිතයන් පත් කරන්න",
+      "assign_cta": "නියෝජිතයෙකු වෙළෙන්දෙකුට පත් කරන්න",
+
+      "active_deliveries_title": "සක්‍රීය බෙදාහැරීම්",
+      "active_deliveries_description": "ඉදිරියට යන බෙදාහැරීම් නිරීක්ෂණය කරන්න",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "දැනට පවත්නා බෙදාහැරීම්",
+      "active_deliveries_view_all": "සියල්ල බලන්න"
+    },
+
+    "payments": {
+      "total_payments_title": "මුළු ගෙවීම්",
+      "total_payments_subtext": "සම්පූර්ණගත ගනුදෙනු",
+      "total_amount_title": "මුළු මුදල",
+      "total_amount_subtext": "සම්පූර්ණ කළ මුදල",
+      "pending_payments_title": "ගෙවීම් මඟ බලයි",
+      "pending_payments_subtext": "පරිපාලනය සඳහා මඟ බලමින්",
+      "management_title": "ගෙවීම් කළමනාකරණය",
+      "management_description": "විස්තරාත්මක ගෙවීම් විශ්ලේෂණයට සහ කළමනාකරණයට ප්‍රවේශවන්න",
+      "management_cta": "ගෙවීම් ඩැෂ්බෝර්ඩ් බලන්න"
+    },
+
+    "settings": {
+      "price_settings_title": "මිල සැකසුම්",
+      "price_settings_description": "ඇල්ලෙන මිල සහ අනුදැනුම් සකසන්න",
+      "price_category_label": "ඇල්ලෙන කාඩ් කාණ්ඩය",
+      "price_category_placeholder": "කාණ්ඩය තෝරන්න",
+      "price_category_bpl": "BPL (දාර්ඪතාවයට පහළින්)",
+      "price_category_apl": "APL (දාර්ඪතාවයට ඉහළින්)",
+      "price_category_aay": "AAY (Antyodaya Anna Yojana)",
+      "price_category_phh": "PHH (ප්‍රමුඛ ගෙවල්)",
+      "price_ration_label": "{category} සඳහා කිලෝග්‍රෑමයකට ඇල්ලෙන මිල (₹)",
+      "price_ration_placeholder": "කිලෝග්‍රෑමයකට මිල ඇතුලත් කරන්න",
+      "price_subsidy_label": "අනුදැනුම් ප්‍රතිශතය (%)",
+      "price_subsidy_placeholder": "ප්‍රතිශතය ඇතුලත් කරන්න",
+      "price_set_cta": "{category} මිල සකසන්න",
+      "subsidy_set_cta": "අනුදැනුම සකසන්න",
+
+      "system_control_title": "පද්ධති පාලනය",
+      "system_control_description": "හදිසි පද්ධති පාලන ක්‍රියාමාර්ග",
+      "system_control_status_title": "පද්ධති තත්ත්වය",
+      "system_control_status_subtext": "වත්මන් මෙහෙයුම් තත්ත්වය",
+      "system_control_pause_cta": "පද්ධතිය විරාම කරන්න",
+      "system_control_resume_cta": "පද්ධතිය නැවත ක්‍රියාත්මක කරන්න",
+
+      "system_info_title": "පද්ධති තොරතුරු",
+      "system_info_description": "බ්ලොක්චේන් සහ කොන්ත්රාත් විස්තර",
+      "system_info_contract_address": "කොන්ත්රාත් ලිපිනය:",
+      "system_info_admin_wallet": "පරිපාලක පසුම්බිය:",
+      "system_info_network": "ජාලය:",
+      "system_info_network_value": "Polygon Amoy ටෙස්ට්නෙට්",
+      "system_info_connection_status": "සම්බන්ධතා තත්ත්වය:",
+      "system_info_connection_connected": "සම්බන්ධයි",
+      "system_info_connection_disconnected": "විසන්ධි"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "වෙළෙන්දෙකුට බෙදාහැරීම් නියෝජිතයෙකු පත් කරන්න",
+      "assign_agent_description": "බෙදාහැරීම් නියෝජිතයෙකු සහ වෙළෙන්දෙකු තෝරා පැවරුමක් සාදන්න",
+      "assign_agent_order_id_label": "ඇණවුම් හැඳුනුම් අංකය",
+      "assign_agent_order_id_placeholder": "ඇණවුම් හැඳුනුම් ඇතුළත් කරන්න",
+      "assign_agent_agent_label": "බෙදාහැරීම් නියෝජිතයා",
+      "assign_agent_agent_placeholder": "බෙදාහැරීම් නියෝජිතයෙක් තෝරන්න",
+      "assign_agent_shopkeeper_label": "වෙළෙන්දයා",
+      "assign_agent_shopkeeper_placeholder": "වෙළෙන්දෙකු තෝරන්න",
+      "assign_agent_ration_details_label": "ඇල්ලෙන විස්තර",
+      "assign_agent_ration_details_placeholder": "ඇල්ලෙන විස්තර ඇතුළත් කරන්න (විකල්පයි)",
+      "assign_agent_cancel": "අවලංගු කරන්න",
+      "assign_agent_submit": "නියෝජිතයෙකු පත් කරන්න",
+
+      "bulk_generate_title": "තොග ටෝකන ජනනය",
+      "bulk_generate_description": "ආධාර් අංක කොමාවෙන් වෙන් කර ඇතුළත් කර තොග ටෝකන ජනනය කරන්න",
+      "bulk_generate_label": "ආධාර් අංක",
+      "bulk_generate_placeholder": "උදා: 123456789012, 234567890123 ලෙස කොමාවෙන් වෙන්කර ඇතුළත් කරන්න",
+      "bulk_generate_count_label": "ආධාර් අංක {count}",
+      "bulk_generate_cancel": "අවලංගු කරන්න",
+      "bulk_generate_submit": "ටෝකන ජනනය"
+    },
+
+    "toasts": {
+      "success_title": "සාර්ථකයි",
+      "error_title": "දෝෂය",
+      "monthly_tokens_started": "මාසික ටෝකන ජනනය ආරම්භ කරන ලදි! {message}",
+      "category_tokens_completed": "{category} කාණ්ඩය සඳහා ටෝකන ජනනය සම්පූර්ණයි! {message}",
+      "bulk_tokens_started": "පරිභෝජකයින් {count} සඳහා තොග ටෝකන ජනනය ආරම්භ විය! PolygonScan බලන්න: {url}",
+      "expire_old_started": "පරණ ටෝකන අවලංගු කිරීම ආරම්භ විය! PolygonScan බලන්න: {url}",
+      "set_price_success": "{category} සඳහා ඇල්ලෙන මිල ₹{price} ලෙස යාවත්කාලීන කළෙමි! PolygonScan බලන්න: {url}",
+      "set_subsidy_success": "අනුදැනුම් ප්‍රතිශතය {percentage}% ලෙස යාවත්කාලීන කළෙමි! PolygonScan බලන්න: {url}",
+      "assign_agent_success": "බෙදාහැරීම් නියෝජිතයෙකු සාර්ථකව පත් කළෙමි! PolygonScan බලන්න: {url}",
+      "generate_token_consumer_success": "{aadhaar} පරිභෝජකයාට ටෝකන සාර්ථකව ජනනය කළෙමි!",
+      "deactivate_user_success": "{user_type} සාර්ථකව අක්‍රීය කළෙමි!",
+      "reactivate_user_success": "{user_type} සාර්ථකව නැවත සක්‍රීය කළෙමි!"
+    },
+
+    "errors": {
+      "generic": "එක් දෝෂයක් සිදු විය",
+      "backend_connection_failed": "පසුබිම් සම්බන්ධතාවය අසාර්ථක විය: {message}",
+      "not_valid_price": "කරුණාකර වලංගු ඇල්ලෙන මිලක් ඇතුළත් කරන්න",
+      "no_category_selected": "කරුණාකර කාණ්ඩයක් තෝරන්න",
+      "not_valid_subsidy": "කරුණාකර වලංගු අනුදැනුම් ප්‍රතිශතයක් ඇතුළත් කරන්න",
+      "assign_both_required": "කරුණාකර බෙදාහැරීම් නියෝජිතයෙකුත් වෙළෙන්දෙකුත් තෝරන්න",
+      "expire_token_enter_id": "කරුණාකර අවලංගු කිරීමට ටෝකන හැඳුනුම් ඇතුළත් කරන්න",
+      "bulk_no_aadhaar": "කරුණාකර අවම වශයෙන් එක් ආධාර් අංකයක් හෝ ඇතුළත් කරන්න",
+      "failed_generate_monthly": "මාසික ටෝකන ජනනය අසාර්ථක විය: {message}",
+      "failed_generate_category": "කාණ්ඩ අනුව ටෝකන ජනනය අසාර්ථක විය: {message}",
+      "failed_bulk_generate": "තොග ටෝකන ජනනය අසාර්ථක විය: {message}",
+      "failed_expire_old": "පරණ ටෝකන අවලංගු කිරීම අසාර්ථක විය: {message}",
+      "failed_expire_token": "ටෝකනය අවලංගු කිරීම අසාර්ථක විය: {message}",
+      "failed_get_expired": "අවලංගු වූ ටෝකන ලබාගැනීම අසාර්ථක විය: {message}",
+      "failed_get_expiring_soon": "ඉක්මනින් අවලංගු වන ටෝකන ලබාගැනීම අසාර්ථක විය: {message}",
+      "failed_pause_system": "පද්ධතිය විරාම කිරීමට අසමත් විය: {message}",
+      "failed_resume_system": "පද්ධතිය නැවත ක්‍රියාත්මක කිරීමට අසමත් විය: {message}",
+      "failed_set_price": "ඇල්ලෙන මිල සකස් කිරීම අසාර්ථක විය: {message}",
+      "failed_set_subsidy": "අනුදැනුම් ප්‍රතිශතය සකස් කිරීම අසාර්ථක විය: {message}",
+      "failed_assign_agent": "බෙදාහැරීම් නියෝජිත පත් කිරීම අසාර්ථක විය: {message}",
+      "failed_generate_token_consumer": "ටෝකන ජනනය අසාර්ථක විය: {message}",
+      "failed_deactivate_user": "පරිශීලක අක්‍රීය කිරීම අසාර්ථක විය: {message}",
+      "failed_reactivate_user": "පරිශීලක නැවත සක්‍රීය කිරීම අසාර්ථක විය: {message}"
+    },
+
+    "labels": {
+      "refreshing": "නවීකරණය වෙමින්...",
+      "loading": "පූරණය වෙමින්...",
+      "view": "බලන්න",
+      "cancel": "අවලංගු කරන්න",
+      "submit": "යවන්න"
+    }
+  }
+}

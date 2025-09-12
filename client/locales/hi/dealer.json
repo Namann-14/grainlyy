@@ -1,0 +1,156 @@
+{
+  "delivery_dashboard": {
+    "title": "डिलीवरी पर्सन डैशबोर्ड",
+    "welcome_message": "स्वागत है, {name}. अपनी डिलीवरी और राशन वितरण प्रबंधित करें।",
+    "tabs": {
+      "overview": "सारांश",
+      "active_delivery": "सक्रिय डिलीवरी",
+      "transaction_history": "लेन-देन इतिहास"
+    },
+    "stats_cards": {
+      "assigned_depots": "नियुक्त डिपो",
+      "pending_deliveries": "लंबित डिलीवरी",
+      "completed_deliveries": "पूर्ण डिलीवरी",
+      "served_users": "सेवा प्राप्त उपयोगकर्ता",
+      "change_positive": "+{value}%",
+      "change_zero": "+0%"
+    },
+    "overview": {
+      "assigned_depots_section_title": "नियुक्त डिपो",
+      "assigned_depots_section_description": "डिलीवरी शुरू करने के लिए डिपो चुनें",
+      "assigned_depots_empty": "आपके पास अभी कोई नियुक्त डिपो नहीं है",
+      "assigned_depots_start_button": "डिलीवरी शुरू करें",
+
+      "pending_deliveries_section_title": "लंबित डिलीवरी",
+      "pending_deliveries_section_description": "आपकी कार्रवाई की प्रतीक्षा कर रही डिलीवरी",
+      "pending_deliveries_empty": "कोई लंबित डिलीवरी नहीं",
+      "pending_badge": "लंबित",
+      "pending_scheduled_label": "निर्धारित: {date}",
+      "pending_start_button": "डिलीवरी शुरू करें",
+
+      "completed_deliveries_section_title": "पूर्ण डिलीवरी",
+      "completed_deliveries_section_description": "आपका डिलीवरी इतिहास",
+      "completed_table_header_delivery_id": "डिलीवरी आईडी",
+      "completed_table_header_depot": "डिपो",
+      "completed_table_header_date": "तिथि",
+      "completed_table_header_users_served": "सेवा प्राप्त उपयोगकर्ता",
+      "completed_table_header_status": "स्थिति",
+      "completed_badge": "पूर्ण",
+      "completed_row_id_prefix": "DEL-{id}"
+    },
+
+    "active": {
+      "active_card_title": "सक्रिय डिलीवरी",
+      "active_card_depot_label": "डिपो: {depot_name}",
+      "badge_authenticated": "प्रमाणित",
+      "badge_in_progress": "प्रगति पर",
+      "badge_pending": "लंबित",
+      "badge_completed": "पूर्ण",
+
+      "notice_title": "डिलीवरी प्रक्रिया निर्देश:",
+      "notice_step_1": "डिपो पर जाएँ और सूचित करें कि आप डिलीवरी के लिए पहुँचे हैं",
+      "notice_step_2": "सत्यापन के लिए डिपो प्रबंधक से ओटीपी बनवाएँ",
+      "notice_step_3": "अपनी पहचान सत्यापित करने के लिए नीचे फॉर्म में वह ओटीपी दर्ज करें",
+      "notice_step_4": "स्थान सत्यापन और राशन वितरण पूरा करें",
+
+      "progress_otp_verification": "ओटीपी सत्यापन",
+      "progress_location_verification": "स्थान सत्यापन",
+      "progress_ration_distribution": "राशन वितरण",
+
+      "otp_title": "डिपो प्रमाणीकरण",
+      "otp_label": "डिपो का ओटीपी दर्ज करें:",
+      "otp_placeholder": "डिपो द्वारा दिखाया गया ओटीपी दर्ज करें",
+      "otp_verify_button": "ओटीपी सत्यापित करें",
+      "otp_debug_button": "डिबग ओटीपी",
+      "otp_test_mode_label": "टेस्ट मोड सक्षम करें (ब्लॉकचेन लेन-देन का सिमुलेशन)",
+      "otp_important_title": "महत्वपूर्ण:",
+      "otp_important_point_1": "1. डिपो प्रबंधक को पहले ओटीपी जनरेट करना आवश्यक है",
+      "otp_important_point_2": "2. इससे सिस्टम में डिलीवरी स्थिति \"इन ट्रांजिट\" हो जाती है",
+      "otp_important_point_3": "3. उसके बाद आप यहाँ ओटीपी दर्ज कर सत्यापित कर सकते हैं",
+      "otp_success": "ओटीपी सफलतापूर्वक सत्यापित! कृपया स्थान सत्यापन जारी रखें।",
+      "otp_error_empty": "कृपया डिपो द्वारा प्रदान किया गया ओटीपी दर्ज करें",
+      "otp_error_generic": "ओटीपी सत्यापित करने में विफल: {message}",
+
+      "location_title": "स्थान सत्यापन",
+      "location_your_location": "आपका वर्तमान स्थान:",
+      "location_latitude": "अक्षांश: {lat}",
+      "location_longitude": "देशांतर: {lng}",
+      "location_fetching": "आपका स्थान प्राप्त किया जा रहा है...",
+      "location_verify_button": "स्थान सत्यापित करें",
+      "location_hint": "डिपो के साथ अपना स्थान सत्यापित करने के लिए क्लिक करें",
+      "location_success": "स्थान सफलतापूर्वक सत्यापित! अब आप राशन वितरण कर सकते हैं।",
+      "location_error_no_data": "स्थान डेटा उपलब्ध नहीं",
+      "location_error_generic": "स्थान सत्यापित करने में विफल: {message}",
+
+      "ration_title": "राशन वितरण",
+      "ration_table_header_user_id": "यूज़र आईडी",
+      "ration_table_header_name": "नाम",
+      "ration_table_header_category": "श्रेणी",
+      "ration_table_header_status": "स्थिति",
+      "ration_table_header_action": "क्रिया",
+      "ration_status_allocated": "आवंटित",
+      "ration_status_pending": "लंबित",
+      "ration_allocate_button": "राशन आवंटित करें",
+      "ration_allocated_button": "आवंटित",
+      "ration_empty": "इस डिपो में कोई उपयोगकर्ता असाइन नहीं है",
+      "ration_success": "उपयोगकर्ता {user_id} को राशन सफलतापूर्वक आवंटित!",
+      "ration_error_generic": "राशन आवंटित करने में विफल: {message}",
+
+      "complete_button": "डिलीवरी पूर्ण करें",
+      "complete_disabled_hint": "डिलीवरी पूर्ण करने से पहले सभी उपयोगकर्ताओं को सेवा देना आवश्यक है",
+      "complete_success_toast": "डिलीवरी सफलतापूर्वक पूर्ण! धन आपके खाते में स्थानांतरित कर दिया गया है।",
+      "complete_error_generic": "डिलीवरी पूर्ण करने में विफल: {message}"
+    },
+
+    "transactions": {
+      "title": "लेन-देन इतिहास",
+      "description": "आपके ब्लॉकचेन लेन-देन का रिकॉर्ड",
+      "table_header_type": "प्रकार",
+      "table_header_date": "तिथि",
+      "table_header_details": "विवरण",
+      "table_header_transaction": "लेन-देन",
+      "empty": "कोई लेन-देन इतिहास उपलब्ध नहीं",
+      "view": "देखें"
+    },
+
+    "statuses": {
+      "pending": "लंबित",
+      "in_progress": "प्रगति पर",
+      "authenticated": "प्रमाणित",
+      "completed": "पूर्ण",
+      "allocated": "आवंटित"
+    },
+
+    "loaders": {
+      "connecting_wallet": "वॉलेट से कनेक्ट किया जा रहा है...",
+      "loading_dashboard": "डैशबोर्ड लोड हो रहा है..."
+    },
+
+    "errors": {
+      "generic": "कुछ गलत हो गया",
+      "not_delivery_agent": "यह वॉलेट डिलीवरी एजेंट के रूप में पंजीकृत नहीं है",
+      "failed_to_load": "ब्लॉकचेन से डेटा लोड करने में विफल: {message}",
+      "no_active_delivery": "कोई सक्रिय डिलीवरी नहीं मिली",
+      "no_selected_depot": "चयनित डिपो आपके नियुक्त डिपो में नहीं मिला",
+      "no_pending_for_depot": "इस डिपो के लिए कोई सक्रिय डिलीवरी नहीं मिली। कृपया आवंटन के लिए व्यवस्थापक से संपर्क करें।",
+      "delivery_not_pending": "यह डिलीवरी पहले से प्रगति पर या पूर्ण है। कृपया डिपो रीसेट का इंतज़ार करें या व्यवस्थापक से संपर्क करें।",
+      "refresh_failed": "डेटा रिफ्रेश करने में विफल: {message}"
+    },
+
+    "toasts": {
+      "data_refreshed": "डेटा सफलतापूर्वक रिफ्रेश हुआ। विवरण के लिए ब्राउज़र कंसोल देखें।"
+    },
+
+    "modal": {
+      "title": "MetaMask लेन-देन",
+      "transaction_type_label": "लेन-देन प्रकार:",
+      "to_contract_label": "कॉन्ट्रैक्ट को:",
+      "gas_fee_est_label": "अनुमानित गैस शुल्क:",
+      "payment_amount_label": "भुगतान राशि:",
+      "type_label_otp": "ओटीपी सत्यापन",
+      "type_label_location": "स्थान सत्यापन",
+      "type_label_complete": "भुगतान प्रक्रिया",
+      "confirm_prompt": "कृपया अपने MetaMask वॉलेट में इस लेन-देन की पुष्टि करें"
+    }
+  }
+}

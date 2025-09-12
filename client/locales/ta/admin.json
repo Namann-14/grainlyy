@@ -1,0 +1,264 @@
+{
+  "admin_dashboard": {
+    "title": "PDS நிர்வாக கட்டுப்பாட்டு பலகை",
+    "subtitle": "இந்திய பொது விநியோக அமைப்பு - பிளாக்செயின் ஆதரவு",
+
+    "connection": {
+      "backend_connected": "பின்நிலை இணைக்கப்பட்டது",
+      "backend_disconnected": "பின்நிலை துண்டிக்கப்பட்டது",
+      "connecting_backend_wallet": "பின்நிலை பணப்பை இணைக்கப்படுகிறது...",
+      "connected": "இணைக்கப்பட்டது",
+      "disconnected": "துண்டிக்கப்பட்டது",
+      "copy_success_toast": "கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது!",
+      "view_contract_button": "ஒப்பந்தத்தை பார்க்க",
+      "refresh_button": "புதுப்பி"
+    },
+
+    "tabs": {
+      "overview": "மேலோட்டம்",
+      "tokens": "டோக்கன் மேலாண்மை",
+      "users": "பயனர் மேலாண்மை",
+      "deliveries": "விநியோக மேலாண்மை",
+      "payments": "கட்டண பகுப்பாய்வு",
+      "settings": "கணினி அமைப்புகள்"
+    },
+
+    "status_messages": {
+      "error_prefix": "❌",
+      "success_prefix": "✅",
+      "dashboard_refreshed": "கட்டுப்பாட்டு பலகை தரவு வெற்றிகரமாக புதுப்பிக்கப்பட்டது!",
+      "backend_connected_success": "பின்நிலை பணப்பை வெற்றிகரமாக இணைக்கப்பட்டது!",
+      "fetch_dashboard_failed": "கட்டுப்பாட்டு பலகை தரவை பெற முடியவில்லை: {message}"
+    },
+
+    "overview": {
+      "cards": {
+        "total_consumers_title": "மொத்த நுகர்வோர்",
+        "total_consumers_subtitle": "பதிவு செய்யப்பட்ட பயனாளிகள்",
+        "total_shopkeepers_title": "மொத்த கடைக்காரர்கள்",
+        "total_shopkeepers_subtitle": "செயலில் உள்ள விநியோக புள்ளிகள்",
+        "delivery_agents_title": "விநியோக முகவர்கள்",
+        "delivery_agents_subtitle": "செயலில் உள்ள விநியோக பணியாளர்கள்",
+        "system_status_title": "கணினி நிலை",
+        "system_status_subtitle": "தற்போதைய செயல்பாட்டு நிலை",
+        "system_status_active": "செயலில்",
+        "system_status_paused": "இடைநிறுத்தப்பட்டது"
+      },
+
+      "quick_actions_title": "விரைவு நடவடிக்கைகள்",
+      "quick_actions_description": "பொதுவான நிர்வாக பணிகள்",
+      "quick_actions_generate_monthly_tokens": "மாதாந்திர டோக்கன்களை உருவாக்கு",
+      "quick_actions_consumer_requests": "நுகர்வோர் கோரிக்கைகள்",
+      "quick_actions_expire_old_tokens": "பழைய டோக்கன்களை காலாவதியாக்கு",
+
+      "categories_title": "நுகர்வோர் வகைகள்",
+      "categories_description": "ரேஷன் கார்டு வகை மூலம் விநியோகம்",
+      "categories_generate_tokens_button": "டோக்கன்களை உருவாக்கு",
+      "categories_count_label": "{category} வகை ({count})",
+
+      "anomalies_title": "கணினி முரண்பாடுகள்",
+      "anomalies_description": "விநியோகத்தில் கண்டறியப்பட்ட முரண்பாடுகள்",
+      "anomalies_total_records_badge": "{count} மொத்த பதிவுகள்",
+      "anomalies_ml_label": "ML முரண்பாடுகள்:",
+      "anomalies_rule_label": "விதி அடிப்படையிலானவை:",
+      "anomalies_recent_label": "அண்மையில் கண்டறியப்பட்ட முரண்பாடுகள்",
+      "anomalies_token_id": "டோக்கன் ஐடி: {token_id}",
+      "anomalies_aadhaar": "ஆதார்: {aadhaar}",
+      "anomalies_issued_claimed": "வழங்கப்பட்டது: {issued} | கோரப்பட்டது: {claimed}",
+      "anomalies_reason_first": "{reason}",
+      "anomalies_refresh_button": "முரண்பாடுகளை புதுப்பி"
+    },
+
+    "tokens": {
+      "monthly_title": "மாதாந்திர டோக்கன் உருவாக்கம்",
+      "monthly_description": "தகுதியுள்ள அனைத்து நுகர்வோருக்கும் டோக்கன்களை உருவாக்கு",
+      "monthly_cta": "மாதாந்திர டோக்கன்களை உருவாக்கு",
+      "monthly_hint": "இது இந்த மாதம் டோக்கன்களை பெறாத அனைத்து நுகர்வோருக்கும் டோக்கன்களை உருவாக்கும்",
+
+      "category_title": "வகை வாரியாக உருவாக்கம்",
+      "category_description": "ரேஷன் கார்டு வகை மூலம் டோக்கன்களை உருவாக்கு",
+      "category_button_label": "{category} வகை ({count})",
+
+      "bulk_title": "மொத்த நடவடிக்கைகள்",
+      "bulk_description": "மேம்பட்ட டோக்கன் மேலாண்மை",
+      "bulk_generate_button": "மொத்தமாக டோக்கன்களை உருவாக்கு",
+      "bulk_expire_old_button": "பழைய டோக்கன்களை காலாவதியாக்கு",
+
+      "manual_expiration_title": "கைமுறை டோக்கன் காலாவதி",
+      "manual_expiration_description": "ஐடி மூலம் குறிப்பிட்ட டோக்கன்களை காலாவதியாக்கு",
+      "manual_expiration_token_id_label": "டோக்கன் ஐடி",
+      "manual_expiration_placeholder": "டோக்கன் ஐடியை உள்ளிடவும்",
+      "manual_expiration_cta": "டோக்கனை காலாவதியாக்கு",
+
+      "expired_title": "காலாவதியான டோக்கன்கள்",
+      "expired_description": "அனைத்து காலாவதியான டோக்கன்களையும் பார்க்க",
+      "expired_fetch_button": "காலாவதியான டோக்கன்களை பெறு",
+      "expired_found_label": "{count} காலாவதியான டோக்கன்கள் கிடைத்தன",
+      "expired_item_token_id": "டோக்கன் ஐடி: {token_id}",
+      "expired_item_aadhaar": "ஆதார்: {aadhaar}",
+      "expired_item_category": "வகை: {category}",
+      "expired_item_expired": "காலாவதியானது: {date}",
+      "expired_more_label": "... மற்றும் {count} மேலும்",
+
+      "expiring_soon_title": "விரைவில் காலாவதியாகிறது",
+      "expiring_soon_description": "7 நாட்களுக்குள் காலாவதியாகும் டோக்கன்கள்",
+      "expiring_soon_fetch_button": "விரைவில் காலாவதியாகும் டோக்கன்களை பெறு",
+      "expiring_soon_found_label": "{count} விரைவில் காலாவதியாகும் டோக்கன்கள் கிடைத்தன",
+      "expiring_soon_item_token_id": "டோக்கன் ஐடி: {token_id}",
+      "expiring_soon_item_aadhaar": "ஆதார்: {aadhaar}",
+      "expiring_soon_item_category": "வகை: {category}",
+      "expiring_soon_item_expires": "காலாவதியாகிறது: {date}",
+      "expiring_soon_item_days_left": "நாட்கள் மீதம்: {days}"
+    },
+
+    "users": {
+      "consumers_title": "நுகர்வோர்",
+      "consumers_subtitle": "பதிவு செய்யப்பட்ட பயனாளிகள்",
+      "consumers_manage_button": "நுகர்வோரை மேலாண்மை செய்",
+      "consumers_count_badge": "{count}",
+      "consumers_group_row": "{category}: {count}",
+
+      "shopkeepers_title": "கடைக்காரர்கள்",
+      "shopkeepers_subtitle": "விநியோக புள்ளிகள்",
+      "shopkeepers_active_label": "செயலில்:",
+      "shopkeepers_inactive_label": "செயலற்ற:",
+      "shopkeepers_manage_button": "கடைக்காரர்களை மேலாண்மை செய்",
+
+      "delivery_agents_title": "விநியோக முகவர்கள்",
+      "delivery_agents_subtitle": "விநியோக பணியாளர்கள்",
+      "delivery_agents_active_label": "செயலில்:",
+      "delivery_agents_inactive_label": "செயலற்ற:",
+      "delivery_agents_manage_button": "முகவர்களை மேலாண்மை செய்"
+    },
+
+    "deliveries": {
+      "assign_title": "விநியோக முகவரை நியமி",
+      "assign_description": "கடைக்காரர்களுக்கு விநியோக முகவர்களை நியமிக்கவும்",
+      "assign_cta": "கடைக்காரருக்கு முகவரை நியமி",
+
+      "active_deliveries_title": "செயலில் உள்ள விநியோகங்கள்",
+      "active_deliveries_description": "நடந்து கொண்டிருக்கும் விநியோகங்களை கண்காணி",
+      "active_deliveries_count": "{count}",
+      "active_deliveries_subtext": "நடந்து கொண்டிருக்கும் விநியோகங்கள்",
+      "active_deliveries_view_all": "அனைத்து விநியோகங்களையும் பார்க்க"
+    },
+
+    "payments": {
+      "total_payments_title": "மொத்த கட்டணங்கள்",
+      "total_payments_subtext": "முடிக்கப்பட்ட பரிவர்த்தனைகள்",
+      "total_amount_title": "மொத்த தொகை",
+      "total_amount_subtext": "மொத்தமாக செயலாக்கப்பட்டது",
+      "pending_payments_title": "நிலுவையில் உள்ள கட்டணங்கள்",
+      "pending_payments_subtext": "செயலாக்கத்திற்கு காத்திருக்கிறது",
+      "management_title": "கட்டண மேலாண்மை",
+      "management_description": "விரிவான கட்டண பகுப்பாய்வு மற்றும் மேலாண்மை அணுகவும்",
+      "management_cta": "கட்டண கட்டுப்பாட்டு பலகையை பார்க்க"
+    },
+
+    "settings": {
+      "price_settings_title": "விலை அமைப்புகள்",
+      "price_settings_description": "ரேஷன் விலை மற்றும் மானியங்களை உள்ளமைக்கவும்",
+      "price_category_label": "ரேஷன் கார்டு வகை",
+      "price_category_placeholder": "வகையை தேர்ந்தெடுக்கவும்",
+      "price_category_bpl": "BPL (வறுமைக் கோட்டுக்கு கீழே)",
+      "price_category_apl": "APL (வறுமைக் கோட்டுக்கு மேலே)",
+      "price_category_aay": "AAY (அந்த்யோதய அன்ன யோஜனா)",
+      "price_category_phh": "PHH (முன்னுரிமை குடும்பங்கள்)",
+      "price_ration_label": "{category} க்கு ரேஷன் விலை (₹ per kg)",
+      "price_ration_placeholder": "கிலோவுக்கு விலையை உள்ளிடவும்",
+      "price_subsidy_label": "மானிய சதவீதம் (%)",
+      "price_subsidy_placeholder": "சதவீதத்தை உள்ளிடவும்",
+      "price_set_cta": "{category} விலையை அமை",
+      "subsidy_set_cta": "மானியத்தை அமை",
+
+      "system_control_title": "கணினி கட்டுப்பாடு",
+      "system_control_description": "அவசர கணினி கட்டுப்பாடுகள்",
+      "system_control_status_title": "கணினி நிலை",
+      "system_control_status_subtext": "தற்போதைய செயல்பாட்டு நிலை",
+      "system_control_pause_cta": "கணினியை இடைநிறுத்து",
+      "system_control_resume_cta": "கணினியை மீண்டும் தொடங்கு",
+
+      "system_info_title": "கணினி தகவல்",
+      "system_info_description": "பிளாக்செயின் மற்றும் ஒப்பந்த விவரங்கள்",
+      "system_info_contract_address": "ஒப்பந்த முகவரி:",
+      "system_info_admin_wallet": "நிர்வாக பணப்பை:",
+      "system_info_network": "நெட்வொர்க்:",
+      "system_info_network_value": "பாலிகான் அமோய் டெஸ்ட்நெட்",
+      "system_info_connection_status": "இணைப்பு நிலை:",
+      "system_info_connection_connected": "இணைக்கப்பட்டது",
+      "system_info_connection_disconnected": "துண்டிக்கப்பட்டது"
+    },
+
+    "dialogs": {
+      "assign_agent_title": "கடைக்காரருக்கு விநியோக முகவரை நியமி",
+      "assign_agent_description": "நியமிப்பை உருவாக்க விநியோக முகவர் மற்றும் கடைக்காரரை தேர்ந்தெடுக்கவும்",
+      "assign_agent_order_id_label": "ஆர்டர் ஐடி",
+      "assign_agent_order_id_placeholder": "ஆர்டர் ஐடியை உள்ளிடவும்",
+      "assign_agent_agent_label": "விநியோக முகவர்",
+      "assign_agent_agent_placeholder": "விநியோக முகவரை தேர்ந்தெடுக்கவும்",
+      "assign_agent_shopkeeper_label": "கடைக்காரர்",
+      "assign_agent_shopkeeper_placeholder": "கடைக்காரரை தேர்ந்தெடுக்கவும்",
+      "assign_agent_ration_details_label": "ரேஷன் விவரங்கள்",
+      "assign_agent_ration_details_placeholder": "ரேஷன் விவரங்களை உள்ளிடவும் (விருப்பமானது)",
+      "assign_agent_cancel": "ரத்து செய்",
+      "assign_agent_submit": "முகவரை நியமி",
+
+      "bulk_generate_title": "மொத்தமாக டோக்கன்களை உருவாக்கு",
+      "bulk_generate_description": "கமாக்களால் பிரிக்கப்பட்ட ஆதார் எண்களை உள்ளிடவும் மொத்தமாக டோக்கன்களை உருவாக்க",
+      "bulk_generate_label": "ஆதார் எண்கள்",
+      "bulk_generate_placeholder": "கமாக்களால் பிரிக்கப்பட்ட ஆதார் எண்களை உள்ளிடவும் (எ.கா., 123456789012, 234567890123)",
+      "bulk_generate_count_label": "{count} ஆதார் எண்கள்",
+      "bulk_generate_cancel": "ரத்து செய்",
+      "bulk_generate_submit": "டோக்கன்களை உருவாக்கு"
+    },
+
+    "toasts": {
+      "success_title": "வெற்றி",
+      "error_title": "பிழை",
+      "monthly_tokens_started": "மாதாந்திர டோக்கன்கள் உருவாக்கம் தொடங்கியது! {message}",
+      "category_tokens_completed": "{category} வகைக்கு டோக்கன்கள் உருவாக்கம் முடிந்தது! {message}",
+      "bulk_tokens_started": "{count} நுகர்வோருக்கு மொத்த டோக்கன் உருவாக்கம் தொடங்கியது! PolygonScan இல் பார்க்க: {url}",
+      "expire_old_started": "பழைய டோக்கன்கள் காலாவதி தொடங்கியது! PolygonScan இல் பார்க்க: {url}",
+      "set_price_success": "{category} க்கு ரேஷன் விலை ₹{price} ஆக புதுப்பிக்கப்பட்டது! PolygonScan இல் பார்க்க: {url}",
+      "set_subsidy_success": "மானிய சதவீதம் {percentage}% ஆக புதுப்பிக்கப்பட்டது! PolygonScan இல் பார்க்க: {url}",
+      "assign_agent_success": "விநியோக முகவர் வெற்றிகரமாக நியமிக்கப்பட்டார்! PolygonScan இல் பார்க்க: {url}",
+      "generate_token_consumer_success": "நுகர்வோர் {aadhaar} க்கு டோக்கன் வெற்றிகரமாக உருவாக்கப்பட்டது!",
+      "deactivate_user_success": "{user_type} வெற்றிகரமாக செயலிழக்கப்பட்டது!",
+      "reactivate_user_success": "{user_type} வெற்றிகரமாக மீண்டும் செயல்படுத்தப்பட்டது!"
+    },
+
+    "errors": {
+      "generic": "ஏதோ தவறு நடந்தது",
+      "backend_connection_failed": "பின்நிலை இணைப்பு தோல்வியடைந்தது: {message}",
+      "not_valid_price": "சரியான ரேஷன் விலையை உள்ளிடவும்",
+      "no_category_selected": "வகையை தேர்ந்தெடுக்கவும்",
+      "not_valid_subsidy": "சரியான மானிய சதவீதத்தை உள்ளிடவும்",
+      "assign_both_required": "விநியோக முகவர் மற்றும் கடைக்காரர் இருவரையும் தேர்ந்தெடுக்கவும்",
+      "expire_token_enter_id": "காலாவதியாக்க டோக்கன் ஐடியை உள்ளிடவும்",
+      "bulk_no_aadhaar": "குறைந்தபட்சம் ஒரு ஆதார் எண்ணை உள்ளிடவும்",
+      "failed_generate_monthly": "மாதாந்திர டோக்கன்களை உருவாக்க முடியவில்லை: {message}",
+      "failed_generate_category": "வகை டோக்கன்களை உருவாக்க முடியவில்லை: {message}",
+      "failed_bulk_generate": "மொத்த டோக்கன்களை உருவாக்க முடியவில்லை: {message}",
+      "failed_expire_old": "பழைய டோக்கன்களை காலாவதியாக்க முடியவில்லை: {message}",
+      "failed_expire_token": "டோக்கனை காலாவதியாக்க முடியவில்லை: {message}",
+      "failed_get_expired": "காலாவதியான டோக்கன்களை பெற முடியவில்லை: {message}",
+      "failed_get_expiring_soon": "விரைவில் காலாவதியாகும் டோக்கன்களை பெற முடியவில்லை: {message}",
+      "failed_pause_system": "கணினியை இடைநிறுத்த முடியவில்லை: {message}",
+      "failed_resume_system": "கணினியை மீண்டும் தொடங்க முடியவில்லை: {message}",
+      "failed_set_price": "ரேஷன் விலையை அமைக்க முடியவில்லை: {message}",
+      "failed_set_subsidy": "மானிய சதவீதத்தை அமைக்க முடியவில்லை: {message}",
+      "failed_assign_agent": "விநியோக முகவரை நியமிக்க முடியவில்லை: {message}",
+      "failed_generate_token_consumer": "டோக்கனை உருவாக்க முடியவில்லை: {message}",
+      "failed_deactivate_user": "பயனரை செயலிழக்க முடியவில்லை: {message}",
+      "failed_reactivate_user": "பயனரை மீண்டும் செயல்படுத்த முடியவில்லை: {message}"
+    },
+
+    "labels": {
+      "refreshing": "புதுப்பிக்கப்படுகிறது...",
+      "loading": "ஏற்றப்படுகிறது...",
+      "view": "பார்க்க",
+      "cancel": "ரத்து செய்",
+      "submit": "சமர்ப்பி"
+    }
+  }
+}

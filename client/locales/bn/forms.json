@@ -1,0 +1,51 @@
+{
+  "buttons": {
+    "submit": "জমা দিন",
+    "cancel": "বাতিল করুন",
+    "save": "সংরক্ষণ করুন",
+    "edit": "সম্পাদনা করুন",
+    "delete": "মুছে ফেলুন",
+    "confirm": "নিশ্চিত করুন",
+    "back": "পিছনে",
+    "next": "পরবর্তী",
+    "finish": "শেষ করুন",
+    "retry": "পুনরায় চেষ্টা করুন",
+    "refresh": "রিফ্রেশ করুন",
+    "export": "রপ্তানি করুন",
+    "import": "আমদানি করুন",
+    "sign_in": "সাইন ইন করুন",
+    "sign_up": "সাইন আপ করুন"
+  },
+  "validation": {
+    "required": "এই ক্ষেত্রটি প্রয়োজনীয়",
+    "invalid_email": "একটি বৈধ ইমেল লিখুন",
+    "invalid_phone": "একটি বৈধ ফোন নম্বর লিখুন",
+    "password_too_short": "পাসওয়ার্ড কমপক্ষে 8 অক্ষরের হতে হবে",
+    "passwords_no_match": "পাসওয়ার্ড মিলছে না",
+    "invalid_format": "অবৈধ ফরম্যাট"
+  },
+  "placeholders": {
+    "enter_email": "আপনার ইমেল লিখুন",
+    "enter_phone": "আপনার ফোন নম্বর লিখুন",
+    "enter_password": "আপনার পাসওয়ার্ড লিখুন",
+    "search": "অনুসন্ধান করুন...",
+    "select_option": "একটি বিকল্প নির্বাচন করুন",
+    "enter_amount": "পরিমাণ লিখুন",
+    "enter_address": "ঠিকানা লিখুন"
+  },
+  "labels": {
+    "name": "নাম",
+    "email": "ইমেল",
+    "phone": "ফোন",
+    "address": "ঠিকানা",
+    "city": "শহর",
+    "state": "রাজ্য",
+    "country": "দেশ",
+    "pincode": "পিন কোড",
+    "date": "তারিখ",
+    "time": "সময়",
+    "amount": "পরিমাণ",
+    "status": "অবস্থা",
+    "type": "ধরন"
+  }
+}

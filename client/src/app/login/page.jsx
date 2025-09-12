@@ -20,6 +20,7 @@ import {
 import { MetaMaskConnect } from "@/components/metamask-connect"
 import { AuthLayout } from "@/components/auth-layout"
 import { useMetaMask } from "@/components/MetaMaskProvider"
+import { useTranslation } from "@/lib/i18n"
 import DiamondMergedABI from "../../../abis/DiamondMergedABI.json"
 
 // Admin address constant
@@ -85,6 +86,7 @@ function getMergedABI() {
 export default function LoginPage() {
   const router = useRouter()
   const { connected, account } = useMetaMask()
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [walletConnected, setWalletConnected] = useState(false)
@@ -694,21 +696,21 @@ export default function LoginPage() {
       const hasValidPin = consumerData.pin && consumerData.pin.length === 6
       
       if (!hasIdentifier && !hasValidPin) {
-        return `Enter ${identifierType === 'aadhar' ? 'Aadhaar' : 'Ration Card ID'} and PIN`
+        return `Enter ${identifierType === 'aadhar' ? t("auth.login.identifier.aadhar") : t("auth.login.identifier.ration")} and PIN`
       } else if (!hasIdentifier) {
-        return `Enter ${identifierType === 'aadhar' ? 'Aadhaar number' : 'Ration Card ID'}`
+        return `Enter ${identifierType === 'aadhar' ? t("auth.login.identifier.aadhar") : t("auth.login.identifier.ration")}`
       } else if (!hasValidPin) {
         return "Enter 6-digit PIN"
       }
-      return "Sign in as Consumer"
+      return t("auth.login.buttons.sign_in_consumer")
     }
     
-    if (!walletConnected) return "Connect Wallet to Sign In"
+    if (!walletConnected) return t("auth.login.buttons.connect_wallet")
     if (userType) {
       const displayType = getUserTypeDisplay()
-      return `Sign in as ${displayType}`
+      return t("auth.login.buttons.sign_in_as", { role: displayType })
     }
-    return "Verify Wallet Registration"
+    return t("auth.login.buttons.verify_wallet")
   }
 
   // Get user type display text
@@ -736,10 +738,10 @@ export default function LoginPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-green-600 text-white">
                 <Leaf className="h-4 w-4" />
               </div>
-              <CardTitle className="text-2xl text-green-900">Sign in</CardTitle>
+              <CardTitle className="text-2xl text-green-900">{t("auth.login.title")}</CardTitle>
             </div>
             <CardDescription>
-              Choose your login method based on your account type
+              {t("auth.login.description")}
             </CardDescription>
             <div className="text-xs text-muted-foreground mt-2 space-y-1">
               <p><strong>Consumer:</strong> Use Aadhaar/Ration Card + PIN</p>
@@ -768,11 +770,11 @@ export default function LoginPage() {
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="consumer" className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Consumer
+                  {t("auth.login.consumer_tab")}
                 </TabsTrigger>
                 <TabsTrigger value="wallet" className="flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
-                  Wallet Login
+                  {t("auth.login.wallet_tab")}
                 </TabsTrigger>
               </TabsList>
               
@@ -794,7 +796,7 @@ export default function LoginPage() {
                           }}
                           className="text-green-600"
                         />
-                        <span className="text-sm">Aadhar Number</span>
+                        <span className="text-sm">{t("auth.login.identifier.aadhar")}</span>
                       </label>
                       <label className="flex items-center space-x-2">
                         <input
@@ -809,14 +811,14 @@ export default function LoginPage() {
                           }}
                           className="text-green-600"
                         />
-                        <span className="text-sm">Ration Card ID</span>
+                        <span className="text-sm">{t("auth.login.identifier.ration")}</span>
                       </label>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="identifier">
-                      {identifierType === "aadhar" ? "Aadhaar Number" : "Ration Card ID"}
+                      {identifierType === "aadhar" ? t("auth.login.identifier.aadhar") : t("auth.login.identifier.ration")}
                       <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -824,8 +826,8 @@ export default function LoginPage() {
                       name="identifier"
                       placeholder={
                         identifierType === "aadhar" 
-                          ? "Enter your 12-digit Aadhaar number" 
-                          : "Enter your Ration Card ID"
+                          ? t("auth.login.identifier.enter_aadhar")
+                          : t("auth.login.identifier.enter_ration")
                       }
                       value={consumerData.identifier}
                       onChange={handleConsumerInputChange}
@@ -852,7 +854,7 @@ export default function LoginPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="pin">
-                      Account PIN <span className="text-red-500">*</span>
+                      {t("auth.login.pin.label")} <span className="text-red-500">*</span>
                     </Label>
                     <div className="flex justify-center">
                       <InputOTP maxLength={6} value={consumerData.pin} onChange={handlePinChange}>
@@ -867,7 +869,7 @@ export default function LoginPage() {
                       </InputOTP>
                     </div>
                     <p className="text-sm text-muted-foreground text-center">
-                      Enter your 6-digit PIN ({consumerData.pin.length}/6)
+                      {t("auth.login.pin.placeholder")} ({consumerData.pin.length}/6)
                     </p>
                   </div>
                 </div>
@@ -989,7 +991,7 @@ export default function LoginPage() {
             <div className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-green-600 hover:text-green-700 font-medium">
-                Sign up
+                {t("auth.login.buttons.sign_up_link")}
               </Link>
             </div>
           </CardFooter>

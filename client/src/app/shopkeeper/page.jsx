@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ethers } from "ethers";
 import { motion } from "framer-motion";
 import { useMetaMask } from "@/components/MetaMaskProvider";
+import { useTranslation } from "@/lib/i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
