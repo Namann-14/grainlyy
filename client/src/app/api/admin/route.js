@@ -10,11 +10,21 @@ import DiamondMergedABI from "../../../../abis/DiamondMergedABI.json";
 import Shopkeeper from '@/models/Shopkeeper';
 import DeliveryRider from '@/models/DeliveryRider';
 
-// Initialize Twilio
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Initialize Twilio with error handling
+let twilioClient = null;
+try {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    console.log('✅ Twilio client initialized successfully');
+  } else {
+    console.log('⚠️ Twilio credentials not found - SMS functionality disabled');
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize Twilio client:', error);
+}
 
 // Token Operations ABI - Simplified without events
 const TOKEN_OPS_ABI = [
@@ -250,9 +260,33 @@ initializeDiamondContract().catch(error => {
 // SMS Helper Functions
 async function sendSMSNotification(phoneNumber, message) {
   try {
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      console.log('Twilio not configured - SMS notification skipped');
-      return { success: false, error: 'Twilio not configured' };
+    // Check if Twilio client is available
+    if (!twilioClient) {
+      console.log('⚠️ Twilio client not initialized - attempting to reinitialize...');
+      
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        try {
+          twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+          console.log('✅ Twilio client reinitialized successfully');
+        } catch (reinitError) {
+          console.error('❌ Failed to reinitialize Twilio client:', reinitError);
+          return { success: false, error: 'Twilio client initialization failed', skipped: true };
+        }
+      } else {
+        console.log('❌ Twilio credentials missing');
+        return { success: false, error: 'Twilio credentials not configured', skipped: true };
+      }
+    }
+
+    // Check if Twilio is properly configured
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+      console.log('⚠️ Twilio credentials not configured - SMS sending skipped');
+      console.log('Required env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER');
+      console.log('Current status:');
+      console.log('- TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Missing');
+      console.log('- TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Missing');  
+      console.log('- TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER ? 'Set' : 'Missing');
+      return { success: false, error: 'Twilio credentials not configured', skipped: true };
     }
 
     if (message.length > 160) {
@@ -267,16 +301,54 @@ async function sendSMSNotification(phoneNumber, message) {
       formattedNumber = '+91' + formattedNumber;
     }
 
-    const result = await twilioClient.messages.create({
+    console.log(`📱 Attempting to send SMS to ${formattedNumber}...`);
+    console.log(`📝 Message preview: ${message.substring(0, 50)}...`);
+
+    // Add timeout to prevent hanging
+    const smsPromise = twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: formattedNumber
     });
 
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('SMS timeout after 15 seconds')), 15000);
+    });
+
+    const result = await Promise.race([smsPromise, timeoutPromise]);
+
     console.log('✅ SMS sent successfully:', result.sid);
     return { success: true, messageSid: result.sid };
   } catch (error) {
     console.error('❌ SMS sending failed:', error);
+    
+    // Check for specific network errors
+    if (error.code === 'ENOTFOUND' || error.hostname === 'api.twilio.com') {
+      console.error('🌐 Network connectivity issue - cannot reach Twilio API (api.twilio.com)');
+      console.error('Possible solutions:');
+      console.error('1. Check internet connection');
+      console.error('2. Check firewall settings');
+      console.error('3. Verify DNS resolution');
+      console.error('4. Try running: nslookup api.twilio.com');
+      return { 
+        success: false, 
+        error: 'Network connectivity issue - cannot reach Twilio API', 
+        errorCode: 'NETWORK_ERROR',
+        suggestion: 'Check internet connection and firewall settings'
+      };
+    }
+
+    // Check for Twilio-specific errors
+    if (error.status) {
+      console.error(`📞 Twilio API error (${error.status}): ${error.message}`);
+      return {
+        success: false,
+        error: `Twilio API error: ${error.message}`,
+        errorCode: error.code,
+        status: error.status
+      };
+    }
+
     return { success: false, error: error.message, errorCode: error.code };
   }
 }
@@ -449,22 +521,65 @@ async function sendSMSNotifications(operationType, category = null, aadhaarList 
     console.log(`Found ${consumersToNotify.length} consumers to notify`);
 
     let smsCount = 0;
+    let smsFailedCount = 0;
+    let networkErrorCount = 0;
+    const failureReasons = [];
+
     for (const consumer of consumersToNotify) {
       try {
-        // Use the improved sendSMSToConsumer that gets real token IDs
-        await sendSMSToConsumer(consumer);
-        smsCount++;
-        console.log(`SMS ${smsCount}/${consumersToNotify.length} sent to ${consumer.name}`);
+        console.log(`📱 Sending SMS ${smsCount + smsFailedCount + 1}/${consumersToNotify.length} to ${consumer.name}...`);
+        
+        const smsResult = await sendSMSToConsumer(consumer);
+        
+        if (smsResult && smsResult.success) {
+          smsCount++;
+          console.log(`✅ SMS ${smsCount}/${consumersToNotify.length} sent successfully to ${consumer.name}`);
+        } else {
+          smsFailedCount++;
+          const errorType = smsResult?.errorCode === 'NETWORK_ERROR' ? 'Network Error' : 'API Error';
+          if (smsResult?.errorCode === 'NETWORK_ERROR') {
+            networkErrorCount++;
+          }
+          
+          console.error(`❌ SMS failed for ${consumer.name}: ${errorType} - ${smsResult?.error || 'Unknown error'}`);
+          failureReasons.push({
+            consumer: consumer.name,
+            phone: consumer.mobile,
+            error: smsResult?.error || 'Unknown error',
+            errorCode: smsResult?.errorCode || 'UNKNOWN'
+          });
+        }
 
-        // Add delay between SMS to avoid rate limiting
+        // Add delay between SMS to avoid rate limiting and reduce server load
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
-        console.error(`Failed to send SMS to ${consumer.name}:`, error);
+        smsFailedCount++;
+        console.error(`❌ Failed to send SMS to ${consumer.name}:`, error.message);
+        failureReasons.push({
+          consumer: consumer.name,
+          phone: consumer.mobile,
+          error: error.message,
+          errorCode: 'SYSTEM_ERROR'
+        });
       }
     }
 
-    console.log(`📱 SMS notifications completed: ${smsCount}/${consumersToNotify.length} sent`);
-    return { success: true, smsSent: smsCount, totalConsumers: consumersToNotify.length };
+    const totalAttempted = smsCount + smsFailedCount;
+    console.log(`📱 SMS notifications completed: ${smsCount}/${totalAttempted} sent successfully, ${smsFailedCount} failed`);
+    
+    if (networkErrorCount > 0) {
+      console.log(`🌐 Network errors detected: ${networkErrorCount} SMS failed due to connectivity issues`);
+      console.log('💡 Suggestion: Check Twilio configuration and internet connectivity');
+    }
+
+    return { 
+      success: smsCount > 0, // Consider successful if at least one SMS was sent
+      smsSent: smsCount, 
+      smsFailed: smsFailedCount,
+      networkErrors: networkErrorCount,
+      totalConsumers: consumersToNotify.length,
+      failureReasons: failureReasons.length > 0 ? failureReasons.slice(0, 5) : undefined // Limit to first 5 errors
+    };
 
   } catch (error) {
     console.error('SMS notification process failed:', error);
@@ -1397,9 +1512,64 @@ async function handleGenerateTokensForCategory(body) {
 
 async function handleTestSMS() {
   try {
-    const testMessage = `GRAINLY TEST: SMS working! Time: ${new Date().getHours()}:${new Date().getMinutes()}`;
+    console.log('🧪 Testing SMS functionality...');
+    
+    // First, check environment variables
+    console.log('📋 Checking Twilio configuration:');
+    console.log('- TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? `Set (${process.env.TWILIO_ACCOUNT_SID.substring(0, 10)}...)` : 'Missing');
+    console.log('- TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set (hidden)' : 'Missing');
+    console.log('- TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'Missing');
 
-    console.log('🧪 Testing short SMS...');
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+      return NextResponse.json({
+        success: false,
+        error: 'Twilio credentials not properly configured',
+        details: {
+          accountSid: !!process.env.TWILIO_ACCOUNT_SID,
+          authToken: !!process.env.TWILIO_AUTH_TOKEN,
+          phoneNumber: !!process.env.TWILIO_PHONE_NUMBER
+        }
+      });
+    }
+
+    // Test network connectivity first
+    console.log('🌐 Testing network connectivity to api.twilio.com...');
+    try {
+      const https = require('https');
+      await new Promise((resolve, reject) => {
+        const req = https.request({
+          hostname: 'api.twilio.com',
+          port: 443,
+          path: '/',
+          method: 'HEAD',
+          timeout: 5000
+        }, (res) => {
+          console.log(`✅ Network connectivity test: ${res.statusCode}`);
+          resolve(res);
+        });
+        
+        req.on('error', reject);
+        req.on('timeout', () => reject(new Error('Connection timeout')));
+        req.end();
+      });
+    } catch (networkError) {
+      console.error('❌ Network connectivity test failed:', networkError.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Cannot reach Twilio API - network connectivity issue',
+        networkError: networkError.message,
+        suggestions: [
+          'Check internet connection',
+          'Verify firewall settings',
+          'Try running: nslookup api.twilio.com',
+          'Check if corporate proxy is blocking the connection'
+        ]
+      });
+    }
+
+    // If network is ok, try sending a test SMS
+    const testMessage = `GRAINLY TEST: SMS working! Time: ${new Date().getHours()}:${new Date().getMinutes()}`;
+    console.log('📱 Network connectivity OK, attempting to send test SMS...');
     console.log(`📝 Test message length: ${testMessage.length} characters`);
 
     const result = await sendSMSNotification('8284941698', testMessage);
@@ -1410,7 +1580,7 @@ async function handleTestSMS() {
       details: result,
       instructions: result.success
         ? 'Check your phone for the test message'
-        : 'Check Twilio Console for error details'
+        : 'Review the error details above'
     });
   } catch (error) {
     console.error('Test SMS error:', error);
