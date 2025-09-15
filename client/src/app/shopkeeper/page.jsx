@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import OTPService from "@/lib/services/otpService";
 import {
   RefreshCw,
   Users,
@@ -1962,6 +1965,13 @@ function IncomingDeliveriesSection({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // OTP Modal states
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [selectedPickupId, setSelectedPickupId] = useState(null);
 
   useEffect(() => {
     if (contract && account) {
@@ -2197,6 +2207,75 @@ function IncomingDeliveriesSection({
     } finally {
       setLoading(false);
     }
+  };
+
+  // OTP Verification Functions
+  const handleOtpVerification = (pickupId) => {
+    setSelectedPickupId(pickupId);
+    setOtpValue("");
+    setOtpError("");
+    setShowOtpModal(true);
+  };
+
+  const verifyOtp = async () => {
+    if (!otpValue || otpValue.length !== 6) {
+      setOtpError("Please enter a valid 6-digit OTP");
+      return;
+    }
+
+    // Validate OTP format
+    if (!OTPService.validateOTPFormat(otpValue)) {
+      setOtpError("Invalid OTP format. Please enter 6 digits.");
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError("");
+
+    try {
+      console.log("🔍 Verifying OTP with MongoDB backend...");
+
+      // Verify OTP using the backend service
+      const verificationResult = await OTPService.verifyOTP({
+        pickupId: selectedPickupId.toString(),
+        shopkeeperAddress: account,
+        otpCode: otpValue
+      });
+
+      if (!verificationResult.success) {
+        setOtpError(verificationResult.message || "Invalid OTP. Please try again.");
+        return;
+      }
+
+      console.log("✅ OTP Verified Successfully!");
+      console.log("📍 Delivery Agent:", verificationResult.data.deliveryAgentAddress);
+      console.log("⏰ Verified at:", verificationResult.data.verifiedAt);
+
+      // OTP is valid, close modal and proceed with confirmation
+      setShowOtpModal(false);
+      setOtpValue("");
+      setOtpError("");
+      
+      // Show success message
+      setSuccess(`OTP verified successfully! Proceeding with delivery confirmation for Pickup #${selectedPickupId}`);
+      
+      // Call the original confirm receipt function
+      await confirmRationReceipt(selectedPickupId);
+      
+    } catch (error) {
+      console.error("❌ OTP verification error:", error);
+      setOtpError(`Failed to verify OTP: ${error.message}`);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const closeOtpModal = () => {
+    setShowOtpModal(false);
+    setOtpValue("");
+    setOtpError("");
+    setSelectedPickupId(null);
+    setOtpLoading(false);
   };
 
   const getStatusBadge = (status) => {
@@ -2737,16 +2816,16 @@ function IncomingDeliveriesSection({
                         Update Status
                       </Button>
 
-                      {/* Confirm delivery received by consumer */}
+                      {/* OTP Verification for delivery confirmation */}
                       {delivery.status === 2 && (
                         <Button
                           variant="outline"
                           size="sm"
                           className="bg-green-100 text-green-700 border-green-300"
-                          onClick={() => confirmRationReceipt(delivery.pickupId)}
+                          onClick={() => handleOtpVerification(delivery.pickupId)}
                           disabled={loading}
                         >
-                          ✅ Confirm Delivery Received
+                          🔐 Verify OTP & Confirm
                         </Button>
                       )}
                     </div>
@@ -2757,6 +2836,95 @@ function IncomingDeliveriesSection({
           ))}
         </div>
       )}
+
+      {/* OTP Verification Modal */}
+      <Dialog open={showOtpModal} onOpenChange={closeOtpModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🔐 OTP Verification
+            </DialogTitle>
+            <DialogDescription>
+              Enter the 6-digit OTP to confirm delivery receipt for Pickup #{selectedPickupId}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                Please enter the 6-digit OTP provided by the delivery agent. The OTP is valid for 5 minutes only.
+              </p>
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otpValue}
+                  onChange={(value) => {
+                    setOtpValue(value);
+                    setOtpError("");
+                  }}
+                  disabled={otpLoading}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+
+            {otpError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{otpError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={closeOtpModal}
+                disabled={otpLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={verifyOtp}
+                disabled={otpLoading || otpValue.length !== 6}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {otpLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    ✅ Verify & Confirm
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <Button
+                variant="link"
+                size="sm"
+                className="text-xs text-gray-500"
+                onClick={() => {
+                  // In a real app, this would resend the OTP
+                  alert("In a real implementation, this would resend the OTP to your mobile number.");
+                }}
+              >
+                Didn't receive OTP? Resend
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
