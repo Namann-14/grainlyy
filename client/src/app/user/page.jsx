@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import { User, CreditCard, CheckCircle2, AlertCircle, Package, Users, Store, Wallet, Calendar, BarChart2, ShieldAlert } from "lucide-react";
@@ -78,9 +78,14 @@ function getMergedABI() {
   return mergedABI;
 }
 
-export default function ConsumerDashboard() {
+// Component to handle search params - must be wrapped in Suspense
+function SearchParamsHandler({ children }) {
   const searchParams = useSearchParams();
   const aadhaar = searchParams.get("aadhaar");
+  return children({ aadhaar });
+}
+
+function ConsumerDashboard({ aadhaar }) {
   const { t } = useTranslation();
 
   const [loading, setLoading] = useState(true);
@@ -868,5 +873,33 @@ Please try with a registered Aadhaar number.`);
 
       <CallTranscriptWidget />
     </div>
+  );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-200 rounded"></div>
+          ))}
+        </div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component with Suspense wrapper
+export default function UserPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SearchParamsHandler>
+        {({ aadhaar }) => <ConsumerDashboard aadhaar={aadhaar} />}
+      </SearchParamsHandler>
+    </Suspense>
   );
 }
